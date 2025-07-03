@@ -60,8 +60,8 @@ class ServerConfig:
             self.project_root / 'topics.csv',
             self.project_root / 'data' / 'topics.csv',
             Path('topics.csv'),
-            Path('data/topics.csv'),
-            Path('../topics.csv'),
+            Path('../data/topics.csv'),
+            Path('../../topics.csv'),
             Path('../../topics.csv')
         ]
 
@@ -143,7 +143,7 @@ class ServerConfig:
             # Check .env file
             env_files = [
                 Path('.env'),
-                Path('../.env'),
+                Path('../../.env'),
                 Path('../../.env'),
                 self.project_root / '.env'
             ]
