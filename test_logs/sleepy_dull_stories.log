@@ -1,0 +1,21 @@
+2025-06-14 21:46:00 | sleepy_dull_stories.logger | INFO     | setup_logger    | 🚀 Logging sistemi başlatıldı
+2025-06-14 21:46:00 | sleepy_dull_stories.logger | INFO     | setup_logger    | 📊 Log seviyesi: DEBUG
+2025-06-14 21:46:00 | sleepy_dull_stories.logger | INFO     | setup_logger    | 📁 Log dizini: test_logs
+2025-06-14 21:46:00 | test_logger          | DEBUG    | test_logging_system | 🧪 Debug test mesajı
+2025-06-14 21:46:00 | test_logger          | INFO     | test_logging_system | ℹ️ Info test mesajı
+2025-06-14 21:46:00 | test_logger          | WARNING  | test_logging_system | ⚠️ Warning test mesajı
+2025-06-14 21:46:00 | test_logger          | ERROR    | test_logging_system | ❌ Error test mesajı
+2025-06-14 21:46:00 | sleepy_dull_stories.api_calls | INFO     | log_api_call    | ✅ Claude API | messages.create | 2.50s
+2025-06-14 21:46:00 | sleepy_dull_stories.api_calls | ERROR    | log_api_call    | ❌ OpenAI API | chat.completions | 1.80s | Status: failed
+2025-06-14 21:46:00 | sleepy_dull_stories.file_operations | INFO     | log_file_operation | 📁 CREATE: test_file.mp3 | 15.2MB | 0.80s
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow | INFO     | log_workflow_step | 🚀 story_generation | STARTED | Test topic
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow | INFO     | log_workflow_step | ✅ story_generation | COMPLETED | 0.0s | 500 words generated
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow | INFO     | log_workflow_step | 🚀 tts_generation | STARTED
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow | ERROR    | log_workflow_step | ❌ tts_generation | FAILED | 0.0s | API rate limit
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow.test_workflow | INFO     | workflow_complete | 🏁 test_workflow tamamlandı
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow.test_workflow | INFO     | workflow_complete | ⏱️ Toplam süre: 0.0s
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow.test_workflow | INFO     | workflow_complete | ✅ Başarılı: 1, ❌ Başarısız: 1
+2025-06-14 21:46:00 | sleepy_dull_stories.context | INFO     | __enter__       | 🚀 Starting: Test Context Block
+2025-06-14 21:46:00 | test_logger          | INFO     | test_logging_system | Context içinde çalışıyor
+2025-06-14 21:46:00 | sleepy_dull_stories.context | INFO     | __exit__        | ✅ Completed: Test Context Block (0.00s)
+2025-06-14 21:46:00 | sleepy_dull_stories.performance | INFO     | wrapper         | ⚡ test_function completed in 0.11s

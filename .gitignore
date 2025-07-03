@@ -1,0 +1,31 @@
+# Video/Audio files
+*.mp4
+*.mp3
+*.wav
+*.avi
+*.mov
+
+# Images  
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Generated content
+output/
+test_outputs/
+data/
+temp/
+cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Config
+.env
+*.key
+secrets/

@@ -1,0 +1,3 @@
+2025-06-14 21:46:00 | test_logger          | ERROR    | test_logging_system | ❌ Error test mesajı
+2025-06-14 21:46:00 | sleepy_dull_stories.api_calls | ERROR    | log_api_call    | ❌ OpenAI API | chat.completions | 1.80s | Status: failed
+2025-06-14 21:46:00 | sleepy_dull_stories.workflow | ERROR    | log_workflow_step | ❌ tts_generation | FAILED | 0.0s | API rate limit
