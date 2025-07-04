@@ -1,19 +1,20 @@
 """
-Professional Production Dashboard - Real-time Web Interface
-Location: src/dashboard/production_dashboard.py
+Professional Production Dashboard - Server Optimized Version
+Location: src/dashboard/production_dashboard_server.py
 """
 
 import sqlite3
 import json
 import psutil
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template_string, jsonify, request
 from typing import Dict, List, Any
 
 
-class ProductionDashboard:
-    """Professional production monitoring dashboard"""
+class ProductionDashboardServer:
+    """Server-optimized production monitoring dashboard"""
 
     def __init__(self, db_path: str = None):
         if db_path is None:
@@ -22,9 +23,14 @@ class ProductionDashboard:
         else:
             self.db_path = Path(db_path)
 
-        self.app = Flask(__name__,
-                         template_folder='templates',
-                         static_folder='static')
+        self.app = Flask(__name__)
+        self.app.config['SECRET_KEY'] = 'sleepy-dull-stories-dashboard-2025'
+
+        # Server optimizations
+        self.app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 300  # 5 min cache
+
+        # Dashboard HTML template as string (no external files needed)
+        self.html_template = self._get_html_template()
 
         self.setup_routes()
 
@@ -34,7 +40,12 @@ class ProductionDashboard:
         @self.app.route('/')
         def dashboard():
             """Main dashboard page"""
-            return render_template('dashboard.html')
+            return render_template_string(self.html_template)
+
+        @self.app.route('/production/status')
+        def production_status():
+            """Production status page (alternative URL)"""
+            return render_template_string(self.html_template)
 
         @self.app.route('/api/status')
         def api_status():
@@ -51,17 +62,35 @@ class ProductionDashboard:
             """Get current system metrics"""
             return jsonify(self.get_system_metrics())
 
-        @self.app.route('/api/logs/<int:video_id>')
-        def api_video_logs(video_id):
-            """Get video production logs"""
-            return jsonify(self.get_video_logs(video_id))
+        @self.app.route('/api/health')
+        def api_health():
+            """Health check endpoint"""
+            return jsonify({
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "database": str(self.db_path),
+                "database_exists": self.db_path.exists()
+            })
 
     def get_dashboard_data(self) -> Dict:
-        """Get comprehensive dashboard data"""
+        """Get comprehensive dashboard data with error handling"""
 
         try:
-            with sqlite3.connect(self.db_path, timeout=10) as conn:
+            # Ensure database exists
+            if not self.db_path.exists():
+                return {
+                    "timestamp": datetime.now().isoformat(),
+                    "error": "Database not found",
+                    "status": "error"
+                }
+
+            with sqlite3.connect(self.db_path, timeout=30) as conn:
                 conn.row_factory = sqlite3.Row
+
+                # Enable WAL mode for better concurrency
+                conn.execute('PRAGMA journal_mode=WAL;')
+                conn.execute('PRAGMA synchronous=NORMAL;')
+
                 cursor = conn.cursor()
 
                 # Get active productions
@@ -69,6 +98,7 @@ class ProductionDashboard:
                     SELECT * FROM video_production 
                     WHERE status IN ('pending', 'in_progress') 
                     ORDER BY created_at DESC
+                    LIMIT 10
                 """)
                 active_productions = [dict(row) for row in cursor.fetchall()]
 
@@ -89,13 +119,14 @@ class ProductionDashboard:
                         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_today,
                         SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_today,
                         SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_today,
-                        SUM(api_calls_used) as total_api_calls,
-                        AVG(total_duration_seconds) as avg_duration
+                        COALESCE(SUM(api_calls_used), 0) as total_api_calls,
+                        COALESCE(AVG(total_duration_seconds), 0) as avg_duration
                     FROM video_production 
                     WHERE DATE(created_at) = ?
                 """, (today,))
 
-                stats = dict(cursor.fetchone())
+                stats_row = cursor.fetchone()
+                stats = dict(stats_row) if stats_row else {}
 
                 # Get system info
                 system_info = self.get_current_system_info()
@@ -120,7 +151,7 @@ class ProductionDashboard:
         """Get detailed video production information"""
 
         try:
-            with sqlite3.connect(self.db_path, timeout=10) as conn:
+            with sqlite3.connect(self.db_path, timeout=30) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
@@ -142,23 +173,9 @@ class ProductionDashboard:
 
                 stages = [dict(row) for row in cursor.fetchall()]
 
-                # Get quality gates
-                cursor.execute("""
-                    SELECT * FROM quality_gate_results 
-                    WHERE video_id = ? 
-                    ORDER BY checked_at DESC
-                """, (video_id,))
-
-                quality_gates = [dict(row) for row in cursor.fetchall()]
-
-                # Calculate progress
-                progress = self._calculate_video_progress(dict(video))
-
                 return {
                     "video": dict(video),
                     "stages": stages,
-                    "quality_gates": quality_gates,
-                    "progress": progress,
                     "files_generated": json.loads(video["files_generated"] or "[]")
                 }
 
@@ -169,86 +186,7 @@ class ProductionDashboard:
         """Get current system metrics"""
 
         try:
-            # Current system info
-            current = self.get_current_system_info()
-
-            # Historical data from database
-            with sqlite3.connect(self.db_path, timeout=10) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-
-                # Get last 24 hours of metrics
-                since = datetime.now() - timedelta(hours=24)
-                cursor.execute("""
-                    SELECT * FROM system_metrics 
-                    WHERE timestamp > ? 
-                    ORDER BY timestamp DESC 
-                    LIMIT 100
-                """, (since,))
-
-                historical = [dict(row) for row in cursor.fetchall()]
-
-            return {
-                "current": current,
-                "historical": historical,
-                "timestamp": datetime.now().isoformat()
-            }
-
-        except Exception as e:
-            return {"error": str(e)}
-
-    def get_video_logs(self, video_id: int) -> Dict:
-        """Get video production logs"""
-
-        try:
-            with sqlite3.connect(self.db_path, timeout=10) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-
-                # Get stage executions with details
-                cursor.execute("""
-                    SELECT 
-                        stage_name,
-                        status,
-                        started_at,
-                        completed_at,
-                        duration_seconds,
-                        api_calls,
-                        quality_score,
-                        error_message,
-                        error_details
-                    FROM stage_execution 
-                    WHERE video_id = ? 
-                    ORDER BY created_at
-                """, (video_id,))
-
-                stage_logs = [dict(row) for row in cursor.fetchall()]
-
-                # Get quality gate logs
-                cursor.execute("""
-                    SELECT 
-                        stage_name,
-                        gate_type,
-                        passed,
-                        score,
-                        threshold,
-                        failure_reasons,
-                        recommendations,
-                        checked_at
-                    FROM quality_gate_results 
-                    WHERE video_id = ? 
-                    ORDER BY checked_at
-                """, (video_id,))
-
-                quality_logs = [dict(row) for row in cursor.fetchall()]
-
-                return {
-                    "video_id": video_id,
-                    "stage_logs": stage_logs,
-                    "quality_logs": quality_logs,
-                    "timestamp": datetime.now().isoformat()
-                }
-
+            return self.get_current_system_info()
         except Exception as e:
             return {"error": str(e)}
 
@@ -281,55 +219,10 @@ class ProductionDashboard:
         except Exception as e:
             return {"error": str(e)}
 
-    def _calculate_video_progress(self, video: Dict) -> Dict:
-        """Calculate video production progress"""
+    def _get_html_template(self) -> str:
+        """Get dashboard HTML template as string"""
 
-        stages = [
-            "story_generation",
-            "character_extraction",
-            "visual_generation",
-            "tts_generation",
-            "video_composition",
-            "youtube_upload"
-        ]
-
-        completed = 0
-        in_progress = 0
-
-        for stage in stages:
-            status = video.get(f"{stage}_status", "pending")
-            if status == "completed":
-                completed += 1
-            elif status == "in_progress":
-                in_progress += 1
-
-        total_progress = (completed + in_progress * 0.5) / len(stages)
-
-        return {
-            "total_progress": round(total_progress, 2),
-            "completed_stages": completed,
-            "in_progress_stages": in_progress,
-            "pending_stages": len(stages) - completed - in_progress,
-            "current_stage": video.get("current_stage", "pending")
-        }
-
-    def run(self, host='0.0.0.0', port=5000, debug=True):
-        """Run the dashboard server"""
-
-        print(f"🎛️  Starting Production Dashboard")
-        print(f"🌐 URL: http://{host}:{port}")
-        print(f"📊 Database: {self.db_path}")
-
-        self.app.run(host=host, port=port, debug=debug)
-
-
-def create_dashboard_template():
-    """Create basic HTML template for dashboard"""
-
-    template_dir = Path("src/dashboard/templates")
-    template_dir.mkdir(parents=True, exist_ok=True)
-
-    html_content = '''<!DOCTYPE html>
+        return '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -366,19 +259,6 @@ def create_dashboard_template():
         .status-completed { color: #22d3ee; }
         .status-failed { color: #f87171; }
         .status-pending { color: #fbbf24; }
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #444;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 0.5rem 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            transition: width 0.3s ease;
-        }
         .video-item {
             background: #333;
             border-radius: 8px;
@@ -420,6 +300,13 @@ def create_dashboard_template():
             margin-top: 2rem; 
             font-size: 0.9rem; 
         }
+        .error-message {
+            background: #dc2626;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
@@ -430,26 +317,24 @@ def create_dashboard_template():
     <div class="container">
         <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Data</button>
 
+        <div id="error-container"></div>
+
         <div class="grid">
-            <!-- Today's Statistics -->
             <div class="card">
                 <h3>📊 Today's Production</h3>
                 <div id="today-stats">Loading...</div>
             </div>
 
-            <!-- System Metrics -->
             <div class="card">
                 <h3>🖥️ System Status</h3>
                 <div id="system-metrics">Loading...</div>
             </div>
 
-            <!-- Active Productions -->
             <div class="card">
                 <h3>🔄 Active Productions</h3>
                 <div id="active-productions">Loading...</div>
             </div>
 
-            <!-- Recent Completed -->
             <div class="card">
                 <h3>✅ Recent Completed</h3>
                 <div id="recent-completed">Loading...</div>
@@ -465,22 +350,29 @@ def create_dashboard_template():
                 const response = await fetch('/api/status');
                 const data = await response.json();
 
+                document.getElementById('error-container').innerHTML = '';
+
                 if (data.error) {
-                    console.error('Dashboard error:', data.error);
+                    showError(data.error);
                     return;
                 }
 
-                updateTodayStats(data.today_stats);
-                updateSystemMetrics(data.system_info);
-                updateActiveProductions(data.active_productions);
-                updateRecentCompleted(data.recent_completed);
+                updateTodayStats(data.today_stats || {});
+                updateSystemMetrics(data.system_info || {});
+                updateActiveProductions(data.active_productions || []);
+                updateRecentCompleted(data.recent_completed || []);
 
                 document.getElementById('last-updated').textContent = 
                     `Last updated: ${new Date().toLocaleTimeString()}`;
 
             } catch (error) {
-                console.error('Failed to fetch dashboard data:', error);
+                showError(`Failed to fetch data: ${error.message}`);
             }
+        }
+
+        function showError(message) {
+            document.getElementById('error-container').innerHTML = 
+                `<div class="error-message">❌ ${message}</div>`;
         }
 
         function updateTodayStats(stats) {
@@ -505,10 +397,6 @@ def create_dashboard_template():
                     <span class="stat-label">API Calls</span>
                     <span class="stat-value">${stats.total_api_calls || 0}</span>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Avg Duration</span>
-                    <span class="stat-value">${Math.round(stats.avg_duration || 0)}s</span>
-                </div>
             `;
             document.getElementById('today-stats').innerHTML = html;
         }
@@ -520,28 +408,26 @@ def create_dashboard_template():
                 return;
             }
 
+            const cpu = system.cpu || {};
+            const memory = system.memory || {};
+            const disk = system.disk || {};
+
             const html = `
                 <div class="system-metric">
                     <span>CPU Usage</span>
-                    <div class="metric-circle" style="background: conic-gradient(#667eea ${system.cpu.usage_percent * 3.6}deg, #444 0deg)">
-                        ${system.cpu.usage_percent}%
+                    <div class="metric-circle" style="background: conic-gradient(#667eea ${(cpu.usage_percent || 0) * 3.6}deg, #444 0deg)">
+                        ${cpu.usage_percent || 0}%
                     </div>
                 </div>
                 <div class="system-metric">
                     <span>Memory Usage</span>
-                    <div class="metric-circle" style="background: conic-gradient(#764ba2 ${system.memory.usage_percent * 3.6}deg, #444 0deg)">
-                        ${system.memory.usage_percent}%
-                    </div>
-                </div>
-                <div class="system-metric">
-                    <span>Disk Usage</span>
-                    <div class="metric-circle" style="background: conic-gradient(#f87171 ${system.disk.usage_percent * 3.6}deg, #444 0deg)">
-                        ${system.disk.usage_percent}%
+                    <div class="metric-circle" style="background: conic-gradient(#764ba2 ${(memory.usage_percent || 0) * 3.6}deg, #444 0deg)">
+                        ${memory.usage_percent || 0}%
                     </div>
                 </div>
                 <div class="stat">
                     <span class="stat-label">Memory</span>
-                    <span class="stat-value">${system.memory.used_gb}GB / ${system.memory.total_gb}GB</span>
+                    <span class="stat-value">${memory.used_gb || 0}GB / ${memory.total_gb || 0}GB</span>
                 </div>
             `;
             document.getElementById('system-metrics').innerHTML = html;
@@ -556,13 +442,10 @@ def create_dashboard_template():
 
             const html = productions.map(video => `
                 <div class="video-item">
-                    <div class="video-title">${video.topic}</div>
+                    <div class="video-title">${video.topic || 'Unknown Topic'}</div>
                     <div class="video-meta">
                         Status: <span class="status-${video.status}">${video.status}</span> | 
-                        Stage: ${video.current_stage}
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${calculateProgress(video)}%"></div>
+                        Stage: ${video.current_stage || 'pending'}
                     </div>
                 </div>
             `).join('');
@@ -579,27 +462,15 @@ def create_dashboard_template():
 
             const html = videos.map(video => `
                 <div class="video-item">
-                    <div class="video-title">${video.topic}</div>
+                    <div class="video-title">${video.topic || 'Unknown Topic'}</div>
                     <div class="video-meta">
-                        Completed: ${new Date(video.completed_at).toLocaleTimeString()} | 
+                        Completed: ${video.completed_at ? new Date(video.completed_at).toLocaleTimeString() : 'Unknown'} | 
                         Duration: ${Math.round(video.total_duration_seconds || 0)}s
                     </div>
                 </div>
             `).join('');
 
             document.getElementById('recent-completed').innerHTML = html;
-        }
-
-        function calculateProgress(video) {
-            const stages = ['story_generation', 'character_extraction', 'visual_generation', 
-                          'tts_generation', 'video_composition', 'youtube_upload'];
-            let completed = 0;
-
-            stages.forEach(stage => {
-                if (video[stage + '_status'] === 'completed') completed++;
-            });
-
-            return Math.round((completed / stages.length) * 100);
         }
 
         function refreshDashboard() {
@@ -615,40 +486,43 @@ def create_dashboard_template():
 </body>
 </html>'''
 
-    template_path = template_dir / "dashboard.html"
-    with open(template_path, 'w', encoding='utf-8') as f:
-        f.write(html_content)
+    def run_server(self, host='0.0.0.0', port=5000, debug=False):
+        """Run the dashboard server (production mode)"""
 
-    print(f"✅ Dashboard template created: {template_path}")
+        print(f"🎛️  Starting Production Dashboard Server")
+        print(f"🌐 URL: http://{host}:{port}")
+        print(f"📊 Database: {self.db_path}")
+        print(f"🔧 Mode: {'Debug' if debug else 'Production'}")
+
+        self.app.run(host=host, port=port, debug=debug, threaded=True)
 
 
 def main():
-    """Main dashboard function"""
+    """Main function for server dashboard"""
 
-    print("🎛️  Professional Production Dashboard Setup")
-    print("=" * 50)
+    print("🎛️  Sleepy Dull Stories - Production Dashboard Server")
+    print("=" * 60)
 
-    # Create template
-    create_dashboard_template()
-
-    # Initialize dashboard
-    dashboard = ProductionDashboard()
+    dashboard = ProductionDashboardServer()
 
     print("\n🔧 Dashboard Features:")
     print("• Real-time production monitoring")
     print("• System resource tracking")
-    print("• Video progress visualization")
-    print("• API endpoints for data")
-    print("• Auto-refresh every 30 seconds")
+    print("• Error handling and recovery")
+    print("• Server-optimized performance")
+    print("• No external template dependencies")
 
-    print("\n🌐 Starting dashboard server...")
-    print("📊 Access dashboard at: http://localhost:5000")
+    print("\n🌐 Starting server...")
+    print("📊 Access: http://server-ip:5000")
+    print("🏥 Health: http://server-ip:5000/api/health")
     print("🔄 Press Ctrl+C to stop")
 
     try:
-        dashboard.run(host='0.0.0.0', port=5000, debug=False)
+        dashboard.run_server(host='0.0.0.0', port=5000, debug=False)
     except KeyboardInterrupt:
-        print("\n👋 Dashboard stopped")
+        print("\n👋 Dashboard server stopped")
+    except Exception as e:
+        print(f"\n❌ Server error: {e}")
 
 
 if __name__ == "__main__":
