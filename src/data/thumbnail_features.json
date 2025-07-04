@@ -1,0 +1,929 @@
+{
+  "thumbnail_template": {
+    "layout": {
+      "width": 1280,
+      "height": 720,
+      "type": "left_aligned"
+    },
+    "sections": {
+      "shocking_word": {
+        "position": "top_left",
+        "x_offset": 40,
+        "y_offset": 40,
+        "font_family": "Poppins-Bold",
+        "font_size": 115,
+        "effects": {
+          "glow": true,
+          "glow_color": "#ffff00",
+          "glow_radius": 4
+        }
+      },
+      "main_title": {
+        "position": "left_center",
+        "x_offset": 50,
+        "y_start": 180,
+        "line_height": 80,
+        "font_family": "CrimsonText-Bold",
+        "font_size": 75,
+        "max_lines": 4,
+        "effects": {
+          "shadow": true,
+          "shadow_color": "#000000",
+          "shadow_offset": [
+            3,
+            3
+          ]
+        }
+      },
+      "bottom_text": {
+        "position": "left_bottom",
+        "x_offset": 50,
+        "y_start": 480,
+        "line_height": 60,
+        "font_family": "CrimsonText-Italic",
+        "font_size": 65,
+        "max_lines": 2,
+        "effects": {
+          "shadow": true,
+          "shadow_color": "#8b4513",
+          "shadow_offset": [
+            2,
+            2
+          ]
+        }
+      },
+      "channel": {
+        "position": "bottom_left",
+        "x_offset": 50,
+        "y_offset": 65,
+        "font_family": "Lora-VariableFont",
+        "font_size": 40,
+        "color": "#e6d8b4"
+      }
+    }
+  },
+  "topics": [
+    {
+      "id": 1,
+      "topic": "Pompeii's Final Night",
+      "sections": {
+        "shocking_word": {
+          "text": "SHOCKING!",
+          "color": "#ff0000"
+        },
+        "main_title": {
+          "lines": [
+            "What Pompeii Citizens",
+            "Did in Their",
+            "FINAL HOURS"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Will Leave You",
+            "SPEECHLESS! \ud83d\ude31"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "topic": "The Last Librarian of Alexandria",
+      "sections": {
+        "shocking_word": {
+          "text": "HEARTBREAKING!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The LAST LIBRARIAN",
+            "of Alexandria Burned",
+            "with Her Books"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "History\u2019s Saddest",
+            "Goodbye"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "topic": "Byzantine Emperor's Final Words",
+      "sections": {
+        "shocking_word": {
+          "text": "UNBELIEVABLE!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "Byzantine Emperor\u2019s",
+            "FINAL WORDS Before",
+            "the Fall"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Will STUN",
+            "You!"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "topic": "Cleopatra's DARKEST SECRET Revealed",
+      "sections": {
+        "shocking_word": {
+          "text": "EXPOSED!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "Cleopatra\u2019s",
+            "DARKEST SECRET",
+            "Revealed in Her",
+            "Final Letter"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "The Truth is",
+            "UNTHINKABLE"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "topic": "What Third-Class Passengers ACTUALLY Did Aboard the Titanic",
+      "sections": {
+        "shocking_word": {
+          "text": "TERRIFYING!",
+          "color": "#228b22"
+        },
+        "main_title": {
+          "lines": [
+            "What Third-Class",
+            "Passengers ACTUALLY",
+            "Did Aboard the",
+            "Titanic"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "And Why They Were",
+            "Locked Below"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "topic": "London Baker's ONE MISTAKE That Changed History Forever",
+      "sections": {
+        "shocking_word": {
+          "text": "MIND-BLOWING!",
+          "color": "#ff8c00"
+        },
+        "main_title": {
+          "lines": [
+            "London Baker\u2019s",
+            "ONE MISTAKE That",
+            "Changed History",
+            "Forever"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "The Fire Started",
+            "with a LOAF of Bread"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "topic": "What Marie Antoinette Did Her LAST DAY Will Leave You SHOCKED!",
+      "sections": {
+        "shocking_word": {
+          "text": "SCANDALOUS!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "What Marie Antoinette",
+            "Did Her LAST DAY",
+            "Before Execution"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Will Leave You",
+            "SHOCKED!"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "topic": "Scientists Finally Reveal What ACTUALLY Happened to the Dinosaurs",
+      "sections": {
+        "shocking_word": {
+          "text": "INCREDIBLE!",
+          "color": "#228b22"
+        },
+        "main_title": {
+          "lines": [
+            "Scientists Finally",
+            "Reveal What ACTUALLY",
+            "Happened to the",
+            "Dinosaurs"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Not What You\u2019ve",
+            "Been Told!"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "topic": "Medieval Doctor's HORRIFYING Diary And the Truth About the Plague",
+      "sections": {
+        "shocking_word": {
+          "text": "CHILLING!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "Medieval Doctor\u2019s",
+            "HORRIFYING Diary and",
+            "the Truth About the",
+            "Plague"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Dark Secrets Buried",
+            "with the Dead"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "topic": "The REAL REASON Babylon's Gardens Vanished Forever",
+      "sections": {
+        "shocking_word": {
+          "text": "MYSTERIOUS!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "The REAL REASON",
+            "Babylon\u2019s Gardens",
+            "Vanished",
+            "Forever"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "It Wasn\u2019t Just",
+            "Time or War"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "topic": "The MYSTERY of Mona Lisa\u2019s MISSING Years Finally SOLVED!",
+      "sections": {
+        "shocking_word": {
+          "text": "REVEALED!",
+          "color": "#ff8c00"
+        },
+        "main_title": {
+          "lines": [
+            "The MYSTERY of",
+            "Mona Lisa\u2019s",
+            "MISSING Years",
+            "Finally SOLVED!"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Hidden in Plain",
+            "Sight All Along"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "topic": "Einstein's SHOCKING Confession That Was Hidden for 50 Years!",
+      "sections": {
+        "shocking_word": {
+          "text": "ASTONISHING!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "Einstein\u2019s SHOCKING",
+            "Confession That Was",
+            "Hidden for",
+            "50 Years!"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "This Changes",
+            "Everything We Knew"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "topic": "The Plague Ship That REACHED America \u2013 And Nobody Talked About It",
+      "sections": {
+        "shocking_word": {
+          "text": "FORGOTTEN!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "The Plague Ship That",
+            "REACHED America \u2013",
+            "And Nobody",
+            "Talked About It"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Buried by",
+            "Silence & Fear"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "topic": "The Roman Emperor Who ERASED Himself from History \u2013 But Why?",
+      "sections": {
+        "shocking_word": {
+          "text": "UNTHINKABLE!",
+          "color": "#228b22"
+        },
+        "main_title": {
+          "lines": [
+            "The Roman Emperor",
+            "Who ERASED Himself",
+            "from History \u2013",
+            "But Why?"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "The Vanishing of",
+            "His Own Name"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "topic": "The SECRET MAP Crusaders Followed \u2013 And Its Hidden Message",
+      "sections": {
+        "shocking_word": {
+          "text": "CRYPTIC!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The SECRET MAP",
+            "Crusaders Followed \u2013",
+            "And Its Hidden",
+            "Message"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "An Ancient Code",
+            "Still Unbroken"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "topic": "The Secret Behind the Mona Lisa's Smile Is Not What You Think",
+      "sections": {
+        "shocking_word": {
+          "text": "SURPRISING!",
+          "color": "#ff0000"
+        },
+        "main_title": {
+          "lines": [
+            "The Secret Behind the",
+            "Mona Lisa\u2019s Smile",
+            "Is Not What",
+            "You Think"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "A Hidden Detail",
+            "Rewrites Everything"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "topic": "The Man Who Lived Through Pompeii, 9/11 and Hiroshima (Not a Joke)",
+      "sections": {
+        "shocking_word": {
+          "text": "IMPOSSIBLE!",
+          "color": "#ff8c00"
+        },
+        "main_title": {
+          "lines": [
+            "The Man Who Lived",
+            "Through Pompeii,",
+            "9/11 and Hiroshima"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "This Is Not",
+            "a Joke"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "topic": "Da Vinci's Book of Machines Was Locked Away for Centuries",
+      "sections": {
+        "shocking_word": {
+          "text": "HIDDEN!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "Da Vinci\u2019s Book of",
+            "Machines Was",
+            "Locked Away",
+            "for Centuries"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "A Genius 400 Years",
+            "Too Early"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "topic": "The Shortest War in History Lasted Just 38 Minutes",
+      "sections": {
+        "shocking_word": {
+          "text": "RIDICULOUS!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "The Shortest War in",
+            "History Lasted Just",
+            "38 Minutes"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "A War That Ended",
+            "Before Lunch"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "topic": "The Vatican Has a SECRET Astronomer Watching the Skies",
+      "sections": {
+        "shocking_word": {
+          "text": "UNSEEN!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The Vatican Has a",
+            "SECRET Astronomer",
+            "Watching the",
+            "Skies"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "What Is the Church",
+            "Looking For?"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "topic": "The Pharaoh's Architect Who Vanished After Finishing the Tomb",
+      "sections": {
+        "shocking_word": {
+          "text": "VANISHED!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "The Pharaoh\u2019s",
+            "Architect Who",
+            "Vanished After",
+            "Finishing the Tomb"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Some Say He Was",
+            "Sealed Inside"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "topic": "The Time Capsule That Should Have Remained Buried Forever",
+      "sections": {
+        "shocking_word": {
+          "text": "UNEARTHED!",
+          "color": "#ff0000"
+        },
+        "main_title": {
+          "lines": [
+            "The Time Capsule",
+            "That Should Have",
+            "Remained Buried",
+            "Forever"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "What They Found",
+            "Shocked Everyone"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "topic": "The Medieval Monk Who Predicted Our Future With Alarming Accuracy",
+      "sections": {
+        "shocking_word": {
+          "text": "PROPHETIC!",
+          "color": "#228b22"
+        },
+        "main_title": {
+          "lines": [
+            "The Medieval Monk",
+            "Who Predicted Our",
+            "Future With Alarming",
+            "Accuracy"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "He Spoke of Things",
+            "We Use Today"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "topic": "The Queen History Tried to Forget \u2013 and Almost Did",
+      "sections": {
+        "shocking_word": {
+          "text": "ERASED!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The Queen History",
+            "Tried to Forget \u2013",
+            "and Almost Did"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Only One Statue",
+            "Remains"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "topic": "The Inventor Who Destroyed His Work Before the World Could Use It",
+      "sections": {
+        "shocking_word": {
+          "text": "SABOTAGED!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "The Inventor Who",
+            "Destroyed His Work",
+            "Before the World",
+            "Could Use It"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "His Machine Could",
+            "Have Changed History"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "topic": "The Forgotten Train Hidden Beneath the Streets of Paris",
+      "sections": {
+        "shocking_word": {
+          "text": "BURIED!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "The Forgotten Train",
+            "Hidden Beneath the",
+            "Streets of",
+            "Paris"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "No One Knows",
+            "Where It Was Headed"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "topic": "The Silent Rebellion of the Candle Makers that Changed the Empire",
+      "sections": {
+        "shocking_word": {
+          "text": "OVERLOOKED!",
+          "color": "#ff8c00"
+        },
+        "main_title": {
+          "lines": [
+            "The Silent Rebellion",
+            "of the Candle Makers",
+            "that Changed",
+            "the Empire"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "One Strike Lit",
+            "the Fire of Change"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "topic": "The Castle That Was Never Finished \u2013 and the Architect Who Disappeared",
+      "sections": {
+        "shocking_word": {
+          "text": "INCOMPLETE!",
+          "color": "#4169e1"
+        },
+        "main_title": {
+          "lines": [
+            "The Castle That",
+            "Was Never Finished \u2013",
+            "and the Architect",
+            "Who Disappeared"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "His Blueprints Were",
+            "Erased from History"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "topic": "The Bell Built for a Forgotten King That Never Rang",
+      "sections": {
+        "shocking_word": {
+          "text": "SILENCED!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The Bell Built for a",
+            "Forgotten King",
+            "That Never",
+            "Rang"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Legends Say Its Sound",
+            "Would Doom a City"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "topic": "The Unknown Mapmaker Who May Have Known About Atlantis",
+      "sections": {
+        "shocking_word": {
+          "text": "DISCOVERED!",
+          "color": "#228b22"
+        },
+        "main_title": {
+          "lines": [
+            "The Unknown Mapmaker",
+            "Who May Have Known",
+            "About Atlantis"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "One Map Changed",
+            "Everything We Believed"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    }
+  ]
+}
