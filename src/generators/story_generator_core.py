@@ -1223,3 +1223,27 @@ OUTPUT FORMAT: Complete JSON with thumbnail_prompt, alternatives, and stats...""
             print(f"Story extraction error: {e}")
 
         return stories
+
+
+if __name__ == "__main__":
+    print("🚀 SMART AUTOMATED STORY GENERATOR STARTED")
+
+    # Config ve DB setup
+    from story_generator_utils import ServerConfig, DatabaseTopicManager
+
+    CONFIG = ServerConfig()
+
+    topic_id, topic, description, clickbait_title, font_design = DatabaseTopicManager(
+        CONFIG.paths["DATA_DIR"] + "/production.db").get_next_pending_topic()
+    print(f"✅ Topic: {topic}")
+
+    # Generator başlat
+    generator = AutomatedStoryGenerator(CONFIG)
+
+    # Üretim
+    result = generator.generate_complete_story_with_characters(
+        topic, description, clickbait_title, font_design
+    )
+
+    print("✅ Story generation finished!")
+    # İstersen burada kaydetme veya dosyaya yazma kodunu da ekle
