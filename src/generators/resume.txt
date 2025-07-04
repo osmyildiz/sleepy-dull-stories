@@ -51,66 +51,6 @@ GitHub: https://github.com/osmyildiz/sleepy-dull-stories
 - ✅ 4-stage generation pipeline
 - ✅ Production logging system
 - ✅ Fallback systems for missing files
-
-### **3. API Integration Prepared:**
-- ✅ Claude API integration code ready
-- ✅ YouTube OAuth2 system designed (youtube_auth.py)
-- ✅ Production runner script ready
-- ✅ .env template created
-
-### **4. # SLEEPY DULL STORIES - YouTube Automation Project Context
-**Date:** July 3, 2025
-**Session Resume File:** For continuing work after session limits
-
-## 🎯 PROJECT OVERVIEW
-- **Goal:** Full automation YouTube channel "sleepy-dull-stories"
-- **Content:** AI-generated 2-hour sleep stories with character extraction & thumbnails
-- **Infrastructure:** VPS Ubuntu server (14 vCPU, 64GB RAM, 1.2TB SSD)
-- **Tech Stack:** Python 3.10, Claude API, Docker, YouTube API
-- **Automation:** Daily video production pipeline (6 AM upload schedule)
-
-## 🏗️ CURRENT SYSTEM ARCHITECTURE
-
-### **Server Configuration:**
-- **Server:** VPS Ubuntu (Termius SSH access)
-- **Location:** /home/youtube-automation/channels/sleepy-dull-stories/
-- **Python:** 3.10.18 (virtual environment active)
-- **Environment:** source activate.sh (activates venv)
-
-### **Project Structure:**
-```
-/home/youtube-automation/channels/sleepy-dull-stories/
-├── .env (API keys - need to configure)
-├── activate.sh (venv activation)
-├── src/
-│   └── generators/
-│       ├── 1_story_generator_claude.py (original local version)
-│       └── 1_story_generator_claude_server.py (NEW - ready for server)
-├── output/ (video generation results)
-├── data/ (topics.csv will be auto-created)
-├── logs/ (production logs)
-└── requirements.txt (dependencies installed)
-
-GitHub: https://github.com/osmyildiz/sleepy-dull-stories
-```
-
-## ✅ COMPLETED WORK
-
-### **1. Server Infrastructure Setup:**
-- ✅ VPS configured (Ubuntu, 14 vCPU, 64GB RAM, 1.2TB SSD)
-- ✅ Python 3.10.18 environment created
-- ✅ Virtual environment active: /home/youtube-automation/venvs/sleepy-dull-stories
-- ✅ Project structure created
-- ✅ Dependencies installed (anthropic, openai, moviepy, etc.)
-
-### **2. Code Development:**
-- ✅ Original story generator analyzed (1_story_generator_claude.py)
-- ✅ Server-ready version created (1_story_generator_claude_server.py)
-- ✅ Character extraction system
-- ✅ Thumbnail generation system
-- ✅ 4-stage generation pipeline
-- ✅ Production logging system
-- ✅ Fallback systems for missing files
 - ✅ **NEW: Intro sequence visual recommendations** (Hook + Subscribe visuals)
 
 ### **3. API Integration Prepared:**
@@ -129,22 +69,31 @@ GitHub: https://github.com/osmyildiz/sleepy-dull-stories
 ## 📋 CURRENT STATUS
 
 ### **LAST COMPLETED STEP:**
-Updated server-ready story generator (1_story_generator_claude_server.py) with MAJOR NEW FEATURE:
+**PROFESSIONAL PRODUCTION ORCHESTRATOR + DASHBOARD SETUP IN PROGRESS:**
 
-**INTRO SEQUENCE VISUAL RECOMMENDATIONS:**
-- Hook visual recommendation (0-30 seconds) - Most visually striking scene
-- Subscribe visual recommendation (30-60 seconds) - Most welcoming scene
-- Reasoning and alternatives for each choice
-- Usage instructions and timing sync
-- Separate intro_sequence_visuals.json output file
-- Critical for viewer retention and subscription optimization
+**ADIM 1 - Database Setup:** ✅ COMPLETED
+- SQLite database kuruldu (`data/production.db`)
+- Professional schema ile 4 tablo oluşturuldu
+- Sample data eklendi ve test edildi
 
-**Previous features maintained:**
+**ADIM 2 - Status Tracker System:** ✅ COMPLETED
+- ProductionStatusTracker class oluşturuldu
+- Professional enums ve lifecycle tracking
+- Stage management ve quality gates
+- System metrics monitoring
+- Comprehensive status reporting
+
+**ADIM 3 - Production Dashboard:** ⏳ IN PROGRESS
+- Flask-based real-time dashboard
+- WebSocket status updates
+- System monitoring interface
+- Database lock sorunu çözülmesi bekleniyor
+
+**Previous story generator features maintained:**
 - Server-friendly path management
-- Fallback CSV creation system
-- Production logging
-- Updated Claude model (claude-3-5-sonnet-20241022)
-- Error handling improvements
+- Intro sequence visual recommendations
+- Character extraction + thumbnail generation
+- Fallback systems and production logging
 
 ### **READY TO UPLOAD:**
 The server-ready story generator file is coded and ready to be:
@@ -154,16 +103,40 @@ The server-ready story generator file is coded and ready to be:
 
 ## 🎯 IMMEDIATE NEXT STEPS
 
-### **Step 1: Upload Updated Server-Ready Generator**
-```bash
-# In PyCharm:
-# 1. Update file: src/generators/1_story_generator_claude_server.py
-# 2. Copy the updated server-ready code with intro visual recommendations
-# 3. Git commit and push:
+## 🎯 IMMEDIATE NEXT STEPS
 
-git add src/generators/1_story_generator_claude_server.py
-git commit -m "feat: Add intro sequence visual recommendations - Hook & Subscribe visuals"
-git push origin main
+### **Step 1: Resolve Database Lock Issue**
+```bash
+# On server - Database reset:
+python -c "
+import sqlite3
+conn = sqlite3.connect('data/production.db', timeout=30)
+conn.execute('PRAGMA journal_mode=WAL;')
+conn.close()
+print('✅ Database reset')
+"
+
+# Test status tracker:
+python src/database/production_status_tracker.py
+```
+
+### **Step 2: Complete Dashboard Setup**
+```bash
+# Create Flask dashboard:
+pip install flask flask-socketio
+python src/dashboard/production_dashboard.py
+
+# Access dashboard:
+http://server-ip:5000/production/status
+```
+
+### **Step 3: Integrate with Story Generator**
+```bash
+# Test full orchestrator:
+python src/orchestrator/main.py --test
+
+# Run production with tracking:
+python src/orchestrator/main.py --topic "Roman Villa"
 ```
 
 ### **Step 2: Configure API Keys**
@@ -194,7 +167,7 @@ python src/generators/1_story_generator_claude_server.py
 - **Activation:** source activate.sh
 - **Python Version:** 3.10.18
 
-### **Dependencies Installed:**
+### **Dependencies Added:**
 - anthropic==0.7.8
 - openai==1.3.7
 - moviepy==1.0.3
@@ -203,6 +176,9 @@ python src/generators/1_story_generator_claude_server.py
 - fastapi==0.104.1
 - python-dotenv==1.0.0
 - pandas==2.0.3
+- psutil==5.9.5 (NEW - for system monitoring)
+- flask==2.3.3 (NEW - for dashboard)
+- flask-socketio==5.3.6 (NEW - for real-time updates)
 
 ### **API Requirements:**
 - **Claude API:** Primary story generation
@@ -345,214 +321,4 @@ git push origin main
 
 **Major new feature:** Intro sequence visual recommendations for Hook (0-30s) and Subscribe (30-60s) - critical for viewer retention.
 
-**Ready for:** API key configuration and first production test with enhanced visual recommendations.GitHub Integration:**
-- ✅ Repository created: osmyildiz/sleepy-dull-stories
-- ✅ Local code cleaned (removed large files)
-- ✅ Basic structure pushed to GitHub
-- ✅ Server-ready version coded and ready to upload
-
-## 📋 CURRENT STATUS
-
-### **LAST COMPLETED STEP:**
-Created server-ready story generator (1_story_generator_claude_server.py) with:
-- Server-friendly path management
-- Fallback CSV creation system
-- Production logging
-- Updated Claude model (claude-3-5-sonnet-20241022)
-- Error handling improvements
-
-### **READY TO UPLOAD:**
-The server-ready story generator file is coded and ready to be:
-1. Created in local PyCharm
-2. Pushed to GitHub
-3. Tested on server
-
-## 🎯 IMMEDIATE NEXT STEPS
-
-### **Step 1: Upload Server-Ready Generator**
-```bash
-# In PyCharm:
-# 1. Create file: src/generators/1_story_generator_claude_server.py
-# 2. Copy the server-ready code (available in last session)
-# 3. Git commit and push:
-
-git add src/generators/1_story_generator_claude_server.py
-git commit -m "feat: Add server-ready story generator"
-git push origin main
-```
-
-### **Step 2: Configure API Keys**
-```bash
-# On server:
-cd /home/youtube-automation/channels/sleepy-dull-stories
-source activate.sh
-nano .env
-
-# Add:
-CLAUDE_API_KEY=sk-ant-api03-xxxxx
-OPENAI_API_KEY=sk-xxxxx
-# (User needs to provide actual API keys)
-```
-
-### **Step 3: Test Server Generator**
-```bash
-# On server:
-git pull origin main
-python src/generators/1_story_generator_claude_server.py
-```
-
-## 🔧 TECHNICAL DETAILS
-
-### **Server Environment:**
-- **Working Directory:** /home/youtube-automation/channels/sleepy-dull-stories
-- **Python Virtual Env:** /home/youtube-automation/venvs/sleepy-dull-stories
-- **Activation:** source activate.sh
-- **Python Version:** 3.10.18
-
-### **Dependencies Installed:**
-- anthropic==0.7.8
-- openai==1.3.7
-- moviepy==1.0.3
-- pillow==10.1.0
-- opencv-python==4.8.1.78
-- fastapi==0.104.1
-- python-dotenv==1.0.0
-- pandas==2.0.3
-
-### **API Requirements:**
-- **Claude API:** Primary story generation
-- **OpenAI API:** TTS generation backup
-- **Midjourney API:** Visual generation
-- **YouTube API:** OAuth2 JSON file needed
-
-### **YouTube OAuth2:**
-- User has client secret JSON file (needs to be renamed and uploaded)
-- OAuth2 flow required for first-time authentication
-- Will create token.pickle for future use
-
-## 🚀 PRODUCTION PIPELINE (PLANNED)
-
-### **Daily Automation Flow:**
-1. **02:00** - Story generation (Claude API)
-2. **03:00** - Character & scene visual generation
-3. **04:00** - TTS audio generation
-4. **04:30** - Video composition (FFmpeg)
-5. **05:00** - Quality check & optimization
-6. **06:00** - YouTube upload (automated)
-
-### **File Output Structure:**
-```
-output/1/
-├── complete_story.txt
-├── scene_plan.json
-├── character_profiles.json
-├── visual_generation_prompts.json
-├── thumbnail_generation.json
-├── platform_metadata.json
-└── generation_report.json
-```
-
-## 🔑 API KEYS NEEDED
-
-### **Required APIs:**
-1. **Claude API Key** (Primary): CLAUDE_API_KEY=sk-ant-api03-xxxxx
-2. **OpenAI API Key** (TTS): OPENAI_API_KEY=sk-xxxxx
-3. **Midjourney API** (Visuals): MIDJOURNEY_API_KEY=xxxxx
-4. **YouTube OAuth2** (Upload): client_secret_xxxxx.json file
-
-### **API Limits & Considerations:**
-- Claude: 50 calls/hour limit
-- OpenAI: 100 calls/hour
-- YouTube: OAuth2 setup required first time
-- Rate limiting built into code
-
-## 📊 CURRENT CHALLENGES & SOLUTIONS
-
-### **Challenges Resolved:**
-- ✅ Large file GitHub push (fixed with .gitignore)
-- ✅ Server path compatibility (ServerConfig class)
-- ✅ Missing topics.csv (fallback creation system)
-- ✅ API key management (multiple sources check)
-
-### **Remaining Challenges:**
-- ⏳ API keys need to be configured
-- ⏳ YouTube OAuth2 first-time setup
-- ⏳ Test complete pipeline end-to-end
-- ⏳ Production scheduler setup
-
-## 💡 IMPORTANT NOTES
-
-### **File Management:**
-- Original local version: 1_story_generator_claude.py (works locally)
-- Server version: 1_story_generator_claude_server.py (optimized for server)
-- Both versions have same features, different path handling
-
-### **Server Commands:**
-```bash
-# Activate environment:
-cd /home/youtube-automation/channels/sleepy-dull-stories
-source activate.sh
-
-# Check Python:
-python --version  # Should show 3.10.18
-
-# Run generator:
-python src/generators/1_story_generator_claude_server.py
-
-# Check logs:
-tail -f logs/generators/story_gen_YYYYMMDD.log
-```
-
-### **GitHub Commands:**
-```bash
-# Pull latest:
-git pull origin main
-
-# Check status:
-git status
-
-# Push changes:
-git add .
-git commit -m "description"
-git push origin main
-```
-
-## 🎯 SUCCESS METRICS
-
-### **Story Generator Test Success:**
-- Generates 40 scenes
-- Creates 20+ complete stories
-- Extracts 3+ main characters
-- Generates intelligent thumbnail
-- Creates YouTube-ready metadata
-- Saves all production files
-
-### **Production Ready Indicators:**
-- API calls < 10 total
-- Generation time < 5 minutes
-- All output files created
-- No critical errors in logs
-- Character-scene mapping working
-
-## 📞 CONTACT & ACCESS
-
-### **Server Access:**
-- **Tool:** Termius SSH client
-- **User:** root@server-ip
-- **Project Path:** /home/youtube-automation/channels/sleepy-dull-stories
-
-### **GitHub:**
-- **Repo:** https://github.com/osmyildiz/sleepy-dull-stories
-- **Branch:** main
-- **Access:** Public repository
-
----
-
-## 🔄 RESUME INSTRUCTIONS
-
-**When starting new session, provide this file and ask:**
-"I'm resuming work on the YouTube automation project. Here's the context file. What's the current status and what should we do next?"
-
-**Current priority:** Upload server-ready story generator and test with API keys.
-
-**Ready for:** API key configuration and first production test.
+**Ready for:** API key configuration and first production test with enhanced visual recommendations.
