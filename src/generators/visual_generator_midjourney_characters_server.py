@@ -21,7 +21,6 @@ import logging
 # Load environment first
 load_dotenv()
 
-
 # Server Configuration Class (from story generator)
 class ServerConfig:
     """Server-friendly configuration management"""
@@ -81,10 +80,10 @@ class ServerConfig:
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
         api_key = (
-                os.getenv('PIAPI_KEY') or
-                os.getenv('MIDJOURNEY_API_KEY') or
-                os.getenv('PIAPI_API_KEY') or
-                os.getenv('MIDJOURNEY_KEY')
+            os.getenv('PIAPI_KEY') or
+            os.getenv('MIDJOURNEY_API_KEY') or
+            os.getenv('PIAPI_API_KEY') or
+            os.getenv('MIDJOURNEY_KEY')
         )
 
         if not api_key:
@@ -146,7 +145,6 @@ class ServerConfig:
 
         print("✅ All visual generator directories created/verified")
 
-
 # Initialize server config
 try:
     CONFIG = ServerConfig()
@@ -155,7 +153,6 @@ except Exception as e:
     print(f"❌ Visual Generator server configuration failed: {e}")
     sys.exit(1)
 
-
 # Database Topic Management Integration (from story generator)
 class DatabaseTopicManager:
     """Professional topic management using existing production.db"""
@@ -163,8 +160,8 @@ class DatabaseTopicManager:
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def get_completed_topic_ready_for_visuals(self) -> Optional[Tuple[int, str, str, str]]:
-        """Get completed story topic that needs visual generation"""
+    def get_completed_topic_ready_for_characters(self) -> Optional[Tuple[int, str, str, str]]:
+        """Get completed story topic that needs CHARACTER generation only"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -172,7 +169,7 @@ class DatabaseTopicManager:
             SELECT id, topic, description, output_path 
             FROM topics 
             WHERE status = 'completed' 
-            AND (visual_generation_status IS NULL OR visual_generation_status = 'pending')
+            AND (character_generation_status IS NULL OR character_generation_status = 'pending')
             ORDER BY production_completed_at ASC 
             LIMIT 1
         ''')
@@ -182,8 +179,8 @@ class DatabaseTopicManager:
 
         return result if result else None
 
-    def mark_visual_generation_started(self, topic_id: int):
-        """Mark visual generation as started"""
+    def mark_character_generation_started(self, topic_id: int):
+        """Mark character generation as started"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -191,18 +188,16 @@ class DatabaseTopicManager:
         cursor.execute('PRAGMA table_info(topics)')
         columns = [row[1] for row in cursor.fetchall()]
 
-        if 'visual_generation_status' not in columns:
-            cursor.execute('ALTER TABLE topics ADD COLUMN visual_generation_status TEXT DEFAULT "pending"')
-            cursor.execute('ALTER TABLE topics ADD COLUMN visual_generation_started_at DATETIME')
-            cursor.execute('ALTER TABLE topics ADD COLUMN visual_generation_completed_at DATETIME')
+        if 'character_generation_status' not in columns:
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_status TEXT DEFAULT "pending"')
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_started_at DATETIME')
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_completed_at DATETIME')
             cursor.execute('ALTER TABLE topics ADD COLUMN characters_generated INTEGER DEFAULT 0')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scenes_generated INTEGER DEFAULT 0')
-            cursor.execute('ALTER TABLE topics ADD COLUMN thumbnail_generated INTEGER DEFAULT 0')
 
         cursor.execute('''
             UPDATE topics 
-            SET visual_generation_status = 'in_progress', 
-                visual_generation_started_at = CURRENT_TIMESTAMP,
+            SET character_generation_status = 'in_progress', 
+                character_generation_started_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ''', (topic_id,))
@@ -210,26 +205,22 @@ class DatabaseTopicManager:
         conn.commit()
         conn.close()
 
-    def mark_visual_generation_completed(self, topic_id: int, characters_count: int,
-                                         scenes_count: int, thumbnail_generated: bool):
-        """Mark visual generation as completed"""
+    def mark_character_generation_completed(self, topic_id: int, characters_count: int):
+        """Mark character generation as completed"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         cursor.execute('''
             UPDATE topics 
-            SET visual_generation_status = 'completed',
-                visual_generation_completed_at = CURRENT_TIMESTAMP,
+            SET character_generation_status = 'completed',
+                character_generation_completed_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP,
-                characters_generated = ?,
-                scenes_generated = ?,
-                thumbnail_generated = ?
+                characters_generated = ?
             WHERE id = ?
-        ''', (characters_count, scenes_count, 1 if thumbnail_generated else 0, topic_id))
+        ''', (characters_count, topic_id))
 
         conn.commit()
         conn.close()
-
 
 class ServerMidjourneyVisualGenerator:
     """Server-ready Midjourney visual generator with database integration"""
@@ -282,13 +273,13 @@ class ServerMidjourneyVisualGenerator:
         CONFIG.logger.info(f"{step} - Status: {status} - Project: {self.current_topic_id}")
 
     def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
-        """Get next completed story project that needs visual generation"""
-        self.log_step("🔍 Finding completed story project for visual generation")
+        """Get next completed story project that needs CHARACTER generation"""
+        self.log_step("🔍 Finding completed story project for character generation")
 
-        result = self.db_manager.get_completed_topic_ready_for_visuals()
+        result = self.db_manager.get_completed_topic_ready_for_characters()
 
         if not result:
-            self.log_step("✅ No completed stories ready for visual generation", "INFO")
+            self.log_step("✅ No completed stories ready for character generation", "INFO")
             return False, None
 
         topic_id, topic, description, output_path = result
@@ -321,14 +312,14 @@ class ServerMidjourneyVisualGenerator:
         }
 
         # Mark as started in database
-        self.db_manager.mark_visual_generation_started(topic_id)
+        self.db_manager.mark_character_generation_started(topic_id)
 
         self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
         return True, project_info
 
-    def load_story_generator_outputs(self) -> Tuple[Dict, List[Dict]]:
-        """Load character profiles and visual prompts from story generator output"""
-        self.log_step("📂 Loading story generator outputs")
+    def load_character_profiles_only(self) -> Dict:
+        """Load character profiles only from story generator output"""
+        self.log_step("📂 Loading character profiles only")
 
         output_dir = Path(self.current_output_dir)
 
@@ -340,41 +331,48 @@ class ServerMidjourneyVisualGenerator:
         with open(char_profiles_path, 'r', encoding='utf-8') as f:
             character_profiles = json.load(f)
 
-        # Load visual generation prompts
-        visual_prompts_path = output_dir / "visual_generation_prompts.json"
-        if not visual_prompts_path.exists():
-            raise FileNotFoundError(f"Visual prompts not found: {visual_prompts_path}")
-
-        with open(visual_prompts_path, 'r', encoding='utf-8') as f:
-            visual_prompts = json.load(f)
-
         # Validate data
         main_characters = character_profiles.get("main_characters", [])
-        regular_scenes = [s for s in visual_prompts if s.get("scene_number", 0) != 99]
-        thumbnail_scene = next((s for s in visual_prompts if s.get("scene_number", 0) == 99), None)
 
-        self.log_step("✅ Story generator outputs loaded", "SUCCESS", {
+        self.log_step("✅ Character profiles loaded", "SUCCESS", {
             "characters_count": len(main_characters),
-            "scenes_count": len(regular_scenes),
-            "has_thumbnail": thumbnail_scene is not None,
             "marketing_characters": len([c for c in main_characters if c.get("use_in_marketing", False)])
         })
 
-        return character_profiles, visual_prompts
+        return character_profiles
 
-    def setup_generation_directories(self):
-        """Create necessary directories for visual generation"""
+    def setup_character_directories(self):
+        """Create necessary directories for character generation only"""
         output_dir = Path(self.current_output_dir)
 
         self.characters_dir = output_dir / "characters"
-        self.scenes_dir = output_dir / "scenes"
-        self.thumbnail_dir = output_dir / "thumbnail"
-
         self.characters_dir.mkdir(exist_ok=True)
-        self.scenes_dir.mkdir(exist_ok=True)
-        self.thumbnail_dir.mkdir(exist_ok=True)
 
-        self.log_step("📁 Generation directories created", "SUCCESS")
+        self.log_step("📁 Character generation directory created", "SUCCESS")
+
+    def save_character_generation_report(self):
+        """Save character generation report"""
+        output_dir = Path(self.current_output_dir)
+
+        report = {
+            "character_generation_completed": datetime.now().isoformat(),
+            "topic_id": self.current_topic_id,
+            "topic": self.current_topic,
+            "api_calls_made": self.api_calls_made,
+            "successful_downloads": self.successful_downloads,
+            "character_references_created": len(self.character_references),
+            "characters_dir": str(self.characters_dir),
+            "historical_period": self.current_historical_period,
+            "generation_log": self.generation_log,
+            "server_optimized": True,
+            "character_only_mode": True
+        }
+
+        report_path = output_dir / "character_generation_report.json"
+        with open(report_path, 'w', encoding='utf-8') as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+
+        self.log_step(f"✅ Character generation report saved: {report_path}", "SUCCESS")
 
     def extract_character_role(self, character: Dict) -> str:
         """Extract character role from description dynamically"""
@@ -929,12 +927,12 @@ class ServerMidjourneyVisualGenerator:
 
         self.log_step(f"✅ Generation report saved: {report_path}", "SUCCESS")
 
-    def run_complete_visual_generation(self) -> bool:
-        """Run complete visual generation process for server environment"""
+    def run_character_only_generation(self) -> bool:
+        """Run CHARACTER-ONLY generation process for server environment"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY VISUAL GENERATOR v1.0")
+        print("SERVER MIDJOURNEY CHARACTER GENERATOR v1.0")
         print("🔗 Database integrated")
-        print("🎭 Characters + Scenes + Thumbnail")
+        print("🎭 CHARACTER REFERENCES ONLY")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
 
@@ -953,54 +951,44 @@ class ServerMidjourneyVisualGenerator:
         print(f"🏛️ Historical period: {project_info['historical_period']}")
 
         try:
-            # Step 2: Setup directories
-            self.setup_generation_directories()
+            # Step 2: Setup directories (characters only)
+            self.setup_character_directories()
 
-            # Step 3: Load story generator outputs
-            character_profiles, visual_prompts = self.load_story_generator_outputs()
+            # Step 3: Load story generator outputs (characters only)
+            character_profiles = self.load_character_profiles_only()
 
             # Step 4: Generate characters in parallel
             characters_success = self.generate_all_characters_parallel(character_profiles)
 
-            # Step 5: Generate scenes in parallel
-            scenes_success = self.generate_all_scenes_parallel(visual_prompts)
+            # Step 5: Save generation report
+            self.save_character_generation_report()
 
-            # Step 6: Generate thumbnail
-            thumbnail_success = self.generate_thumbnail(visual_prompts)
-
-            # Step 7: Save generation report
-            self.save_generation_report()
-
-            # Step 8: Update database
+            # Step 6: Update database
             characters_count = len(self.character_references)
-            scenes_count = len([f for f in self.scenes_dir.glob("scene_*.png")])
 
-            self.db_manager.mark_visual_generation_completed(
-                self.current_topic_id, characters_count, scenes_count, thumbnail_success
+            self.db_manager.mark_character_generation_completed(
+                self.current_topic_id, characters_count
             )
 
             # Final success assessment
-            overall_success = characters_success or scenes_success or thumbnail_success
-
-            if overall_success:
+            if characters_success:
                 print("\n" + "🎉" * 50)
-                print("VISUAL GENERATION SUCCESSFUL!")
-                print(f"✅ Characters: {characters_count}")
-                print(f"✅ Scenes: {scenes_count}")
-                print(f"✅ Thumbnail: {'YES' if thumbnail_success else 'NO'}")
+                print("CHARACTER GENERATION SUCCESSFUL!")
+                print(f"✅ Characters Generated: {characters_count}")
                 print(f"✅ API Calls: {self.api_calls_made}")
                 print(f"✅ Downloads: {self.successful_downloads}")
+                print(f"📁 Saved to: {self.characters_dir}")
                 print("🎉" * 50)
             else:
                 print("\n" + "❌" * 50)
-                print("VISUAL GENERATION FAILED!")
+                print("CHARACTER GENERATION FAILED!")
                 print("Check logs for details")
                 print("❌" * 50)
 
-            return overall_success
+            return characters_success
 
         except Exception as e:
-            self.log_step(f"❌ Visual generation failed: {e}", "ERROR")
+            self.log_step(f"❌ Character generation failed: {e}", "ERROR")
             import traceback
             traceback.print_exc()
             return False
@@ -1008,25 +996,24 @@ class ServerMidjourneyVisualGenerator:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER MIDJOURNEY VISUAL GENERATOR")
+        print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
         print("🔗 Database integration with story generator")
-        print("🎭 Complete character + scene + thumbnail generation")
+        print("🎭 CHARACTER REFERENCES ONLY")
         print("🖥️ Production-ready automation")
         print("=" * 60)
 
         generator = ServerMidjourneyVisualGenerator()
-        success = generator.run_complete_visual_generation()
+        success = generator.run_character_only_generation()
 
         if success:
-            print("🎊 Visual generation completed successfully!")
+            print("🎊 Character generation completed successfully!")
         else:
-            print("⚠️ Visual generation failed or no projects ready")
+            print("⚠️ Character generation failed or no projects ready")
 
     except KeyboardInterrupt:
-        print("\n⏹️ Visual generation stopped by user")
+        print("\n⏹️ Character generation stopped by user")
     except Exception as e:
-        print(f"💥 Visual generation failed: {e}")
-        CONFIG.logger.error(f"Visual generation failed: {e}")
+        print(f"💥 Character generation failed: {e}")
+        CONFIG.logger.error(f"Character generation failed: {e}")
         import traceback
-
         traceback.print_exc()
