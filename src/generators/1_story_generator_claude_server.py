@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import time
 import sys
 import re
+import random
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import sqlite3
@@ -464,22 +465,124 @@ class AutomatedStoryGenerator:
             }
         }
 
+    def _generate_smart_scene_structure(self, target_duration: int = 135) -> Dict:
+        """Generate smart scene structure with random count and durations"""
+
+        # Generate random scene count (28-45)
+        scene_count = random.randint(28, 45)
+
+        # Add variation to target duration (120-150 minutes)
+        actual_target = target_duration + random.randint(-15, 15)
+
+        # Generate emotion phases
+        peaceful_end = int(scene_count * 0.3)
+        curiosity_end = int(scene_count * 0.6)
+        concern_end = int(scene_count * 0.8)
+
+        # Generate scene durations based on emotion
+        scene_durations = []
+        total_duration = 0
+
+        for i in range(scene_count):
+            # Determine emotion
+            if i < peaceful_end:
+                emotion = "peaceful"
+                base_range = (4, 6)
+            elif i < curiosity_end:
+                emotion = "curiosity"
+                base_range = (3, 5)
+            elif i < concern_end:
+                emotion = "concern"
+                base_range = (2, 4)
+            else:
+                emotion = "resolution"
+                base_range = (4, 7)
+
+            # Generate random duration within emotion range
+            duration = random.uniform(base_range[0], base_range[1])
+
+            # Add template modifiers
+            template_idx = i % 4
+            templates = ["atmospheric", "character_focused", "historical_detail", "sensory_journey"]
+            template = templates[template_idx]
+
+            # Template modifiers
+            modifiers = {
+                "atmospheric": 1.25,
+                "character_focused": 1.0,
+                "historical_detail": 0.85,
+                "sensory_journey": 1.15
+            }
+
+            duration *= modifiers[template]
+
+            # Position modifiers
+            if i < scene_count * 0.15:  # Opening
+                duration *= 1.1
+            elif i >= scene_count * 0.85:  # Resolution
+                duration *= 1.2
+            elif i >= scene_count * 0.7:  # Climax
+                duration *= 0.9
+
+            # Add natural variation
+            duration *= random.uniform(0.9, 1.1)
+
+            # Ensure bounds
+            duration = max(1.5, min(8.0, duration))
+
+            scene_durations.append(round(duration, 1))
+            total_duration += duration
+
+        # Adjust to target duration
+        if abs(total_duration - actual_target) > 10:
+            adjustment_factor = actual_target / total_duration
+            scene_durations = [round(max(1.5, min(8.0, d * adjustment_factor)), 1) for d in scene_durations]
+            total_duration = sum(scene_durations)
+
+        return {
+            'scene_count': scene_count,
+            'scene_durations': scene_durations,
+            'target_duration': actual_target,
+            'actual_duration': round(total_duration, 1),
+            'duration_stats': {
+                'min_scene': min(scene_durations),
+                'max_scene': max(scene_durations),
+                'avg_scene': round(sum(scene_durations) / len(scene_durations), 1)
+            },
+            'natural_variation': True
+        }
+
     def generate_complete_story_with_characters(self, topic: str, description: str, clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
         """
-        COMPLETE 5-STAGE APPROACH:
-        Stage 1: Planning + Hook + Subscribe + 20 stories + Prompts
-        Stage 2: Remaining 20 stories
+        COMPLETE 5-STAGE APPROACH WITH SMART RANDOM DURATIONS:
+        Stage 1: Smart Planning + Hook + Subscribe + First Half stories
+        Stage 2: Remaining stories (second half)
         Stage 3: Character extraction and analysis
         Stage 4: Intelligent thumbnail generation
         Stage 5: Hook & Subscribe scene selection + Complete JSON outputs
         """
 
-        self.log_step("Complete Story Generation with Full Pipeline")
+        self.log_step("Complete Story Generation with Smart Random Durations")
 
         try:
-            # STAGE 1: Planning + First Half
+            # STAGE 1: Smart Planning + First Half
             stage1_result = self._generate_stage1(topic, description)
             time.sleep(1)  # Server-friendly pause
+
+            # Get scene structure from stage 1
+            scene_plan = stage1_result.get('scene_plan', [])
+            total_scenes = len(scene_plan)
+            first_half = len(stage1_result.get('stories', {}))
+
+            print(f"🎲 Smart Structure Generated:")
+            print(f"   📊 Total scenes: {total_scenes}")
+            print(f"   📝 First half: {first_half} stories")
+            print(f"   📝 Second half: {total_scenes - first_half} stories")
+
+            if total_scenes > 0:
+                durations = [scene.get('duration_minutes', 4) for scene in scene_plan]
+                print(f"   ⏱️ Duration range: {min(durations):.1f}-{max(durations):.1f} minutes")
+                print(f"   📊 Total duration: {sum(durations):.1f} minutes")
 
             # STAGE 2: Second Half Stories
             stage2_result = self._generate_stage2(topic, description, stage1_result)
@@ -507,13 +610,23 @@ class AutomatedStoryGenerator:
                 stage1_result, stage2_result, character_result, thumbnail_result, hook_subscribe_result, topic, description
             )
 
-            self.log_step("Complete Generation Pipeline Finished", "SUCCESS", {
+            # Add smart generation stats
+            combined_result['generation_stats'].update({
+                'smart_algorithm': True,
+                'random_scene_count': total_scenes,
+                'natural_duration_variation': True,
+                'duration_range': f"{min(durations):.1f}-{max(durations):.1f} minutes" if durations else "N/A"
+            })
+
+            self.log_step("Complete Smart Generation Pipeline Finished", "SUCCESS", {
                 "total_scenes": len(combined_result.get('scene_plan', [])),
                 "total_stories": len(combined_result.get('stories', {})),
                 "characters_extracted": len(combined_result.get('main_characters', [])),
                 "thumbnail_generated": combined_result.get('generation_stats', {}).get('thumbnail_generated', False),
                 "hook_subscribe_generated": combined_result.get('generation_stats', {}).get('hook_subscribe_generated', False),
-                "api_calls_total": self.api_call_count
+                "smart_algorithm_used": True,
+                "api_calls_total": self.api_call_count,
+                "total_cost": self.total_cost
             })
 
             return combined_result
@@ -524,17 +637,29 @@ class AutomatedStoryGenerator:
             raise
 
     def _generate_stage1(self, topic: str, description: str) -> Dict[str, Any]:
-        """STAGE 1: Server-optimized planning + first 20 stories"""
+        """STAGE 1: Smart planning with random scene count + first half stories"""
 
-        self.log_step("Stage 1: Planning + First 20 Stories")
+        # Generate smart scene structure
+        smart_structure = self._generate_smart_scene_structure()
+        total_scenes = smart_structure['scene_count']
+        first_half = total_scenes // 2
+
+        self.log_step(f"Stage 1: Smart Planning + First {first_half} Stories (Total: {total_scenes} scenes)")
 
         stage1_prompt = f"""Create the complete foundation for a 2-hour sleep story about "{topic}".
 
 TOPIC: {topic}
 DESCRIPTION: {description}
 
+SMART STORY STRUCTURE:
+- Total scenes: {total_scenes} (NATURAL VARIATION - not fixed 40)
+- Target duration: {smart_structure['target_duration']} minutes
+- Scene durations: VARIABLE (2-7 minutes each based on emotion and template)
+- First half: {first_half} scenes (this stage)
+- Second half: {total_scenes - first_half} scenes (next stage)
+
 STAGE 1 REQUIREMENTS:
-You must provide ALL planning elements + first 20 stories in complete detail.
+You must provide ALL planning elements + first {first_half} stories in complete detail.
 
 ## 1. GOLDEN HOOK (30 seconds, ~90 words)
 - Atmospheric opening that sets the scene
@@ -545,16 +670,20 @@ You must provide ALL planning elements + first 20 stories in complete detail.
 - Natural community invitation
 - Warm, friendly tone (not corporate)
 
-## 3. COMPLETE SCENE PLAN (Exactly 40 scenes)
-Each scene must have:
-- Unique location and activity
+## 3. COMPLETE SCENE PLAN (Exactly {total_scenes} scenes with SMART DURATIONS)
+Each scene must have VARIABLE duration (2-7 minutes) based on:
+- Emotion phase: peaceful (4-6min), curiosity (3-5min), concern (2-4min), resolution (4-7min)
+- Template type: atmospheric (+25%), character_focused (normal), historical_detail (-15%), sensory_journey (+15%)
+- Position: opening (+10%), middle (normal), climax (-10%), resolution (+20%)
+
+Scene structure:
 - Template rotation: atmospheric, character_focused, historical_detail, sensory_journey
 - Style rotation: observational, immersive, documentary, poetic, cinematic
-- Emotion progression: 1-10 peaceful, 11-20 curiosity, 21-30 concern, 31-40 resolution
+- Emotion progression: 1-30% peaceful, 31-60% curiosity, 61-80% concern, 81-100% resolution
 - Key characters mentioned in descriptions
 
-## 4. FIRST 20 COMPLETE STORIES (Scenes 1-20)
-Each story must be 450-600 words with:
+## 4. FIRST {first_half} COMPLETE STORIES (Scenes 1-{first_half})
+Each story must be 300-900 words (based on scene duration) with:
 - Present tense, second person perspective - but NEVER start with "You find yourself"
 - Rich sensory details (sight, sound, smell, touch)
 - [PAUSE] markers for TTS
@@ -563,17 +692,17 @@ Each story must be 450-600 words with:
 - Clear character interactions and mentions
 - Create unique, atmospheric openings for each scene
 
-## 5. BASIC VISUAL PROMPTS (All 40 scenes)
+## 5. BASIC VISUAL PROMPTS (All {total_scenes} scenes)
 - Simple AI image generation prompts
 - Focus on location and atmosphere
 - Character presence noted but details added later
 
-## 6. VOICE DIRECTIONS (All 40 scenes)
+## 6. VOICE DIRECTIONS (All {total_scenes} scenes)
 - TTS guidance for each scene
 - Pace, mood, emphasis
 
 ## 7. INTRO SEQUENCE VISUAL RECOMMENDATIONS
-Based on your 40-scene plan, recommend the BEST scene visuals for the critical opening:
+Based on your {total_scenes}-scene plan, recommend the BEST scene visuals for the critical opening:
 
 A) GOLDEN HOOK (0-30 seconds):
 - Most visually striking and atmospheric scene from your 40 scenes
@@ -724,30 +853,43 @@ Generate complete Stage 1 content with creative, unique openings for each scene.
             raise
 
     def _generate_stage2(self, topic: str, description: str, stage1_result: Dict) -> Dict[str, Any]:
-        """STAGE 2: Remaining 20 stories (21-40)"""
-
-        self.log_step("Stage 2: Remaining 20 Stories")
+        """STAGE 2: Remaining stories (second half) - SMART DYNAMIC COUNT"""
 
         # Get scene plan from stage 1
         scene_plan = stage1_result.get('scene_plan', [])
-        scenes_21_to_40 = [scene for scene in scene_plan if scene['scene_id'] >= 21]
+        stories_written = len(stage1_result.get('stories', {}))
+        total_scenes = len(scene_plan)
+        remaining_scenes = total_scenes - stories_written
 
-        if len(scenes_21_to_40) == 0:
-            print("⚠️ No scenes 21-40 found in stage 1, creating fallback")
-            scenes_21_to_40 = self._create_fallback_scenes_21_40(topic)
+        if remaining_scenes <= 0:
+            self.log_step("Stage 2: No remaining stories needed", "SUCCESS")
+            return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
+
+        self.log_step(f"Stage 2: Remaining {remaining_scenes} Stories (Dynamic)")
+
+        # Get scenes that need stories
+        remaining_scene_plan = []
+        for scene in scene_plan:
+            if str(scene['scene_id']) not in stage1_result.get('stories', {}):
+                remaining_scene_plan.append(scene)
+
+        if len(remaining_scene_plan) == 0:
+            self.log_step("Stage 2: All stories already written", "SUCCESS")
+            return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
         # Create stage 2 prompt
         scenes_text = "\n".join([
             f"Scene {scene['scene_id']}: {scene['title']}\n"
             f"Location: {scene['location']}\n"
+            f"Duration: {scene.get('duration_minutes', 4)} minutes\n"
             f"Template: {scene['template']} | Style: {scene['narrative_style']}\n"
             f"Emotion: {scene['emotion']} | Focus: {scene['sensory_focus']}\n"
             f"Description: {scene['description']}\n"
             f"Characters: {', '.join(scene.get('characters_mentioned', []))}\n"
-            for scene in scenes_21_to_40
+            for scene in remaining_scene_plan
         ])
 
-        stage2_prompt = f"""Complete the sleep story for "{topic}" by writing the remaining 20 stories (scenes 21-40).
+        stage2_prompt = f"""Complete the sleep story for "{topic}" by writing the remaining {remaining_scenes} stories.
 
 TOPIC: {topic}
 DESCRIPTION: {description}
@@ -755,30 +897,39 @@ DESCRIPTION: {description}
 SCENES TO COMPLETE:
 {scenes_text}
 
+SMART DURATION NOTES:
+- Each scene has VARIABLE duration (shown above)
+- Word count should match duration: ~150 words per minute
+- Longer scenes (5-7 min) = 750-1050 words
+- Shorter scenes (2-3 min) = 300-450 words
+- Medium scenes (4-5 min) = 600-750 words
+
 REQUIREMENTS:
-- Write COMPLETE stories for scenes 21-40 (450-600 words each)
+- Write COMPLETE stories for all remaining scenes
 - Present tense, second person perspective - NEVER use "You find yourself"
-- Follow emotion progression: 21-30 mild concern, 31-40 deep peace
+- Follow emotion progression throughout the story
 - Each story must be atmospheric and historically accurate
 - Rich sensory details throughout
 - Continue character development from Stage 1
 - Maintain character consistency and interactions
+- ADJUST WORD COUNT based on scene duration
 
 OUTPUT FORMAT:
 {{
   "stories": {{
-    "21": "[COMPLETE 450-600 word story for scene 21]",
-    "22": "[COMPLETE story for scene 22]"
+    "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[COMPLETE story matching duration]",
+    "{remaining_scene_plan[1]['scene_id'] if len(remaining_scene_plan) > 1 else 'Y'}": "[COMPLETE story matching duration]"
   }},
   "stage2_stats": {{
-    "stories_written": 20,
-    "scenes_covered": "21-40",
+    "stories_written": {remaining_scenes},
+    "scenes_covered": "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}-{remaining_scene_plan[-1]['scene_id'] if remaining_scene_plan else 'Y'}",
+    "smart_durations": true,
     "total_word_count": "[calculated]",
     "character_development": "continued"
   }}
 }}
 
-Write all 20 remaining stories completely."""
+Write all {remaining_scenes} remaining stories with appropriate length for each scene's duration."""
 
         try:
             self.api_call_count += 1
@@ -1781,10 +1932,10 @@ def complete_topic_in_database(topic_id: int, scene_count: int, total_duration: 
 
         # Mark topic as completed in database
         scene_count = len(result.get('scene_plan', []))
-        total_duration = result.get('generation_stats', {}).get('total_duration_minutes', 0)
+        total_duration = sum(scene.get('duration_minutes', 4) for scene in result.get('scene_plan', []))
 
         complete_topic_in_database(
-            topic_id, scene_count, total_duration, api_calls, total_cost, output_dir
+            topic_id, scene_count, total_duration, api_calls, result.get('total_cost', total_cost), output_dir
         )
 
     except Exception as e:
@@ -1792,11 +1943,11 @@ def complete_topic_in_database(topic_id: int, scene_count: int, total_duration: 
         CONFIG.logger.error(f"Save error: {e}")
 
 def print_production_summary(result: Dict, story_topic: str, output_path: str, generation_time: float):
-    """Print complete production generation summary - SERVER VERSION"""
+    """Print complete production generation summary with smart generation stats"""
     stats = result["generation_stats"]
 
     print("\n" + "🚀" * 60)
-    print("COMPLETE AUTOMATED STORY GENERATOR - PRODUCTION FINISHED!")
+    print("SMART AUTOMATED STORY GENERATOR - PRODUCTION FINISHED!")
     print("🚀" * 60)
 
     print(f"📚 Topic: {story_topic}")
@@ -1804,18 +1955,36 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print(f"🤖 Model: {CONFIG.claude_config['model']}")
     print(f"🖥️  Server Mode: {'✅ ACTIVE' if stats.get('server_optimized') else '❌ OFF'}")
     print(f"🏭 Complete Pipeline: {'✅ ACTIVE' if stats.get('complete_pipeline') else '❌ OFF'}")
+    print(f"🎲 Smart Algorithm: {'✅ ACTIVE' if stats.get('smart_algorithm') else '❌ OFF'}")
 
     print(f"\n📊 PRODUCTION PERFORMANCE:")
     print(f"🔥 Total API Calls: {stats['api_calls_used']}")
+    print(f"💰 Total Cost: ${result.get('total_cost', 0):.4f}")
     print(f"⏱️  Total Generation Time: {generation_time:.1f}s")
-    print(f"🎬 Scenes Planned: {stats['scenes_planned']}/40")
-    print(f"📝 Stories Written: {stats['stories_written']}/40")
+    print(f"🎬 Scenes Planned: {stats['scenes_planned']}")
+    print(f"📝 Stories Written: {stats['stories_written']}")
     print(f"👥 Characters Extracted: {stats['characters_extracted']}")
     print(f"🖼️  Thumbnail Generated: {'✅ YES' if stats.get('thumbnail_generated') else '❌ NO'}")
     print(f"🎭 Hook & Subscribe: {'✅ YES' if stats.get('hook_subscribe_generated') else '❌ NO'}")
     print(f"🎥 Visual Prompts (with thumbnail): {stats.get('visual_prompts_with_thumbnail', 0)}")
 
-    completion_rate = (stats['stories_written'] / 40) * 100
+    # Smart generation stats
+    if stats.get('smart_algorithm'):
+        print(f"\n🎲 SMART GENERATION STATS:")
+        print(f"📊 Random Scene Count: {stats.get('random_scene_count', 'N/A')}")
+        print(f"⏱️  Duration Range: {stats.get('duration_range', 'N/A')}")
+        print(f"🌟 Natural Variation: {'✅ YES' if stats.get('natural_duration_variation') else '❌ NO'}")
+
+        # Calculate scene statistics
+        scene_plan = result.get('scene_plan', [])
+        if scene_plan:
+            durations = [scene.get('duration_minutes', 4) for scene in scene_plan]
+            total_duration = sum(durations)
+            print(f"📈 Total Duration: {total_duration:.1f} minutes ({total_duration/60:.1f} hours)")
+            print(f"📊 Average Scene: {total_duration/len(durations):.1f} minutes")
+            print(f"🎯 Duration Accuracy: Smart algorithm ensures natural variation")
+
+    completion_rate = (stats['stories_written'] / stats.get('scenes_planned', 1)) * 100
     print(f"📊 Story Completion: {completion_rate:.1f}%")
 
     # Hook & Subscribe scenes info
@@ -1851,8 +2020,8 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 
     print("\n📄 GENERATED FILES:")
     print("1. 📖 complete_story.txt - Full story text")
-    print("2. 🎬 scene_plan.json - 40 scene structure")
-    print("3. 🖼️  visual_generation_prompts.json - Scenes 1-40 + Thumbnail (99)")
+    print("2. 🎬 scene_plan.json - Smart scene structure")
+    print("3. 🖼️  visual_generation_prompts.json - Scenes + Thumbnail (99)")
     print("4. 🎵 voice_directions.json - TTS guidance")
     print("5. 👥 character_profiles.json - Character data")
     print("6. 📺 youtube_metadata.json - Upload data")
@@ -1865,7 +2034,7 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 
     print("\n🎯 PRODUCTION PIPELINE:")
     print("1. 🎭 Generate characters using character_profiles.json")
-    print("2. 🖼️  Generate scenes 1-40 using visual_generation_prompts.json")
+    print("2. 🖼️  Generate scenes using visual_generation_prompts.json")
     print("3. 🎯 Generate thumbnail (scene 99) using visual_generation_prompts.json")
     print("4. 🎵 Generate audio using audio_generation_prompts.json")
     print("5. 🎥 Compose video using video_composition_instructions.json")
@@ -1875,8 +2044,9 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 
 if __name__ == "__main__":
     try:
-        print("🚀 COMPLETE AUTOMATED STORY GENERATOR")
+        print("🚀 SMART AUTOMATED STORY GENERATOR")
         print("⚡ Server-optimized with complete pipeline")
+        print("🎲 Smart random scene count & duration generation")
         print("🎭 5-stage approach: Planning + Stories + Characters + Thumbnail + Hook/Subscribe")
         print("📄 Complete JSON outputs for automation")
         print("🎯 RIGHT-side thumbnail positioning for text overlay")
@@ -1902,6 +2072,9 @@ if __name__ == "__main__":
         )
         generation_time = time.time() - start_time
 
+        # Add total cost to result
+        result['total_cost'] = generator.total_cost
+
         # Save outputs
         save_production_outputs(str(output_path), result, topic, topic_id,
                                generator.api_call_count, generator.total_cost)
@@ -1909,15 +2082,17 @@ if __name__ == "__main__":
         # Print summary
         print_production_summary(result, topic, str(output_path), generation_time)
 
-        print(f"\n🚀 COMPLETE PRODUCTION PIPELINE FINISHED!")
+        print("\n🚀 SMART COMPLETE PRODUCTION PIPELINE FINISHED!")
         print(f"✅ All files saved to: {output_path}")
         print(f"📊 Check generation_report.json for details")
         print(f"🎬 12 JSON files ready for complete automation!")
         print(f"🎯 Thumbnail scene 99 in visual_generation_prompts.json")
         print(f"🎭 Hook & Subscribe scenes ready for video composition")
+        print(f"🎲 Smart algorithm generated {len(result.get('scene_plan', []))} scenes with natural variation")
+        print(f"💰 Total cost: ${result.get('total_cost', 0):.4f}")
 
     except Exception as e:
-        print(f"\n💥 COMPLETE GENERATOR ERROR: {e}")
+        print(f"\n💥 SMART GENERATOR ERROR: {e}")
         CONFIG.logger.error(f"Generation failed: {e}")
         import traceback
         traceback.print_exc()
