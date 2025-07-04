@@ -314,7 +314,7 @@ class DatabaseTopicManager:
             SELECT id, topic, description, clickbait_title, font_design 
             FROM topics 
             WHERE status = 'pending' 
-            ORDER BY priority DESC, created_at ASC 
+            ORDER BY priority ASC, created_at ASC 
             LIMIT 1
         ''')
 
@@ -361,6 +361,8 @@ class DatabaseTopicManager:
 
         conn.commit()
         conn.close()
+
+
 
 class CharacterExtractionSystem:
     """Dynamic character extraction and analysis for any story topic"""
