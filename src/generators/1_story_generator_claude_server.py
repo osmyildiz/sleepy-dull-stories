@@ -1559,6 +1559,7 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
         print(f"📝 Story distribution: FIXED")
         print(f"💰 Total cost: ${result.get('total_cost', 0):.4f}")
 
+
     except Exception as e:
         print(f"\n💥 SMART GENERATOR ERROR: {e}")
         CONFIG.logger.error(f"Generation failed: {e}")
