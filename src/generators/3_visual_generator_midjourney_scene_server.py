@@ -169,15 +169,22 @@ class DatabaseSceneManager:
         cursor.execute('PRAGMA table_info(topics)')
         columns = [row[1] for row in cursor.fetchall()]
 
-        if 'scene_generation_status' not in columns:
-            print("🔧 Adding scene generation columns to database...")
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_status TEXT DEFAULT "pending"')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_started_at DATETIME')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_completed_at DATETIME')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scenes_generated INTEGER DEFAULT 0')
-            cursor.execute('ALTER TABLE topics ADD COLUMN thumbnail_generated BOOLEAN DEFAULT FALSE')
-            conn.commit()
-            print("✅ Scene generation columns added to database")
+        # Add columns individually if they don't exist
+        columns_to_add = [
+            ('scene_generation_status', 'TEXT DEFAULT "pending"'),
+            ('scene_generation_started_at', 'DATETIME'),
+            ('scene_generation_completed_at', 'DATETIME'),
+            ('scenes_generated', 'INTEGER DEFAULT 0'),
+            ('thumbnail_generated', 'BOOLEAN DEFAULT FALSE')
+        ]
+
+        for column_name, column_definition in columns_to_add:
+            if column_name not in columns:
+                print(f"🔧 Adding column: {column_name}")
+                cursor.execute(f'ALTER TABLE topics ADD COLUMN {column_name} {column_definition}')
+
+        conn.commit()
+        print("✅ Scene generation columns verified/added")
 
         cursor.execute('''
             SELECT id, topic, description, output_path 
@@ -203,14 +210,23 @@ class DatabaseSceneManager:
         cursor.execute('PRAGMA table_info(topics)')
         columns = [row[1] for row in cursor.fetchall()]
 
-        if 'scene_generation_status' not in columns:
-            print("🔧 Adding scene generation columns to database...")
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_status TEXT DEFAULT "pending"')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_started_at DATETIME')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_completed_at DATETIME')
-            cursor.execute('ALTER TABLE topics ADD COLUMN scenes_generated INTEGER DEFAULT 0')
-            cursor.execute('ALTER TABLE topics ADD COLUMN thumbnail_generated BOOLEAN DEFAULT FALSE')
-            print("✅ Scene generation columns added to database")
+        # Add columns individually if they don't exist
+        columns_to_add = [
+            ('scene_generation_status', 'TEXT DEFAULT "pending"'),
+            ('scene_generation_started_at', 'DATETIME'),
+            ('scene_generation_completed_at', 'DATETIME'),
+            ('scenes_generated', 'INTEGER DEFAULT 0'),
+            ('thumbnail_generated', 'BOOLEAN DEFAULT FALSE')
+        ]
+
+        columns_added = []
+        for column_name, column_definition in columns_to_add:
+            if column_name not in columns:
+                cursor.execute(f'ALTER TABLE topics ADD COLUMN {column_name} {column_definition}')
+                columns_added.append(column_name)
+
+        if columns_added:
+            print(f"🔧 Added columns: {', '.join(columns_added)}")
 
         cursor.execute('''
             UPDATE topics 
