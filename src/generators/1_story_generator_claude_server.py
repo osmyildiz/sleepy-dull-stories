@@ -2,6 +2,7 @@
 Sleepy Dull Stories - COMPLETE Server-Ready Claude Story Generator
 FIXES: All missing methods + Smart Algorithm + Database integration + Complete 5-stage pipeline
 Production-optimized with complete automation
+UPDATED: Added all missing JSON files from local version
 """
 
 import os
@@ -697,6 +698,26 @@ class AutomatedStoryGenerator:
                 "fallback_strategy": "If scene unavailable, use next scene in sequence"
             }
         }
+
+    def _generate_scene_chapters(self, scene_plan: List[Dict]) -> List[Dict]:
+        """Generate YouTube chapter markers for scenes"""
+        chapters = []
+        current_time = 60  # Start after hook and subscribe (60 seconds)
+
+        for scene in scene_plan:
+            duration_seconds = int(scene.get('duration_minutes', 4) * 60)
+
+            chapters.append({
+                "time": f"{current_time // 60}:{current_time % 60:02d}",
+                "title": f"Scene {scene['scene_id']}: {scene.get('title', 'Unknown')}"[:100],
+                "duration_seconds": duration_seconds,
+                "emotion": scene.get('emotion', 'peaceful'),
+                "template": scene.get('template', 'atmospheric')
+            })
+
+            current_time += duration_seconds
+
+        return chapters
 
     def generate_complete_story_with_characters(self, topic: str, description: str, clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
         """
@@ -1784,14 +1805,14 @@ OUTPUT (Complete JSON array of all scenes):
             enhanced_visual_prompts.append(thumbnail_prompt)
             print(f"✅ Thumbnail added to visual prompts")
 
+        # Generate scene chapters for YouTube
+        scene_chapters = self._generate_scene_chapters(stage1.get('scene_plan', []))
+
         # Compile complete story text
         complete_story = self._compile_complete_story({
             **stage1,
             'stories': all_stories
         })
-
-        # Generate scene chapters for YouTube
-        scene_chapters = self._generate_scene_chapters(stage1.get('scene_plan', []))
 
         # Final result with ALL ENHANCEMENTS
         result = {
@@ -1890,26 +1911,6 @@ OUTPUT (Complete JSON array of all scenes):
             enhanced_prompts.append(enhanced_prompt)
 
         return enhanced_prompts
-
-    def _generate_scene_chapters(self, scene_plan: List[Dict]) -> List[Dict]:
-        """Generate YouTube chapter markers for scenes"""
-        chapters = []
-        current_time = 60  # Start after hook and subscribe (60 seconds)
-
-        for scene in scene_plan:
-            duration_seconds = int(scene.get('duration_minutes', 4) * 60)
-
-            chapters.append({
-                "time": f"{current_time // 60}:{current_time % 60:02d}",
-                "title": f"Scene {scene['scene_id']}: {scene.get('title', 'Unknown')}"[:100],
-                "duration_seconds": duration_seconds,
-                "emotion": scene.get('emotion', 'peaceful'),
-                "template": scene.get('template', 'atmospheric')
-            })
-
-            current_time += duration_seconds
-
-        return chapters
 
     def _compile_complete_story(self, story_data: Dict) -> str:
         """Compile all components into final story text"""
@@ -2176,9 +2177,29 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             json.dump(character_data, f, indent=2, ensure_ascii=False)
         saved_files.append("character_profiles.json")
 
-        # 6. YouTube metadata (COMPLETE PACKAGE)
+        # 6. YouTube metadata (COMPLETE PACKAGE WITH API_READY_FORMAT)
         youtube_path = output_path / "youtube_metadata.json"
         youtube_data = result.get("youtube_optimization", {})
+
+        # ADD API_READY_FORMAT (MISSING FROM SERVER)
+        youtube_data["api_ready_format"] = {
+            "snippet": {
+                "title": result.get("youtube_optimization", {}).get("clickbait_titles", ["Sleep Story"])[0] if result.get("youtube_optimization", {}).get("clickbait_titles") else "Sleep Story",
+                "description": result.get("youtube_optimization", {}).get("video_description", {}).get("main_description", ""),
+                "tags": result.get("youtube_optimization", {}).get("tags", [])[:30],
+                "categoryId": "27",
+                "defaultLanguage": "en",
+                "defaultAudioLanguage": "en"
+            },
+            "status": {
+                "privacyStatus": "public",
+                "embeddable": True,
+                "license": "youtube",
+                "publicStatsViewable": True,
+                "madeForKids": False
+            }
+        }
+
         with open(youtube_path, "w", encoding="utf-8") as f:
             json.dump(youtube_data, f, indent=2, ensure_ascii=False)
         saved_files.append("youtube_metadata.json")
@@ -2207,13 +2228,19 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
                 json.dump(production_specs, f, indent=2, ensure_ascii=False)
             saved_files.append("production_specifications.json")
 
-        # 10. Platform metadata (UPLOAD READY)
-        platform_data = result.get("platform_metadata", {})
-        if platform_data:
-            platform_path = output_path / "platform_metadata.json"
-            with open(platform_path, "w", encoding="utf-8") as f:
-                json.dump(platform_data, f, indent=2, ensure_ascii=False)
-            saved_files.append("platform_metadata.json")
+        # 10. AUTOMATION_SPECS.JSON (MISSING FROM SERVER - LOKAL VERSION)
+        automation_path = output_path / "automation_specs.json"
+        automation_data = {
+            "audio_production": result.get("production_specifications", {}).get("audio_production", {}),
+            "video_assembly": result.get("production_specifications", {}).get("video_assembly", {}),
+            "quality_control": result.get("production_specifications", {}).get("quality_control", {}),
+            "automation_specifications": result.get("production_specifications", {}).get("automation_specifications", {}),
+            "precise_timing_breakdown": result.get("production_specifications", {}).get("precise_timing_breakdown", {}),
+            "implementation_ready": True
+        }
+        with open(automation_path, "w", encoding="utf-8") as f:
+            json.dump(automation_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("automation_specs.json")
 
         # 11. Audio generation prompts (ENHANCED)
         audio_prompts = []
@@ -2282,7 +2309,13 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             json.dump(audio_prompts, f, indent=2, ensure_ascii=False)
         saved_files.append("audio_generation_prompts.json")
 
-        # 12. Video composition instructions (ENHANCED)
+        # 12. ALL_STORIES.JSON (MISSING FROM SERVER)
+        stories_path = output_path / "all_stories.json"
+        with open(stories_path, "w", encoding="utf-8") as f:
+            json.dump(result["stories"], f, indent=2, ensure_ascii=False)
+        saved_files.append("all_stories.json")
+
+        # 13. Video composition instructions (ENHANCED)
         production_video = production_specs.get("video_assembly", {})
         video_specs = production_video.get("video_specifications", {})
 
@@ -2342,7 +2375,7 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             json.dump(video_composition, f, indent=2, ensure_ascii=False)
         saved_files.append("video_composition_instructions.json")
 
-        # 13. Generation report (COMPREHENSIVE)
+        # 14. Generation report (COMPREHENSIVE)
         report_path = output_path / "generation_report.json"
         production_report = {
             "topic": story_topic,
@@ -2460,6 +2493,7 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
         print(f"🏷️  SEO Tags: {len(youtube_opt.get('tags', []))}")
         print(f"📚 Chapters: {len(result.get('scene_chapters', []))}")
         print(f"📝 Description: {'✅ Complete' if youtube_opt.get('video_description') else '❌ Missing'}")
+        print(f"🔌 API Ready Format: {'✅ Complete' if youtube_opt.get('api_ready_format') else '❌ Missing'}")
 
     production_specs = result.get("production_specifications", {})
     if production_specs:
@@ -2493,32 +2527,34 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
         print(f"\n⚠️ PARTIAL SUCCESS")
         print(f"🔍 Review generation_report.json for issues")
 
-    print("\n📄 GENERATED FILES (13 TOTAL):")
+    print("\n📄 GENERATED FILES (14 TOTAL - INCLUDING ALL MISSING ONES):")
     print("1. 📖 complete_story.txt - Full story text")
     print("2. 🎬 scene_plan.json - Smart scene structure + chapters")
     print("3. 🖼️  visual_generation_prompts.json - Scenes + Thumbnail (99)")
     print("4. 🎵 voice_directions.json - TTS guidance")
     print("5. 👥 character_profiles.json - Character data")
-    print("6. 📺 youtube_metadata.json - Complete SEO package")
+    print("6. 📺 youtube_metadata.json - Complete SEO package + API ready format")
     print("7. 🖼️  thumbnail_generation.json - Composition strategy")
     print("8. 🎭 hook_subscribe_scenes.json - Background scenes")
     print("9. 🏭 production_specifications.json - Complete production specs")
-    print("10. 📊 platform_metadata.json - Upload-ready data")
+    print("10. 🤖 automation_specs.json - Automation-specific data (ADDED)")
     print("11. 🎵 audio_generation_prompts.json - Enhanced TTS production")
-    print("12. 🎥 video_composition_instructions.json - Video timeline + chapters")
-    print("13. 📊 generation_report.json - Complete summary")
+    print("12. 📚 all_stories.json - All stories in separate file (ADDED)")
+    print("13. 🎥 video_composition_instructions.json - Video timeline + chapters")
+    print("14. 📊 generation_report.json - Complete summary")
 
     print("🚀" * 60)
 
 if __name__ == "__main__":
     try:
-        print("🚀 SMART AUTOMATED STORY GENERATOR - FIXED VERSION")
+        print("🚀 SMART AUTOMATED STORY GENERATOR - COMPLETE WITH ALL MISSING FILES")
         print("⚡ Server-optimized with complete pipeline")
         print("🎲 FIXED: Smart random scene count & duration generation")
         print("📊 FIXED: Database integration instead of CSV")
         print("🎭 5-stage approach: Planning + Stories + Characters + Thumbnail + Hook/Subscribe")
         print("📄 Complete JSON outputs for automation")
         print("🎯 RIGHT-side thumbnail positioning for text overlay")
+        print("✅ ADDED: all_stories.json + automation_specs.json + api_ready_format")
         print("=" * 60)
 
         # FIXED: Get next topic from database
@@ -2551,11 +2587,14 @@ if __name__ == "__main__":
         # Print comprehensive summary
         print_production_summary(result, topic, str(output_path), generation_time)
 
-        print("\n🚀 FIXED SMART COMPLETE PRODUCTION PIPELINE FINISHED!")
+        print("\n🚀 COMPLETE PRODUCTION PIPELINE FINISHED WITH ALL FILES!")
         print(f"✅ All files ready for: {output_path}")
         print(f"📊 Database topic management: WORKING")
         print(f"🎲 Smart algorithm scene generation: FIXED")
         print(f"📝 Story distribution: FIXED")
+        print(f"📚 all_stories.json: ADDED")
+        print(f"🤖 automation_specs.json: ADDED")
+        print(f"🔌 api_ready_format: ADDED")
         print(f"💰 Total cost: ${result.get('total_cost', 0):.4f}")
 
     except Exception as e:
