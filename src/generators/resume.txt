@@ -1,422 +1,93 @@
-# SLEEPY DULL STORIES - YouTube Automation Project Context
-**Date:** July 4, 2025 - UPDATED WITH SMART ALGORITHM INTEGRATION
-**Session Resume File:** For continuing work after session limits
+## 🎵 AUDIO GENERATION SERVER COMPLETED - July 5, 2025
 
-## 🎯 PROJECT OVERVIEW
-- **Goal:** Full automation YouTube channel "sleepy-dull-stories"
-- **Content:** AI-generated 2+ hour sleep stories with character extraction & thumbnails
-- **Infrastructure:** VPS Ubuntu server (14 vCPU, 64GB RAM, 1.2TB SSD)
-- **Tech Stack:** Python 3.10, Claude API, Docker, YouTube API
-- **Automation:** Daily video production pipeline (6 AM upload schedule)
+### **MAJOR ACHIEVEMENT: Server TTS Audio Generator Deployed & Production Ready**
 
-## 🏗️ CURRENT SYSTEM ARCHITECTURE
+**🚀 Server TTS Audio Generator Implementation:**
+- ✅ **Complete server-ready audio generator created** (4_tts_generator_server.py)
+- ✅ **Database integration** with production.db automation
+- ✅ **Original working robust retry logic** imported from proven codebase
+- ✅ **Smart content filtering system** with universal safety compliance
+- ✅ **YouTube Hook + Subscribe enhancement** with voice directions
 
-### **Server Configuration:**
-- **Server:** VPS Ubuntu (Termius SSH access)
-- **Server IP:** 147.93.4.177
-- **Location:** /home/youtube-automation/channels/sleepy-dull-stories/
-- **Python:** 3.10.18 (virtual environment active)
-- **Environment:** source activate.sh (activates venv)
+**🎯 Production Features - Server Audio Generator:**
+- ✅ **DatabaseAudioManager integration** - Auto-detects completed scene projects
+- ✅ **Enceladus voice (Chirp3-HD)** - Premium Google Cloud TTS
+- ✅ **Robust retry system operational** - 5 retry rounds with progressive rate limiting
+- ✅ **Blacklisting system working** - Auto-blacklist failed chunks after multiple attempts
+- ✅ **Progress tracking with resume** - Immediate save to audio_parts/
+- ✅ **Database status tracking** - Topics marked as audio generation completed
+- ✅ **Real-time cost tracking** - $16/1M chars Chirp3-HD pricing
 
-### **Project Structure:**
+**🔧 Technical Achievements - Server Audio:**
+- ✅ **ServerConfig integration** - Full compatibility with production environment
+- ✅ **Database column auto-creation** - audio_generation_status, audio_chunks_generated, etc.
+- ✅ **Auto-split long scenes** - >3000 chars automatically split and combined
+- ✅ **Content policy filtering** - Scene-specific safety modifications
+- ✅ **YouTube optimization** - 192kbps, 44.1kHz production quality
+- ✅ **Detailed logging** - Complete generation tracking and metadata
+- ✅ **Timeline generation** - Perfect sync for video editing
+
+**📊 Server Audio Performance Features:**
+- **Hook & Subscribe Integration:** YouTube-optimized intro/outro with voice directions
+- **Voice Directions Support:** Scene-specific emotional delivery instructions
+- **Multi-Quality Export:** YouTube (192k), Podcast (128k), Balanced (96k)
+- **Auto-Resume Capability:** Continue from any interruption point
+- **Scene Image Validation:** Ensures audio-visual sync
+- **Progressive Rate Limiting:** Adaptive delays based on retry rounds
+- **Universal Content Filter:** Safe for all TTS policies
+
+**🛡️ Content Safety & Reliability:**
+- ✅ **Universal content filter** active for all TTS requests
+- ✅ **Scene-specific filtering** for problematic content (Oracle, family scenes)
+- ✅ **Google Cloud TTS compliance** automatic
+- ✅ **Smart bypass system** for ultra-safe content
+- ✅ **Error recovery** with exponential backoff (10s, 20s, 30s, 60s, 120s)
+- ✅ **Blacklist protection** - Skip permanently failed chunks
+
+**📋 Database Integration Complete:**
+- ✅ **Auto-detection:** Finds completed scene projects needing audio
+- ✅ **Status tracking:** audio_generation_status = 'completed'
+- ✅ **Metadata storage:** chunks_generated, duration_seconds, cost_usd
+- ✅ **Production workflow:** Seamless pipeline automation
+
+### **CURRENT PRODUCTION PIPELINE STATUS:**
+
 ```
-/home/youtube-automation/channels/sleepy-dull-stories/
-├── .env (API keys - CONFIGURED ✅)
-├── activate.sh (venv activation)
-├── src/
-│   ├── generators/
-│   │   ├── 1_story_generator_claude.py (original local version)
-│   │   └── 1_story_generator_claude_server.py (server-ready + SMART ALGORITHM ✅)
-│   ├── database/
-│   │   ├── database_setup.py ✅
-│   │   └── production_status_tracker.py ✅
-│   ├── dashboard/
-│   │   ├── production_dashboard.py ✅
-│   │   └── production_dashboard_server.py ✅ SERVER OPTIMIZED
-│   └── orchestrator/ (planned)
-├── output/ (video generation results)
-├── data/
-│   └── production.db ✅ (SQLite database with budget tracking)
-├── logs/ (production logs)
-└── requirements.txt (dependencies installed)
-
-GitHub: https://github.com/osmyildiz/sleepy-dull-stories
-```
-
-## ✅ COMPLETED WORK
-
-### **1. Server Infrastructure Setup:**
-- ✅ VPS configured (Ubuntu, 14 vCPU, 64GB RAM, 1.2TB SSD)
-- ✅ Python 3.10.18 environment created
-- ✅ Virtual environment active: /home/youtube-automation/venvs/sleepy-dull-stories
-- ✅ Project structure created
-- ✅ Dependencies installed (anthropic, openai, moviepy, etc.)
-
-### **2. Code Development:**
-- ✅ Original story generator analyzed (1_story_generator_claude.py)
-- ✅ **NEW: Smart Algorithm Story Generator** (1_story_generator_claude_server.py)
-- ✅ Character extraction system
-- ✅ Thumbnail generation system with RIGHT-side positioning
-- ✅ **NEW: 5-stage generation pipeline** (Smart Planning + Stories + Characters + Thumbnail + Hook/Subscribe)
-- ✅ Production logging system
-- ✅ Fallback systems for missing files
-- ✅ Intro sequence visual recommendations (Hook + Subscribe visuals)
-
-### **3. Database & Budget Tracking System:**
-- ✅ SQLite database designed and created (production.db)
-- ✅ **NEW: Complete Budget Tracking System**
-- ✅ Professional schema with multiple tables
-- ✅ **NEW: Topics management** (imported from disaster_topic_queue)
-- ✅ **NEW: API usage tracking** with real-time cost calculation
-- ✅ **NEW: Project budgets** with warning thresholds
-- ✅ **NEW: Budget alerts** system (5$ warning, 1$ critical)
-- ✅ ProductionStatusTracker class completed
-- ✅ Stage management and quality gates
-- ✅ System metrics monitoring
-- ✅ Database lock issues resolved with WAL mode
-
-### **4. Production Dashboard:**
-- ✅ Flask-based dashboard created (production_dashboard.py)
-- ✅ Server-optimized version (production_dashboard_server.py)
-- ✅ Real-time status monitoring
-- ✅ **NEW: Budget monitoring widgets** (ready for integration)
-- ✅ System resource tracking
-- ✅ Error handling and recovery
-- ✅ No external template dependencies
-- ✅ Health check endpoints
-
-### **5. Smart Algorithm Integration:**
-- ✅ **NEW: Random scene count** (28-45 scenes instead of fixed 40)
-- ✅ **NEW: Emotion-based durations:**
-  - Peaceful: 4-6 minutes (longer, more relaxing)
-  - Curiosity: 3-5 minutes (medium, keeps interest)
-  - Concern: 2-4 minutes (shorter, builds tension)
-  - Resolution: 4-7 minutes (longer, satisfying closure)
-- ✅ **NEW: Template modifiers:**
-  - Atmospheric: +25% longer (needs space)
-  - Character-focused: Normal duration
-  - Historical detail: -15% shorter (info-dense)
-  - Sensory journey: +15% longer (immersive)
-- ✅ **NEW: Position intelligence:**
-  - Opening: +10% longer (setup)
-  - Middle: Normal flow
-  - Climax: -10% shorter (tight)
-  - Resolution: +20% longer (satisfying)
-- ✅ **NEW: Natural variation** (each story unique)
-
-### **6. API Integration & Budget Control:**
-- ✅ Claude API integration code ready
-- ✅ **NEW: API key management** (ANTHROPIC_API_KEY configured)
-- ✅ **NEW: Real-time cost tracking** for all API calls
-- ✅ **NEW: Budget protection** (auto-stop when exceeded)
-- ✅ YouTube OAuth2 system designed (youtube_auth.py)
-- ✅ Production runner script ready
-- ✅ .env configuration complete
-
-### **7. Complete JSON Output System:**
-- ✅ **12 Production Files Generated:**
-  1. complete_story.txt - Full story text
-  2. scene_plan.json - Smart scene structure
-  3. visual_generation_prompts.json - Scenes + **Thumbnail (99)**
-  4. voice_directions.json - TTS guidance
-  5. character_profiles.json - Character data
-  6. youtube_metadata.json - Upload data
-  7. thumbnail_generation.json - Thumbnail details
-  8. hook_subscribe_scenes.json - Background scenes
-  9. intro_sequence_visuals.json - Hook & Subscribe visuals
-  10. audio_generation_prompts.json - TTS production
-  11. video_composition_instructions.json - Video timeline
-  12. generation_report.json - Complete summary
-
-### **8. GitHub Integration:**
-- ✅ Repository created: osmyildiz/sleepy-dull-stories
-- ✅ Local code cleaned (removed large files)
-- ✅ Basic structure pushed to GitHub
-- ✅ **NEW: Smart Algorithm ready for upload**
-
-## 📋 CURRENT STATUS
-
-### **LAST COMPLETED STEP:**
-**SMART ALGORITHM INTEGRATION - READY FOR DEPLOYMENT! ✅**
-
-**DATABASE & BUDGET TRACKING:** ✅ FULLY OPERATIONAL
-- SQLite database kuruldu (`data/production.db`)
-- 30 gerçek topic import edildi (disaster_topic_queue → topics)
-- Complete budget tracking system active
-- API usage tracking with real-time costs
-- Project budgets: $50 monthly budget
-- Warning threshold: $5 (alert system)
-- Critical threshold: $1 (auto-stop)
-
-**SMART ALGORITHM:** ✅ CODE READY - DEPLOYMENT PENDING
-- Random scene count generation (28-45 scenes)
-- Emotion-based duration intelligence
-- Template modifiers for natural variation
-- Position-aware timing adjustments
-- Natural variation algorithm
-- **STATUS: Code written, needs deployment to server**
-
-**PRODUCTION DASHBOARD:** ✅ FULLY OPERATIONAL
-- Flask dashboard deployed and working
-- **LIVE:** http://147.93.4.177:5000
-- Real-time system monitoring working
-- Database connection successful
-- API endpoints operational
-- **NEW: Budget monitoring ready for integration**
-
-**API INTEGRATION:** ✅ FULLY OPERATIONAL
-- ANTHROPIC_API_KEY configured and working
-- Claude client initialization successful
-- API calls working correctly
-- Cost tracking active
-
-## 🎯 IMMEDIATE NEXT STEPS
-
-### **Step 1: Deploy Smart Algorithm (READY TO RUN)**
-```bash
-# On server - Deploy smart algorithm:
-cd /home/youtube-automation/channels/sleepy-dull-stories
-source activate.sh
-
-# Backup current generator
-cp src/generators/1_story_generator_claude_server.py src/generators/1_story_generator_claude_server.py.backup
-
-# Deploy smart algorithm (code ready)
-# Add _generate_smart_scene_structure method
-# Update _generate_stage1 method
-# Test smart generation
+1. Story Generation ✅ (completed - Topics 4, 5, 32, 33)
+2. Character Generation ✅ (completed - Topics 4, 5)
+3. Scene Generation ✅ (completed - Topics 4, 5)
+4. Audio Generation ✅ (completed - Server ready) ← JUST COMPLETED
+5. Video Composition ⏳ (next phase)
 ```
 
-### **Step 2: Test Smart Generation (READY TO RUN)**
-```bash
-# Test smart story generator:
-python src/generators/1_story_generator_claude_server.py
+### **READY FOR NEXT PHASE:**
+- **Audio Generation:** ✅ COMPLETE and SERVER PRODUCTION READY
+- **Next Step:** Video composition system (FFmpeg + timeline sync)
+- **Database Integration:** ✅ Full automation with audio status tracking
+- **Content Pipeline:** ✅ Hook → Subscribe → Story scenes perfectly timed
 
-# Expected output:
-# 🎲 Smart Structure Generated:
-#    📊 Total scenes: 37 (random count)
-#    📝 First half: 18 stories
-#    📝 Second half: 19 stories
-#    ⏱️ Duration range: 2.3-6.8 minutes
-#    📊 Total duration: 142.7 minutes
-```
+### **SERVER AUDIO GENERATOR FEATURES:**
+- 🎭 **Voice Directions Integration** - Scene-specific emotional delivery
+- 🔄 **Smart Retry System** - Up to 5 rounds with progressive delays
+- ⚫ **Intelligent Blacklisting** - Auto-skip failed chunks after 8 attempts
+- 🛡️ **Universal Content Filter** - Automatic TTS safety compliance
+- 📊 **90% Success Rate Target** - Accepts partial failures gracefully
+- 🎬 **YouTube Hook & Subscribe** - Professional intro/outro generation
+- 📁 **Complete Timeline Metadata** - JSON sync data for video editing
+- 🔧 **Server Optimization** - Production paths and database integration
+- 💾 **Immediate Save System** - Each chunk saved to audio_parts/ instantly
+- 🔄 **Resume Capability** - Continue from any interruption point
 
-### **Step 3: Topic Management Test**
-```bash
-# Verify 2nd topic selection:
-# Should start from ID 5 (Library of Alexandria)
-# Not ID 4 (Pompeii - marked as completed)
-```
+### **KEY FILES CREATED:**
+- `src/generators/4_tts_generator_server.py` ✅ SERVER PRODUCTION READY
+- **Database integration:** production.db audio columns auto-created
+- **Audio outputs:** story_audio_youtube.mp3 (192kbps YouTube quality)
+- **Timeline sync:** story_audio_youtube_timeline.json
+- **Progress tracking:** audio_progress.json (auto-cleanup on success)
+- **Part preservation:** audio_parts/*.mp3 (resume protection)
 
-### **Step 4: Complete Production Test**
-```bash
-# Full pipeline test with budget tracking
-# Monitor via dashboard: http://147.93.4.177:5000
-# Check budget alerts and cost tracking
-```
-
-## 🔧 TECHNICAL DETAILS
-
-### **Server Environment:**
-- **Working Directory:** /home/youtube-automation/channels/sleepy-dull-stories
-- **Python Virtual Env:** /home/youtube-automation/venvs/sleepy-dull-stories
-- **Activation:** source activate.sh
-- **Python Version:** 3.10.18
-
-### **Smart Algorithm Configuration:**
-- **Scene Count Range:** 28-45 scenes (natural variation)
-- **Duration Range:** 1.5-8.0 minutes per scene
-- **Target Duration:** 120-150 minutes (2-2.5 hours)
-- **Emotion Phases:** 30% peaceful, 30% curiosity, 20% concern, 20% resolution
-- **Template Distribution:** Balanced rotation with modifiers
-- **Position Modifiers:** Opening, middle, climax, resolution awareness
-
-### **Budget Tracking Configuration:**
-- **Monthly Budget:** $50.00
-- **Warning Threshold:** $5.00
-- **Critical Threshold:** $1.00
-- **Auto-stop:** Enabled when budget exceeded
-- **Cost Calculation:** Real-time for Claude API calls
-- **Tracking:** Input tokens, output tokens, API call types
-
-### **Dependencies Added:**
-- anthropic==0.7.8 ✅ (working)
-- openai==1.3.7
-- moviepy==1.0.3
-- pillow==10.1.0
-- opencv-python==4.8.1.78
-- fastapi==0.104.1
-- python-dotenv==1.0.0 ✅ (working)
-- pandas==2.0.3
-- psutil==5.9.5 (for system monitoring)
-- flask==3.1.1 ✅ (dashboard working)
-- flask-socketio==5.3.6
-
-### **Dashboard Features:**
-- **URL:** http://147.93.4.177:5000 ✅ OPERATIONAL
-- **Health Check:** http://147.93.4.177:5000/api/health
-- **API Status:** http://147.93.4.177:5000/api/status
-- **System Metrics:** http://147.93.4.177:5000/api/system
-- **Auto-refresh:** Every 30 seconds
-- **Error Recovery:** Built-in fallbacks
-
-### **Database Schema:**
-- **topics** - Topic management and status tracking
-- **api_usage** - Real-time API call and cost tracking
-- **project_budgets** - Budget management with thresholds
-- **daily_usage_stats** - Daily aggregated statistics
-- **budget_alerts** - Automated alert system
-- **cost_breakdown** - Detailed cost analysis
-
-## 🚀 PRODUCTION PIPELINE (ENHANCED)
-
-### **Smart Daily Automation Flow:**
-1. **02:00** - Smart story generation (Claude API) - RANDOM scene count
-2. **03:00** - Character & scene visual generation - DYNAMIC count
-3. **04:00** - TTS audio generation - VARIABLE durations
-4. **04:30** - Video composition (FFmpeg) - NATURAL timing
-5. **05:00** - Quality check & optimization
-6. **06:00** - YouTube upload (automated)
-
-### **Monitoring Dashboard:**
-- Real-time production status
-- **NEW: Budget monitoring** with alerts
-- **NEW: Cost tracking** per project
-- System resource monitoring
-- Error tracking and alerts
-- Performance metrics
-- Quality gate results
-
-## 🔑 API KEYS STATUS
-
-### **Configured APIs:**
-1. **Claude API Key** ✅ WORKING: ANTHROPIC_API_KEY configured
-2. **OpenAI API Key** ✅ WORKING: sk-proj-...2awA
-3. **ElevenLabs API** ✅ WORKING: sk_d48c5...b2a6
-4. **Midjourney API** ✅ WORKING: 9a3a07bd...4c58
-5. **RunwayML API** ✅ WORKING: key_551a...a893
-6. **Udio API** ✅ WORKING: 9a3a07bd...4c58
-
-### **Google Cloud:**
-- **Bucket:** sleepy-dull-stories-audio ✅
-- **Project:** meta-glazing-463022-c7 ✅
-
-## 📊 CURRENT CHALLENGES & SOLUTIONS
-
-### **Challenges Resolved:**
-- ✅ Large file GitHub push (fixed with .gitignore)
-- ✅ Server path compatibility (ServerConfig class)
-- ✅ Missing topics.csv (imported from disaster_topic_queue)
-- ✅ API key management (ANTHROPIC_API_KEY configured)
-- ✅ Database lock issues (WAL mode)
-- ✅ Dashboard template dependencies (embedded HTML)
-- ✅ **NEW: Fixed 40-scene limitation** (smart algorithm)
-- ✅ **NEW: Monotonous timing** (emotion-based durations)
-- ✅ **NEW: Budget control** (real-time tracking)
-- ✅ **NEW: Topic management** (database integration)
-
-### **Ready for Deployment:**
-- ⏳ Smart algorithm deployment to server
-- ⏳ Dashboard budget widget integration
-- ⏳ Complete production pipeline test
-
-## 💡 IMPORTANT NOTES
-
-### **Smart Algorithm Benefits:**
-- **Natural Variation:** Every story unique (28-45 scenes)
-- **Emotion Intelligence:** Duration matches emotional content
-- **Template Awareness:** Atmospheric vs historical vs character timing
-- **Position Optimization:** Opening, climax, resolution pacing
-- **Engagement:** Unpredictable = more interesting
-
-### **Budget Control Benefits:**
-- **Real-time Monitoring:** Cost tracking per API call
-- **Automatic Protection:** Stops generation when budget exceeded
-- **Alert System:** Warnings at 5$ threshold
-- **Professional Analytics:** Daily, monthly, yearly reports
-- **ROI Tracking:** Cost per scene, cost per topic analysis
-
-### **Server Commands Ready:**
-```bash
-# Complete environment activation:
-cd /home/youtube-automation/channels/sleepy-dull-stories
-source activate.sh
-
-# Check smart algorithm status:
-grep -n "_generate_smart_scene_structure" src/generators/1_story_generator_claude_server.py
-
-# Deploy smart algorithm:
-# [Smart algorithm deployment commands ready]
-
-# Test generation:
-python src/generators/1_story_generator_claude_server.py
-
-# Monitor dashboard:
-# http://147.93.4.177:5000
-
-# Check budget:
-python3 -c "import sqlite3; conn = sqlite3.connect('data/production.db'); cursor = conn.cursor(); cursor.execute('SELECT total_budget, spent_amount, remaining_budget FROM project_budgets WHERE project_name = \"sleepy-dull-stories\"'); print(cursor.fetchone()); conn.close()"
-```
-
-## 🎯 SUCCESS METRICS
-
-### **Smart Generation Test Success:**
-- ✅ Random scene count (28-45)
-- ✅ Variable durations (2-7 minutes)
-- ✅ Natural total duration (120-150 minutes)
-- ✅ Emotion-based pacing
-- ✅ Template modifiers working
-- ✅ Cost tracking accurate
-
-### **Production Ready Indicators:**
-- Smart algorithm deployed and tested
-- Budget tracking monitoring all API calls
-- Database topic management working
-- Thumbnail positioning optimized
-- All 12 JSON files generated correctly
-- Dashboard monitoring all systems
-- Complete automation pipeline functional
-
-## 📞 CONTACT & ACCESS
-
-### **Server Access:**
-- **Tool:** Termius SSH client
-- **User:** root@147.93.4.177
-- **Project Path:** /home/youtube-automation/channels/sleepy-dull-stories
-
-### **GitHub:**
-- **Repo:** https://github.com/osmyildiz/sleepy-dull-stories
-- **Branch:** main
-- **Access:** Public repository
-
-### **Dashboard:**
-- **URL:** http://147.93.4.177:5000
-- **Status:** ✅ OPERATIONAL
-- **Features:** Real-time monitoring, system metrics, health checks
-
----
-
-## 🔄 RESUME INSTRUCTIONS
-
-**When starting new session, provide this file and ask:**
-"I'm resuming work on the YouTube automation project. Here's the updated context file with Smart Algorithm Integration. What's the current status and what should we do next?"
-
-**Current priority:** Deploy smart algorithm to server and test complete generation with budget tracking.
-
-**Major achievement:** Complete Smart Algorithm Integration with emotion-based durations, natural variation, budget tracking, and professional monitoring dashboard.
-
-**Ready for:** Smart algorithm deployment → Complete production test → Full automation pipeline
-
-**NEW SMART FEATURES READY:**
-1. Random scene count generation (28-45 scenes)
-2. Emotion-based duration intelligence
-3. Template-aware timing modifiers
-4. Position-intelligent pacing
-5. Real-time budget tracking
-6. Professional cost analysis
-7. Complete JSON output system (12 files)
-8. RIGHT-side thumbnail positioning
-9. Database topic management
-10. Production dashboard monitoring
-
-**DEPLOYMENT STATUS:** Smart algorithm code complete, ready for server deployment and testing.
+### **CRITICAL SUCCESS FACTORS - Audio:**
+1. **Proven Code Reuse** - Original working retry logic preserved perfectly
+2. **Database Integration** - ServerConfig and DatabaseAudioManager integration
+3. **Content Safety** - Universal filtering with scene-specific enhancements
+4. **Error Re
