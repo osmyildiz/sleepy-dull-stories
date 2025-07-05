@@ -21,7 +21,6 @@ import logging
 # Load environment first
 load_dotenv()
 
-
 # Server Configuration Class (from story generator)
 class ServerConfig:
     """Server-friendly configuration management"""
@@ -68,8 +67,8 @@ class ServerConfig:
             "default_version": "6.1",
             "process_mode": "relax",
             "character_generation": False,  # Disabled - use existing
-            "scene_generation": True,  # Main focus
-            "thumbnail_generation": True,  # Main focus
+            "scene_generation": True,       # Main focus
+            "thumbnail_generation": True,   # Main focus
             "server_mode": True,
             "production_ready": True
         }
@@ -81,10 +80,10 @@ class ServerConfig:
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
         api_key = (
-                os.getenv('PIAPI_KEY') or
-                os.getenv('MIDJOURNEY_API_KEY') or
-                os.getenv('PIAPI_API_KEY') or
-                os.getenv('MIDJOURNEY_KEY')
+            os.getenv('PIAPI_KEY') or
+            os.getenv('MIDJOURNEY_API_KEY') or
+            os.getenv('PIAPI_API_KEY') or
+            os.getenv('MIDJOURNEY_KEY')
         )
 
         if not api_key:
@@ -146,7 +145,6 @@ class ServerConfig:
 
         print("✅ All scene generator directories created/verified")
 
-
 # Initialize server config
 try:
     CONFIG = ServerConfig()
@@ -154,7 +152,6 @@ try:
 except Exception as e:
     print(f"❌ Scene Generator server configuration failed: {e}")
     sys.exit(1)
-
 
 # Database Topic Management Integration (Scene-focused)
 class DatabaseSceneManager:
@@ -167,6 +164,20 @@ class DatabaseSceneManager:
         """Get completed character topic that needs SCENE generation"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        # Check if scene generation columns exist, if not create them
+        cursor.execute('PRAGMA table_info(topics)')
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'scene_generation_status' not in columns:
+            print("🔧 Adding scene generation columns to database...")
+            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_status TEXT DEFAULT "pending"')
+            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_started_at DATETIME')
+            cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_completed_at DATETIME')
+            cursor.execute('ALTER TABLE topics ADD COLUMN scenes_generated INTEGER DEFAULT 0')
+            cursor.execute('ALTER TABLE topics ADD COLUMN thumbnail_generated BOOLEAN DEFAULT FALSE')
+            conn.commit()
+            print("✅ Scene generation columns added to database")
 
         cursor.execute('''
             SELECT id, topic, description, output_path 
@@ -188,16 +199,18 @@ class DatabaseSceneManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Add column if it doesn't exist
+        # Check if scene generation columns exist, if not create them
         cursor.execute('PRAGMA table_info(topics)')
         columns = [row[1] for row in cursor.fetchall()]
 
         if 'scene_generation_status' not in columns:
+            print("🔧 Adding scene generation columns to database...")
             cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_status TEXT DEFAULT "pending"')
             cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_started_at DATETIME')
             cursor.execute('ALTER TABLE topics ADD COLUMN scene_generation_completed_at DATETIME')
             cursor.execute('ALTER TABLE topics ADD COLUMN scenes_generated INTEGER DEFAULT 0')
             cursor.execute('ALTER TABLE topics ADD COLUMN thumbnail_generated BOOLEAN DEFAULT FALSE')
+            print("✅ Scene generation columns added to database")
 
         cursor.execute('''
             UPDATE topics 
@@ -227,7 +240,6 @@ class DatabaseSceneManager:
 
         conn.commit()
         conn.close()
-
 
 class ServerMidjourneySceneGenerator:
     """Server-ready Midjourney scene generator with character integration"""
@@ -858,5 +870,4 @@ if __name__ == "__main__":
         print(f"💥 Scene generation failed: {e}")
         CONFIG.logger.error(f"Scene generation failed: {e}")
         import traceback
-
         traceback.print_exc()
