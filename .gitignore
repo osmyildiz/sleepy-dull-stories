@@ -30,3 +30,7 @@ venv/
 *.key
 secrets/
 google-credentials/*.json
+google-credentials/
+credentials/
+*.json # Tüm JSON credential dosyaları
+.env* # Environment dosyaları
