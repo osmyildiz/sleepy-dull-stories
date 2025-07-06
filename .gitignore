@@ -29,3 +29,4 @@ venv/
 .env
 *.key
 secrets/
+google-credentials/*.json
