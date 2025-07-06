@@ -2,6 +2,7 @@
 Sleepy Dull Stories - SERVER-READY Midjourney Scene Generator
 SCENE & THUMBNAIL generation with character reference integration
 Production-optimized with complete automation and error recovery
+FIXED: All missing prompt elements from local version
 """
 
 import requests
@@ -282,6 +283,10 @@ class ServerMidjourneySceneGenerator:
         self.api_calls_made = 0
         self.successful_downloads = 0
 
+        # Track failed scenes to prevent infinite loops - FIXED: Added from local version
+        self.scene_attempt_count = {}  # scene_number: attempt_count
+        self.blacklisted_scenes = set()  # scenes that failed too many times
+
         # Database manager
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
         self.db_manager = DatabaseSceneManager(str(db_path))
@@ -351,6 +356,148 @@ class ServerMidjourneySceneGenerator:
 
         self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
         return True, project_info
+
+    def apply_content_policy_filter(self, prompt: str) -> str:
+        """Apply universal content policy filter to any prompt - EXACT COPY FROM LOCAL"""
+
+        # Global content policy replacements
+        replacements = {
+            # Bath/water related
+            "thermal baths": "ancient pool facility",
+            "bath attendant": "Roman worker",
+            "baths setting": "pool complex",
+            "heated pools": "warm water pools",
+            "bathing": "water facility",
+            "bath": "pool",
+
+            # Children related
+            "children playing": "young people enjoying activities",
+            "children": "young people",
+            "kids": "youth",
+            "child": "young person",
+
+            # Physical intimacy
+            "embracing tenderly": "sharing a peaceful moment",
+            "embracing": "standing together peacefully",
+            "embrace": "peaceful moment",
+            "kissing": "showing affection",
+            "intimate": "quiet",
+            "tenderly": "peacefully",
+            "romantic": "affectionate",
+
+            # Bedroom/private spaces
+            "bedchamber": "private chamber",
+            "bedroom": "sleeping chamber",
+            "bed": "resting area",
+
+            # Body/nudity related
+            "nude": "unclothed figure",
+            "naked": "bare figure",
+            "undressed": "unclothed",
+            "bare": "uncovered",
+
+            # Violence/conflict (just in case)
+            "blood": "red liquid",
+            "violence": "conflict",
+            "fighting": "confrontation",
+
+            # Modern terms that might confuse
+            "thermal": "warm",
+            "spa": "wellness area"
+        }
+
+        # Apply replacements
+        filtered_prompt = prompt
+        for old_term, new_term in replacements.items():
+            filtered_prompt = filtered_prompt.replace(old_term, new_term)
+
+        # Add safety qualifiers if needed
+        safety_keywords = ["educational", "historical", "classical", "artistic"]
+        has_safety = any(keyword in filtered_prompt.lower() for keyword in safety_keywords)
+
+        if not has_safety:
+            filtered_prompt += ", historical educational content, classical art style"
+
+        # Add explicit safety clause for potentially sensitive scenes
+        sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
+        if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
+            if "no explicit content" not in filtered_prompt.lower():
+                filtered_prompt += ", appropriate content, no explicit material"
+
+        return filtered_prompt
+
+    def is_content_policy_safe(self, prompt: str) -> bool:
+        """Check if prompt is likely to pass content policy - EXACT COPY FROM LOCAL"""
+
+        # Red flag keywords that often cause issues
+        red_flags = [
+            "children", "child", "kids", "minor",
+            "nude", "naked", "bare", "undressed",
+            "bath", "bathing", "thermal",
+            "intimate", "romantic", "bedroom", "bed",
+            "embrace", "kiss", "touch",
+            "violence", "blood", "fight"
+        ]
+
+        prompt_lower = prompt.lower()
+        found_flags = [flag for flag in red_flags if flag in prompt_lower]
+
+        if found_flags:
+            print(f"⚠️ Content policy issues detected: {', '.join(found_flags)} - Auto-filtering...")
+            return False
+
+        return True
+
+    def extract_character_role(self, character: Dict) -> str:
+        """Extract character role from description dynamically - EXACT COPY FROM LOCAL"""
+        description = character.get('physical_description', '').lower()
+        historical_period = getattr(self, 'current_historical_period', 'ancient times')
+
+        # Role detection based on description keywords
+        role_keywords = {
+            'baker': ['flour', 'bread', 'kneading', 'oven', 'dough', 'bakery'],
+            'fisherman': ['fishing', 'nets', 'harbor', 'sea', 'boat', 'maritime'],
+            'gladiator': ['sword', 'arena', 'combat', 'warrior', 'battle', 'muscular'],
+            'senator': ['toga', 'dignified', 'authority', 'noble', 'distinguished'],
+            'woman': ['elegant', 'graceful', 'flowing robes', 'gentle hands'],
+            'priest': ['temple', 'robes', 'religious', 'ceremony', 'sacred'],
+            'merchant': ['trade', 'goods', 'market', 'commerce', 'wealthy'],
+            'soldier': ['armor', 'military', 'guard', 'captain', 'uniform'],
+            'artisan': ['craft', 'tools', 'workshop', 'skilled', 'maker'],
+            'healer': ['herbs', 'medicine', 'healing', 'physician']
+        }
+
+        # Check for role keywords in description
+        detected_roles = []
+        for role, keywords in role_keywords.items():
+            if any(keyword in description for keyword in keywords):
+                detected_roles.append(role)
+
+        # Determine primary role
+        if detected_roles:
+            primary_role = detected_roles[0]  # First match
+
+            # Context-specific role formatting
+            if 'roman' in historical_period.lower() or '79 ad' in historical_period.lower() or 'century ce' in historical_period.lower():
+                role_prefix = "ancient Roman"
+            elif 'medieval' in historical_period.lower():
+                role_prefix = "medieval"
+            elif 'egyptian' in historical_period.lower():
+                role_prefix = "ancient Egyptian"
+            else:
+                role_prefix = "historical"
+
+            return f"{role_prefix} {primary_role}"
+
+        # Fallback based on historical period
+        if 'roman' in historical_period.lower():
+            return "ancient Roman person"
+        elif 'medieval' in historical_period.lower():
+            return "medieval person"
+        elif 'egyptian' in historical_period.lower():
+            return "ancient Egyptian person"
+        else:
+            return "historical person"
 
     def load_existing_character_references(self) -> bool:
         """Load existing character references from generated files"""
@@ -492,7 +639,7 @@ class ServerMidjourneySceneGenerator:
             return False
 
     def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", retry_count: int = 0) -> Optional[str]:
-        """Submit task to Midjourney API with universal content filtering and smart retry"""
+        """Submit task to Midjourney API with universal content filtering and smart retry - FIXED FROM LOCAL"""
 
         # Scene 32/34 için content filter bypass
         if "Roman garden shrine" in prompt or ("Roman kitchen" in prompt and "clay hearth" in prompt):
@@ -518,6 +665,12 @@ class ServerMidjourneySceneGenerator:
                 "process_mode": "relax"
             }
         }
+
+        # FIXED: Add debug prints from local version
+        print(f"🔍 Exact payload: {payload}")
+        print(f"🔍 Headers: {self.headers}")
+        print(f"🔍 URL: {self.base_url}/task")
+        print(f"🔍 Retry count: {retry_count}")
 
         try:
             self.api_calls_made += 1
@@ -545,7 +698,8 @@ class ServerMidjourneySceneGenerator:
                     wait_time = (retry_count + 1) * 10  # 10, 20, 30 seconds
                     print(f"⚠️ HTTP 500 - Waiting {wait_time}s before retry {retry_count + 1}/3")
                     time.sleep(wait_time)
-                    return self.submit_midjourney_task(prompt, aspect_ratio, retry_count + 1)  # Use original prompt for retry
+                    # FIXED: Use original_prompt for retry (critical fix from local version)
+                    return self.submit_midjourney_task(original_prompt, aspect_ratio, retry_count + 1)
                 else:
                     print(f"❌ HTTP 500 - Max retries reached")
                     return None
@@ -623,97 +777,6 @@ class ServerMidjourneySceneGenerator:
             self.log_step(f"❌ Download failed: {e}", "ERROR")
             return False
 
-    def apply_content_policy_filter(self, prompt: str) -> str:
-        """Apply universal content policy filter to any prompt"""
-
-        # Global content policy replacements
-        replacements = {
-            # Bath/water related
-            "thermal baths": "ancient pool facility",
-            "bath attendant": "Roman worker",
-            "baths setting": "pool complex",
-            "heated pools": "warm water pools",
-            "bathing": "water facility",
-            "bath": "pool",
-
-            # Children related
-            "children playing": "young people enjoying activities",
-            "children": "young people",
-            "kids": "youth",
-            "child": "young person",
-
-            # Physical intimacy
-            "embracing tenderly": "sharing a peaceful moment",
-            "embracing": "standing together peacefully",
-            "embrace": "peaceful moment",
-            "kissing": "showing affection",
-            "intimate": "quiet",
-            "tenderly": "peacefully",
-            "romantic": "affectionate",
-
-            # Bedroom/private spaces
-            "bedchamber": "private chamber",
-            "bedroom": "sleeping chamber",
-            "bed": "resting area",
-
-            # Body/nudity related
-            "nude": "unclothed figure",
-            "naked": "bare figure",
-            "undressed": "unclothed",
-            "bare": "uncovered",
-
-            # Violence/conflict (just in case)
-            "blood": "red liquid",
-            "violence": "conflict",
-            "fighting": "confrontation",
-
-            # Modern terms that might confuse
-            "thermal": "warm",
-            "spa": "wellness area"
-        }
-
-        # Apply replacements
-        filtered_prompt = prompt
-        for old_term, new_term in replacements.items():
-            filtered_prompt = filtered_prompt.replace(old_term, new_term)
-
-        # Add safety qualifiers if needed
-        safety_keywords = ["educational", "historical", "classical", "artistic"]
-        has_safety = any(keyword in filtered_prompt.lower() for keyword in safety_keywords)
-
-        if not has_safety:
-            filtered_prompt += ", historical educational content, classical art style"
-
-        # Add explicit safety clause for potentially sensitive scenes
-        sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
-        if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
-            if "no explicit content" not in filtered_prompt.lower():
-                filtered_prompt += ", appropriate content, no explicit material"
-
-        return filtered_prompt
-
-    def is_content_policy_safe(self, prompt: str) -> bool:
-        """Check if prompt is likely to pass content policy"""
-
-        # Red flag keywords that often cause issues
-        red_flags = [
-            "children", "child", "kids", "minor",
-            "nude", "naked", "bare", "undressed",
-            "bath", "bathing", "thermal",
-            "intimate", "romantic", "bedroom", "bed",
-            "embrace", "kiss", "touch",
-            "violence", "blood", "fight"
-        ]
-
-        prompt_lower = prompt.lower()
-        found_flags = [flag for flag in red_flags if flag in prompt_lower]
-
-        if found_flags:
-            print(f"⚠️ Content policy issues detected: {', '.join(found_flags)} - Auto-filtering...")
-            return False
-
-        return True
-
     def get_missing_scenes(self, visual_prompts: List[Dict]) -> List[Dict]:
         """Get list of scenes that are missing (not downloaded yet) and not blacklisted"""
         regular_scenes = [s for s in visual_prompts if s["scene_number"] != 99]
@@ -723,7 +786,7 @@ class ServerMidjourneySceneGenerator:
             scene_num = scene["scene_number"]
 
             # Skip blacklisted scenes
-            if hasattr(self, 'blacklisted_scenes') and scene_num in self.blacklisted_scenes:
+            if scene_num in self.blacklisted_scenes:
                 continue
 
             image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
@@ -735,7 +798,7 @@ class ServerMidjourneySceneGenerator:
         return missing_scenes
 
     def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build content policy safe scene prompt"""
+        """Build content policy safe scene prompt - EXACT COPY FROM LOCAL"""
 
         base_prompt = scene.get("enhanced_prompt", scene["prompt"])
         scene_num = scene.get("scene_number")
@@ -761,7 +824,7 @@ class ServerMidjourneySceneGenerator:
         return final_prompt
 
     def check_task_status_detailed(self, task_id: str, scene_num: int) -> Optional[Dict]:
-        """Check task status with detailed logging"""
+        """Check task status with detailed logging - EXACT COPY FROM LOCAL"""
         try:
             status_url = f"{self.base_url}/task/{task_id}"
             response = requests.get(status_url, headers=self.headers, timeout=10)
@@ -807,7 +870,7 @@ class ServerMidjourneySceneGenerator:
         return None
 
     def download_image_detailed(self, result_data: Dict, save_path: str, scene_num: int) -> bool:
-        """Download image with detailed logging"""
+        """Download image with detailed logging - EXACT COPY FROM LOCAL"""
         image_url = result_data["url"]
 
         try:
@@ -848,13 +911,7 @@ class ServerMidjourneySceneGenerator:
             return False
 
     def generate_scenes_with_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
-        """Generate all scenes with smart retry and universal content filtering - ORIGINAL WORKING VERSION"""
-
-        # Initialize retry tracking
-        if not hasattr(self, 'scene_attempt_count'):
-            self.scene_attempt_count = {}  # scene_number: attempt_count
-        if not hasattr(self, 'blacklisted_scenes'):
-            self.blacklisted_scenes = set()  # scenes that failed too many times
+        """Generate all scenes with smart retry and universal content filtering - EXACT COPY FROM LOCAL"""
 
         for retry_round in range(max_retry_rounds):
             missing_scenes = self.get_missing_scenes(visual_prompts)
@@ -1071,7 +1128,7 @@ class ServerMidjourneySceneGenerator:
             return False
 
     def generate_thumbnail(self, visual_prompts: List[Dict]) -> bool:
-        """Generate YouTube thumbnail with dramatic expression and content filtering"""
+        """Generate YouTube thumbnail with dramatic expression and content filtering - EXACT COPY FROM LOCAL"""
         self.log_step("🖼️ Starting thumbnail generation")
 
         # Find thumbnail scene
@@ -1160,9 +1217,9 @@ class ServerMidjourneySceneGenerator:
         return False
 
     def run_scene_only_generation(self) -> bool:
-        """Run SCENE-ONLY generation process for server environment"""
+        """Run SCENE-ONLY generation process for server environment - FIXED"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY SCENE GENERATOR v1.0")
+        print("SERVER MIDJOURNEY SCENE GENERATOR v1.0 - QUALITY FIXED")
         print("🔗 Database integrated")
         print("🎬 SCENES & THUMBNAIL GENERATION")
         print("🎭 Character references integration")
@@ -1215,19 +1272,20 @@ class ServerMidjourneySceneGenerator:
             self.save_scene_generation_report()
 
             # Step 8: Update database
-            scenes_count = len([f for f in self.scenes_dir.glob("scene_*.png")]) if overall_success else 0
+            scenes_count = len([f for f in self.scenes_dir.glob("scene_*.png")]) if scenes_success else 0
 
             self.db_manager.mark_scene_generation_completed(
                 self.current_topic_id, scenes_count, thumbnail_success
             )
 
-            # Final success assessment - original logic
+            # Final success assessment
             if scenes_success and thumbnail_success:
                 print("\n" + "🎉" * 50)
                 print("SCENE GENERATION SUCCESSFUL!")
                 print("✅ ALL scenes generated (smart retry + content filtered)")
                 print("✅ YouTube thumbnail with TERROR expression (content filtered)")
                 print("🛡️ ALL PROMPTS AUTOMATICALLY SAFE FOR MIDJOURNEY")
+                print("🔧 QUALITY ISSUES FIXED - USING EXACT LOCAL LOGIC")
                 print("🎉" * 50)
                 overall_success = True
             elif scenes_success:
@@ -1235,6 +1293,7 @@ class ServerMidjourneySceneGenerator:
                 print("SCENE GENERATION MOSTLY SUCCESSFUL!")
                 print("✅ Scenes generated with smart retry")
                 print("❌ Thumbnail generation failed")
+                print("🔧 QUALITY ISSUES FIXED - USING EXACT LOCAL LOGIC")
                 print("🎊" * 50)
                 overall_success = True  # Still considered success if scenes work
             else:
@@ -1256,10 +1315,11 @@ class ServerMidjourneySceneGenerator:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER MIDJOURNEY SCENE GENERATOR")
+        print("🚀 SERVER MIDJOURNEY SCENE GENERATOR - QUALITY FIXED")
         print("🔗 Database integration with character references")
         print("🎬 SCENES & THUMBNAIL GENERATION")
         print("🖥️ Production-ready automation")
+        print("🔧 ALL LOCAL LOGIC RESTORED FOR QUALITY")
         print("=" * 60)
 
         generator = ServerMidjourneySceneGenerator()
