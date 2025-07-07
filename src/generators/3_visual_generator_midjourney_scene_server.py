@@ -1,8 +1,8 @@
 """
 Sleepy Dull Stories - SERVER-READY Midjourney Scene Generator
-SCENE & THUMBNAIL generation with character reference integration
+SCENE generation with independent thumbnail integration
 Production-optimized with complete automation and error recovery
-FIXED: All missing prompt elements from local version
+FIXED: Thumbnail separation + All missing prompt elements from local version
 """
 
 import requests
@@ -21,6 +21,24 @@ import logging
 
 # Load environment first
 load_dotenv()
+
+# ADD INDEPENDENT THUMBNAIL IMPORT
+try:
+    from independent_thumbnail_generator import IndependentThumbnailGenerator
+    INDEPENDENT_THUMBNAIL_AVAILABLE = True
+    print("✅ Independent thumbnail generator imported")
+except ImportError:
+    INDEPENDENT_THUMBNAIL_AVAILABLE = False
+    print("⚠️ Independent thumbnail generator not found")
+
+# ADD INTELLIGENT RETRY SYSTEM IMPORT
+try:
+    from intelligent_scene_retry import IntelligentSceneRetrySystem, EnhancedSceneGeneratorWithIntelligentRetry
+    INTELLIGENT_RETRY_AVAILABLE = True
+    print("✅ Intelligent scene retry system imported")
+except ImportError:
+    INTELLIGENT_RETRY_AVAILABLE = False
+    print("⚠️ Intelligent scene retry system not found")
 
 # Server Configuration Class (from story generator)
 class ServerConfig:
@@ -291,7 +309,17 @@ class ServerMidjourneySceneGenerator:
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
         self.db_manager = DatabaseSceneManager(str(db_path))
 
-        print("🚀 Server Midjourney Scene Generator v1.0 Initialized")
+        # Initialize intelligent retry system if available
+        if INTELLIGENT_RETRY_AVAILABLE:
+            self.intelligent_retry_system = IntelligentSceneRetrySystem()
+            self.intelligent_retry_enabled = self.intelligent_retry_system.claude_api_key is not None
+            print("🧠 Intelligent retry system enabled")
+        else:
+            self.intelligent_retry_system = None
+            self.intelligent_retry_enabled = False
+            print("⚠️ Intelligent retry system disabled")
+
+        print("🚀 Server Midjourney Scene Generator v1.1 Initialized")
         print(f"🔑 API Key: {self.api_key[:8]}...")
         print(f"🌐 Base URL: {self.base_url}")
 
@@ -535,7 +563,7 @@ class ServerMidjourneySceneGenerator:
         return loaded_count > 0
 
     def load_visual_prompts(self) -> List[Dict]:
-        """Load visual generation prompts from story generator output"""
+        """Load visual generation prompts from story generator output - filter out scene 99"""
         self.log_step("📂 Loading visual generation prompts")
 
         output_dir = Path(self.current_output_dir)
@@ -555,23 +583,26 @@ class ServerMidjourneySceneGenerator:
         else:
             raise ValueError("Invalid visual prompts format")
 
+        # FILTER OUT scene 99 (thumbnail) - it will be handled by independent generator
+        regular_scenes = [s for s in visual_prompts if s.get("scene_number", 0) != 99]
+
         self.log_step("✅ Visual prompts loaded", "SUCCESS", {
             "total_scenes": len(visual_prompts),
-            "regular_scenes": len([s for s in visual_prompts if s.get("scene_number", 0) != 99]),
-            "thumbnail_scenes": len([s for s in visual_prompts if s.get("scene_number", 0) == 99])
+            "regular_scenes": len(regular_scenes),
+            "thumbnail_scenes_filtered": len([s for s in visual_prompts if s.get("scene_number", 0) == 99])
         })
 
-        return visual_prompts
+        return regular_scenes
 
     def setup_scene_directories(self):
         """Create necessary directories for scene generation"""
         output_dir = Path(self.current_output_dir)
 
         self.scenes_dir = output_dir / "scenes"
-        self.thumbnail_dir = output_dir / "thumbnail"
+        self.thumbnail_dir = output_dir / "thumbnail"  # ← KORU - Independent generator will use this
 
         self.scenes_dir.mkdir(exist_ok=True)
-        self.thumbnail_dir.mkdir(exist_ok=True)
+        self.thumbnail_dir.mkdir(exist_ok=True)  # ← KORU - Independent generator will use this
 
         self.log_step("📁 Scene generation directories created", "SUCCESS")
 
@@ -591,7 +622,8 @@ class ServerMidjourneySceneGenerator:
             "historical_period": self.current_historical_period,
             "generation_log": self.generation_log,
             "server_optimized": True,
-            "scene_only_mode": True
+            "scene_only_mode": True,
+            "independent_thumbnail_used": INDEPENDENT_THUMBNAIL_AVAILABLE
         }
 
         report_path = output_dir / "scene_generation_report.json"
@@ -1127,101 +1159,250 @@ class ServerMidjourneySceneGenerator:
             print(f"❌ Generation failed with only {success_rate:.1%} success rate")
             return False
 
-    def generate_thumbnail(self, visual_prompts: List[Dict]) -> bool:
-        """Generate YouTube thumbnail with dramatic expression and content filtering - EXACT COPY FROM LOCAL"""
-        self.log_step("🖼️ Starting thumbnail generation")
+    def generate_scenes_with_intelligent_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 15):
+        """Enhanced scene generation with intelligent retry using Claude AI"""
 
-        # Find thumbnail scene
-        thumbnail_scene = None
-        for scene in visual_prompts:
-            if scene["scene_number"] == 99:
-                thumbnail_scene = scene
-                break
+        print("🧠 ENHANCED SCENE GENERATION WITH INTELLIGENT RETRY")
+        print("🔄 Normal retry: 3 rounds")
+        print("🧠 Intelligent retry: Claude AI generates new prompts")
+        print("🛡️ Content filtering: All prompts")
 
-        if not thumbnail_scene:
-            self.log_step("❌ No thumbnail scene found", "ERROR")
-            return False
+        for retry_round in range(max_retry_rounds):
+            missing_scenes = self.get_missing_scenes(visual_prompts)
 
-        # Get main character
-        main_char = thumbnail_scene.get("character_used", "")
-        if not main_char or main_char not in self.character_references:
-            self.log_step(f"❌ Thumbnail character '{main_char}' not found", "ERROR")
-            return False
+            if not missing_scenes:
+                print("✅ All scenes completed!")
+                return True
 
-        print(f"🖼️ Generating thumbnail with character: {main_char}")
+            # Determine retry mode
+            if retry_round < 3:
+                retry_mode = "NORMAL"
+                print(f"\n🔄 NORMAL RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
+            elif self.intelligent_retry_enabled:
+                retry_mode = "INTELLIGENT"
+                print(f"\n🧠 INTELLIGENT RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
+                print("🤖 Claude AI will generate alternative prompts")
+            else:
+                retry_mode = "EXTENDED_NORMAL"
+                print(f"\n🔄 EXTENDED RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
 
-        # Get base prompt and enhance with dramatic emotion
-        base_prompt = thumbnail_scene.get("prompt", "")
+            # Check blacklisted scenes
+            total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
+            blacklisted_count = len(self.blacklisted_scenes)
 
-        # DRAMATIC ENHANCEMENT - from successful tests
-        dramatic_enhancement = """extreme close-up portrait, positioned RIGHT SIDE of frame,
-        INTENSE SHOCK and TERROR facial expression, eyes WIDE OPEN with pure fear and panic,
-        eyebrows raised extremely high, mouth OPEN in shocked gasp and alarm,
-        facial muscles tense with horror, looking with frightened surprise toward left side,
-        dramatic chiaroscuro lighting, deep shadows LEFT SIDE for text overlay,
-        YouTube clickbait thumbnail style, exaggerated emotional expression for maximum impact"""
+            if blacklisted_count > 0:
+                print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
 
-        enhanced_prompt = f"{base_prompt}, {dramatic_enhancement}"
+            # Update attempt counts and blacklisting
+            for scene in missing_scenes:
+                scene_num = scene["scene_number"]
+                self.scene_attempt_count[scene_num] = self.scene_attempt_count.get(scene_num, 0) + 1
 
-        # Add character reference at beginning (Midjourney requirement)
-        char_ref_url = self.character_references[main_char]
-        final_prompt = f"{char_ref_url} {enhanced_prompt} --ar 16:9 --v 6.1"
+                # More lenient blacklisting with intelligent retry
+                max_attempts = 10 if self.intelligent_retry_enabled else 5
 
-        print(f"🎬 Enhanced thumbnail with TERROR expression and character reference")
-        print(f"🛡️ Content filter will be applied automatically")
+                if self.scene_attempt_count[scene_num] > max_attempts:
+                    self.blacklisted_scenes.add(scene_num)
+                    print(f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} attempts")
 
-        # Submit thumbnail task (content filter applied automatically)
-        task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
+            # Re-get missing scenes after blacklisting
+            missing_scenes = self.get_missing_scenes(visual_prompts)
 
-        if not task_id:
-            return False
+            if not missing_scenes:
+                completed_count = total_scenes - blacklisted_count
+                print(f"✅ All processable scenes completed! ({completed_count}/{total_scenes})")
+                return True
 
-        print(f"⏳ Monitoring thumbnail: {task_id}")
+            # Wait between retry rounds
+            if retry_round > 0:
+                wait_time = 90 if retry_mode == "INTELLIGENT" else 60
+                print(f"⏳ Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
 
-        # Monitor thumbnail generation
-        for i in range(25):
-            result_data = self.check_task_status_detailed(task_id, 99)  # 99 for thumbnail
+            # Submit scene tasks
+            scene_tasks = {}
+            successful_submissions = 0
 
-            if result_data and isinstance(result_data, dict):
-                print(f"✅ Thumbnail complete!")
+            for i, scene in enumerate(missing_scenes):
+                scene_num = scene["scene_number"]
+                attempt_num = self.scene_attempt_count.get(scene_num, 0)
 
-                thumbnail_path = self.thumbnail_dir / "thumbnail.png"
+                print(f"🎬 Processing Scene {scene_num} ({i + 1}/{len(missing_scenes)}) - Attempt #{attempt_num}")
 
-                if self.download_image_detailed(result_data, str(thumbnail_path), 99):
+                # Generate prompt based on retry mode
+                if (retry_mode == "INTELLIGENT" and self.intelligent_retry_system and
+                    self.intelligent_retry_system.should_use_intelligent_retry(scene_num, attempt_num)):
+
+                    # Use Claude AI to generate alternative prompt
+                    failure_context = self.intelligent_retry_system.create_intelligent_retry_context(
+                        scene, attempt_num
+                    )
+
+                    alternative_prompt = self.intelligent_retry_system.generate_alternative_scene_prompt(
+                        scene, failure_context
+                    )
+
+                    if alternative_prompt:
+                        final_prompt = alternative_prompt
+
+                        # Track intelligent retry
+                        if scene_num not in self.intelligent_retry_system.intelligent_retries:
+                            self.intelligent_retry_system.intelligent_retries[scene_num] = {
+                                "attempts": 1,
+                                "prompts": [alternative_prompt]
+                            }
+                        else:
+                            self.intelligent_retry_system.intelligent_retries[scene_num]["attempts"] += 1
+                            self.intelligent_retry_system.intelligent_retries[scene_num]["prompts"].append(alternative_prompt)
+
+                        print(f"🧠 Scene {scene_num}: Using Claude-generated alternative prompt")
+                    else:
+                        # Fallback to normal prompt if Claude fails
+                        final_prompt = self.build_safe_scene_prompt(scene)
+                        print(f"⚠️ Scene {scene_num}: Claude failed, using normal prompt")
+                else:
+                    # Normal retry - use original prompt building
+                    final_prompt = self.build_safe_scene_prompt(scene)
+
+                # Handle long prompts
+                if len(final_prompt) > 4000:
+                    print(f"⚠️ Scene {scene_num}: Truncating long prompt...")
+                    final_prompt = final_prompt[:3900] + " --ar 16:9 --v 6.1"
+
+                # Content policy check (informational)
+                if not self.is_content_policy_safe(final_prompt):
+                    print(f"🛡️ Scene {scene_num}: Content filter will be applied")
+
+                # Submit task
+                task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
+
+                if task_id:
+                    scene_tasks[scene_num] = {
+                        "task_id": task_id,
+                        "prompt": final_prompt,
+                        "scene_data": scene,
+                        "retry_mode": retry_mode,
+                        "intelligent_retry": (retry_mode == "INTELLIGENT" and self.intelligent_retry_system and
+                                            scene_num in self.intelligent_retry_system.intelligent_retries)
+                    }
+                    successful_submissions += 1
+                    print(f"✅ Scene {scene_num}: Submitted successfully")
+                else:
+                    print(f"❌ Scene {scene_num}: Submission failed")
+
+                # Rate limiting
+                base_wait = 5 if retry_round < 3 else 8
+                wait_time = base_wait + (retry_round * 2)
+
+                if i < len(missing_scenes) - 1:
+                    print(f"⏳ Waiting {wait_time} seconds...")
+                    time.sleep(wait_time)
+
+            print(f"📊 Round {retry_round + 1} submissions: ✅ {successful_submissions} | ❌ {len(missing_scenes) - successful_submissions}")
+
+            if not scene_tasks:
+                print("❌ No tasks submitted, continuing to next round...")
+                continue
+
+            # Monitor and download (same as original)
+            completed_scenes = {}
+            max_cycles = 50  # Longer for intelligent retry
+
+            for cycle in range(max_cycles):
+                if not scene_tasks:
+                    break
+
+                completed_count = len(completed_scenes)
+                total_count = completed_count + len(scene_tasks)
+                print(f"📊 Monitoring Cycle {cycle + 1}: {completed_count}/{total_count} completed")
+
+                scenes_to_remove = []
+
+                for scene_num, task_data in scene_tasks.items():
+                    task_id = task_data["task_id"]
+
+                    result_data = self.check_task_status_detailed(task_id, scene_num)
+
+                    if result_data and isinstance(result_data, dict):
+                        print(f"✅ Scene {scene_num}: Task completed!")
+                        completed_scenes[scene_num] = {
+                            "result_data": result_data,
+                            "task_data": task_data
+                        }
+                        scenes_to_remove.append(scene_num)
+                    elif result_data is False:
+                        mode_info = " (Intelligent)" if task_data.get("intelligent_retry") else ""
+                        print(f"❌ Scene {scene_num}: Task failed{mode_info}")
+                        scenes_to_remove.append(scene_num)
+
+                for scene_num in scenes_to_remove:
+                    del scene_tasks[scene_num]
+
+                if not scene_tasks:
+                    break
+
+                time.sleep(30)
+
+            # Download completed scenes
+            successful_downloads = 0
+
+            for scene_num, scene_data in completed_scenes.items():
+                result_data = scene_data["result_data"]
+                image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+
+                if self.download_image_detailed(result_data, str(image_path), scene_num):
+                    successful_downloads += 1
+
+                    # Enhanced metadata with intelligent retry info
                     metadata = {
-                        "character_used": main_char,
-                        "clickbait_title": thumbnail_scene.get("clickbait_title", ""),
-                        "base_prompt": base_prompt,
-                        "enhanced_prompt": final_prompt,
-                        "emotion_enhancement": "INTENSE_SHOCK_TERROR_WIDE_EYES_OPEN_MOUTH",
-                        "character_reference": char_ref_url,
+                        "scene_number": scene_num,
+                        "title": scene_data["task_data"]["scene_data"]["title"],
+                        "prompt": scene_data["task_data"]["prompt"],
                         "image_url": result_data["url"],
-                        "local_path": str(thumbnail_path),
+                        "url_source": result_data["source"],
+                        "local_path": str(image_path),
                         "generated_at": datetime.now().isoformat(),
+                        "retry_round": retry_round,
+                        "retry_mode": scene_data["task_data"]["retry_mode"],
+                        "attempt_number": self.scene_attempt_count.get(scene_num, 1),
+                        "intelligent_retry_used": scene_data["task_data"].get("intelligent_retry", False),
                         "content_filtered": True
                     }
 
-                    json_path = self.thumbnail_dir / "thumbnail.json"
+                    # Add intelligent retry details if used
+                    if (self.intelligent_retry_system and
+                        scene_num in self.intelligent_retry_system.intelligent_retries):
+                        metadata["intelligent_retry_details"] = self.intelligent_retry_system.intelligent_retries[scene_num]
+
+                    json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
                     with open(json_path, 'w', encoding='utf-8') as f:
                         json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-                    return True
+            print(f"✅ Round {retry_round + 1} downloads: {successful_downloads}")
 
-            elif result_data is False:
-                print(f"❌ Thumbnail failed")
-                return False
-            else:
-                print(f"⏳ Processing... ({i + 1}/25)")
-                time.sleep(30)
+        # Final summary with intelligent retry stats
+        final_missing = self.get_missing_scenes(visual_prompts)
+        total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
+        completed_count = total_scenes - len(final_missing) - len(self.blacklisted_scenes)
 
-        return False
+        print(f"\n📊 FINAL SUMMARY:")
+        print(f"✅ Completed: {completed_count}")
+        print(f"❌ Missing: {len(final_missing)}")
+        print(f"⚫ Blacklisted: {len(self.blacklisted_scenes)}")
+        if self.intelligent_retry_system:
+            print(f"🧠 Claude API calls: {self.intelligent_retry_system.claude_calls_made}")
+            print(f"🤖 Intelligent retries used: {len(self.intelligent_retry_system.intelligent_retries)}")
+
+        success_rate = completed_count / total_scenes
+        return success_rate >= 0.85  # 85% success rate with intelligent retry
 
     def run_scene_only_generation(self) -> bool:
-        """Run SCENE-ONLY generation process for server environment - FIXED"""
+        """Run SCENE-ONLY generation process for server environment - FIXED WITH INDEPENDENT THUMBNAIL"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY SCENE GENERATOR v1.0 - QUALITY FIXED")
+        print("SERVER MIDJOURNEY SCENE GENERATOR v1.1 - INDEPENDENT THUMBNAIL")
         print("🔗 Database integrated")
-        print("🎬 SCENES & THUMBNAIL GENERATION")
+        print("🎬 SCENES GENERATION")
+        print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
         print("🎭 Character references integration")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
@@ -1256,17 +1437,32 @@ class ServerMidjourneySceneGenerator:
             for name, url in self.character_references.items():
                 print(f"   🎭 {name}: {url[:50]}...")
 
-            # Step 4: Load visual prompts
+            # Step 4: Load visual prompts (scene 99 filtered out)
             visual_prompts = self.load_visual_prompts()
-            print(f"🎬 Scene prompts loaded: {len(visual_prompts)}")
+            print(f"🎬 Scene prompts loaded: {len(visual_prompts)} (thumbnails excluded)")
 
-            # Step 5: Generate scenes with smart retry and content filtering
-            print("\n🎬 GENERATING SCENES WITH UNIVERSAL CONTENT FILTER...")
-            scenes_success = self.generate_scenes_with_retry(visual_prompts, max_retry_rounds=10)
+            # Step 5: Generate scenes with smart retry and intelligent AI backup
+            print("\n🎬 GENERATING SCENES WITH INTELLIGENT RETRY SYSTEM...")
+            if self.intelligent_retry_enabled:
+                scenes_success = self.generate_scenes_with_intelligent_retry(visual_prompts, max_retry_rounds=15)
+            else:
+                scenes_success = self.generate_scenes_with_retry(visual_prompts, max_retry_rounds=10)
 
-            # Step 6: Generate thumbnail with dramatic enhancement and content filtering
-            print("\n🖼️ GENERATING THUMBNAIL WITH CONTENT FILTER...")
-            thumbnail_success = self.generate_thumbnail(visual_prompts)
+            # Step 6: Generate independent thumbnail
+            print("\n🖼️ GENERATING INDEPENDENT THUMBNAIL...")
+            if INDEPENDENT_THUMBNAIL_AVAILABLE:
+                try:
+                    independent_thumbnail = IndependentThumbnailGenerator(
+                        output_dir=str(self.current_output_dir),
+                        api_key=self.api_key
+                    )
+                    thumbnail_success = independent_thumbnail.generate_thumbnail()
+                except Exception as e:
+                    print(f"❌ Independent thumbnail error: {e}")
+                    thumbnail_success = False
+            else:
+                print("⚠️ Independent thumbnail generator not available")
+                thumbnail_success = False
 
             # Step 7: Save generation report
             self.save_scene_generation_report()
@@ -1278,28 +1474,39 @@ class ServerMidjourneySceneGenerator:
                 self.current_topic_id, scenes_count, thumbnail_success
             )
 
-            # Final success assessment
+            # Final success assessment - UPDATED LOGIC
             if scenes_success and thumbnail_success:
                 print("\n" + "🎉" * 50)
-                print("SCENE GENERATION SUCCESSFUL!")
-                print("✅ ALL scenes generated (smart retry + content filtered)")
-                print("✅ YouTube thumbnail with TERROR expression (content filtered)")
+                print("GENERATION COMPLETELY SUCCESSFUL!")
+                print("✅ ALL scenes generated + Independent thumbnail successful")
+                if self.intelligent_retry_system and self.intelligent_retry_system.claude_calls_made > 0:
+                    print(f"🧠 Claude AI helped with {len(self.intelligent_retry_system.intelligent_retries)} scenes")
                 print("🛡️ ALL PROMPTS AUTOMATICALLY SAFE FOR MIDJOURNEY")
-                print("🔧 QUALITY ISSUES FIXED - USING EXACT LOCAL LOGIC")
+                print("🔧 INDEPENDENT THUMBNAIL SYSTEM WORKING")
                 print("🎉" * 50)
                 overall_success = True
             elif scenes_success:
                 print("\n" + "🎊" * 50)
-                print("SCENE GENERATION MOSTLY SUCCESSFUL!")
-                print("✅ Scenes generated with smart retry")
-                print("❌ Thumbnail generation failed")
-                print("🔧 QUALITY ISSUES FIXED - USING EXACT LOCAL LOGIC")
+                print("SCENE GENERATION SUCCESSFUL!")
+                print("✅ Scenes generated successfully")
+                if self.intelligent_retry_system and self.intelligent_retry_system.claude_calls_made > 0:
+                    print(f"🧠 Claude AI helped with {len(self.intelligent_retry_system.intelligent_retries)} scenes")
+                print("❌ Independent thumbnail failed")
+                print("🔧 Scenes are primary - still considered success")
                 print("🎊" * 50)
-                overall_success = True  # Still considered success if scenes work
+                overall_success = True  # Still success - scenes are primary
+            elif thumbnail_success:
+                print("\n" + "⚠️" * 50)
+                print("MIXED RESULTS!")
+                print("❌ Scene generation failed")
+                print("✅ Independent thumbnail successful")
+                print("⚠️ Scenes are primary requirement")
+                print("⚠️" * 50)
+                overall_success = False  # Scenes are primary requirement
             else:
                 print("\n" + "❌" * 50)
-                print("SCENE GENERATION FAILED!")
-                print("❌ Scene generation failed after all retries")
+                print("GENERATION FAILED!")
+                print("❌ Both scenes and thumbnail failed")
                 print("Check logs for details")
                 print("❌" * 50)
                 overall_success = False
@@ -1315,9 +1522,11 @@ class ServerMidjourneySceneGenerator:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER MIDJOURNEY SCENE GENERATOR - QUALITY FIXED")
+        print("🚀 SERVER MIDJOURNEY SCENE GENERATOR v1.1 - INTELLIGENT RETRY")
         print("🔗 Database integration with character references")
-        print("🎬 SCENES & THUMBNAIL GENERATION")
+        print("🎬 SCENES GENERATION")
+        print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
+        print("🧠 INTELLIGENT RETRY with Claude AI")
         print("🖥️ Production-ready automation")
         print("🔧 ALL LOCAL LOGIC RESTORED FOR QUALITY")
         print("=" * 60)
