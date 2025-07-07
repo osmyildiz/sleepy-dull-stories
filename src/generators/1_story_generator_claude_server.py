@@ -214,7 +214,91 @@ try:
 except Exception as e:
     print(f"❌ Server configuration failed: {e}")
     sys.exit(1)
+# Midjourney Content Policy Awareness for Story Generator
+# Add this to story generator before visual prompt creation
 
+MIDJOURNEY_CONTENT_AWARENESS_PROMPT = """
+## 🎨 CRITICAL: MIDJOURNEY VISUAL GENERATION CONTENT POLICY AWARENESS
+
+These visual prompts will be processed by Midjourney AI for image generation. Midjourney has strict content filtering that automatically rejects suspicious words, causing generation failures. Choose your words carefully to avoid censorship.
+
+### 📋 MIDJOURNEY'S CONTENT FILTERING SYSTEM SENSITIVITY:
+
+#### 1. 🔴 PROBLEMATIC WORD CATEGORIES THAT CAUSE REJECTIONS:
+- **Intimacy/Privacy Words**: "intimate", "private", "personal" → AI interprets as romantic/sexual
+- **Time+Location Combos**: "late at night + chamber/room" → Creates suspicious context
+- **Religious/Cultural References**: "Hebrew", "religious texts" → Flagged as sensitive content  
+- **Abstract/Supernatural**: "mystical", "supernatural", "voices" → Creates ambiguity
+- **Physical Proximity**: "embracing", "touching", "close contact" → Romantic interpretation
+- **Private Spaces**: "bedroom", "bath", "private quarters" → Intimate space perception
+
+#### 2. ✅ SAFE ALTERNATIVE STRATEGY FOR HIGH SUCCESS RATE:
+- **Lighting**: "warm lighting" ✅ NOT "intimate lighting" ❌
+- **Spaces**: "study room" ✅ NOT "private chamber" ❌  
+- **Time**: "evening hours" ✅ NOT "late at night" ❌
+- **Texts**: "ancient scrolls" ✅ NOT "Hebrew texts" ❌
+- **Atmosphere**: "peaceful ambiance" ✅ NOT "mystical atmosphere" ❌
+- **Activity**: "focused study" ✅ NOT "personal reading" ❌
+
+#### 3. 🎯 PROACTIVE SAFE WORD SELECTION MINDSET:
+For every word you write, ask: "Could Midjourney misinterpret this word?"
+- If YES → Find neutral, educational, academic alternative
+- If NO → Safe to proceed
+
+#### 4. 🏛️ SAFE APPROACH FOR HISTORICAL CONTENT:
+Always include these safety qualifiers:
+- ✅ "historical educational setting"
+- ✅ "classical academic atmosphere" 
+- ✅ "scholarly learning environment"
+- ✅ "period-accurate educational scene"
+- ✅ "warm educational lighting"
+- ✅ "family-friendly historical content"
+
+#### 5. 🔧 MENTAL SAFETY FILTER FOR EVERY PROMPT:
+Before writing any visual prompt, verify:
+- "Would this create an image a parent wouldn't hesitate to show their child?"
+- "Is the educational/academic nature crystal clear?"
+- "Are these words objective, scientific, historical?"
+- "Does this avoid any romantic, intimate, or private implications?"
+
+### 🎨 GUARANTEED-SAFE VISUAL PROMPT FORMULA:
+```
+"[HISTORICAL_LOCATION] with [CHARACTER/SCHOLARLY_ACTIVITY], warm educational lighting, 
+classical academic setting, [PERIOD_DETAILS], peaceful scholarly atmosphere, 
+historical educational content, family-friendly scene"
+```
+
+### 🎯 TRANSFORMATION EXAMPLES:
+❌ RISKY: "Private study chamber late at night with scholar working intimately with Hebrew texts"
+✅ SAFE: "Ancient study room in evening hours with scholar focused on historical manuscripts, warm educational lighting, classical academic setting, scholarly dedication"
+
+❌ RISKY: "Intimate reading nook with personal cushions" 
+✅ SAFE: "Quiet study corner with comfortable seating, focused learning environment"
+
+❌ RISKY: "Mystical voices whispering ancient wisdom"
+✅ SAFE: "Echo chamber preserving ancient knowledge, architectural acoustics"
+
+### 💡 SUCCESS CHECKLIST FOR EVERY VISUAL PROMPT:
+1. ✅ Educational/academic tone present?
+2. ✅ No ambiguous/suspicious words?  
+3. ✅ Historical/scholarly context explicit?
+4. ✅ Family-friendly language throughout?
+5. ✅ Objective, descriptive approach maintained?
+6. ✅ Would pass parent approval test?
+
+### 🎯 AUTOMATION SUCCESS STRATEGY:
+This content awareness ensures:
+- 100% Midjourney acceptance rate
+- No failed generations requiring retries  
+- Consistent visual output quality
+- Zero content policy violations
+- Reliable automation pipeline
+
+Apply this awareness to ALL visual descriptions, scene planning, and character descriptions.
+Your word choices directly impact generation success rate.
+"""
+
+print("✅ Midjourney Content Policy Awareness (English) ready for integration!")
 # Import Anthropic after config
 try:
     from anthropic import Anthropic
@@ -845,6 +929,7 @@ class AutomatedStoryGenerator:
         """STAGE 1: ENHANCED Smart planning with powerful prompts + first half stories"""
 
         # Generate smart scene structure
+        visual_safety_education = MIDJOURNEY_CONTENT_AWARENESS_PROMPT
         smart_structure = self._generate_smart_scene_structure()
         total_scenes = smart_structure['scene_count']
         scene_durations = smart_structure['scene_durations']
@@ -920,7 +1005,9 @@ class AutomatedStoryGenerator:
     - Demonstrate mastery across multiple opening styles
     - Build atmospheric immersion from first sentence
     - Natural flow that leads listeners into peaceful sleep
-
+    
+    {visual_safety_education}
+    
     ## 5. BASIC VISUAL PROMPTS (All {total_scenes} scenes)
     - Simple AI image generation prompts
     - Focus on location and atmosphere
@@ -1728,7 +1815,9 @@ Plus full YouTube optimization and production specifications."""
 
         self.character_system.log_extraction_step("Regenerating Visual Prompts with Character Integration")
 
-        regeneration_prompt = f"""Based on the completed scene plan and extracted character data, create accurate visual generation prompts for all scenes.
+        regeneration_prompt = f"""
+        {MIDJOURNEY_CONTENT_AWARENESS_PROMPT}
+        Based on the completed scene plan and extracted character data, create accurate visual generation prompts for all scenes.
 
 SCENE PLAN SUMMARY:
 {json.dumps(scene_plan, indent=2)}
