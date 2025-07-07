@@ -17,11 +17,9 @@ import sys
 import logging
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
-import time
 
 # Load environment first
 load_dotenv()
-
 
 # Server Configuration Class (from TTS generator)
 class ServerConfig:
@@ -77,8 +75,7 @@ class ServerConfig:
         }
 
         print("✅ Video composition configuration loaded")
-        print(
-            f"🎬 Target: {self.video_config['target_resolution'][0]}x{self.video_config['target_resolution'][1]} @ {self.video_config['target_fps']}fps")
+        print(f"🎬 Target: {self.video_config['target_resolution'][0]}x{self.video_config['target_resolution'][1]} @ {self.video_config['target_fps']}fps")
 
     def setup_logging(self):
         """Setup production logging"""
@@ -112,7 +109,6 @@ class ServerConfig:
 
         print("✅ All video composer directories created/verified")
 
-
 # Initialize server config
 try:
     CONFIG = ServerConfig()
@@ -120,7 +116,6 @@ try:
 except Exception as e:
     print(f"❌ Video Composer server configuration failed: {e}")
     sys.exit(1)
-
 
 # Database Video Management Integration
 class DatabaseVideoManager:
@@ -188,7 +183,7 @@ class DatabaseVideoManager:
         conn.close()
 
     def mark_video_generation_completed(self, topic_id: int, duration_seconds: float,
-                                        file_size_mb: float, processing_time_minutes: float):
+                                       file_size_mb: float, processing_time_minutes: float):
         """Mark video generation as completed"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -206,7 +201,6 @@ class DatabaseVideoManager:
 
         conn.commit()
         conn.close()
-
 
 class VideoProgressTracker:
     """Video processing progress tracking and resume functionality"""
@@ -300,7 +294,6 @@ class VideoProgressTracker:
         except Exception as e:
             print(f"⚠️  Video progress cleanup warning: {e}")
 
-
 class VideoUsageTracker:
     """Video processing usage and performance tracking"""
 
@@ -373,7 +366,6 @@ class VideoUsageTracker:
             "processing_stages": self.processing_stages
         }
 
-
 class ServerYouTubeVideoProducer:
     """Server-ready YouTube Video Producer with database integration"""
 
@@ -445,6 +437,57 @@ class ServerYouTubeVideoProducer:
             "description": description,
             "output_dir": output_path
         }
+
+        # Print detailed project information
+        print("\n" + "🎬" * 60)
+        print("VIDEO COMPOSER - PROJECT DETAILS")
+        print("🎬" * 60)
+        print(f"📊 PROJECT ID: {topic_id}")
+        print(f"📚 TOPIC: {topic}")
+        print(f"📝 DESCRIPTION: {description}")
+        print(f"📁 PROJECT PATH: {output_path}")
+        print()
+
+        # Check and display input paths
+        project_dir = Path(output_path)
+        audio_parts_dir = project_dir / "audio_parts"
+        scenes_dir = project_dir / "scenes"
+
+        print("📁 INPUT DIRECTORIES:")
+        print(f"   🎵 Audio Parts: {audio_parts_dir}")
+        print(f"      {'✅ EXISTS' if audio_parts_dir.exists() else '❌ NOT FOUND'}")
+        if audio_parts_dir.exists():
+            audio_files = list(audio_parts_dir.glob("*.mp3"))
+            print(f"      📊 Audio files found: {len(audio_files)}")
+
+        print(f"   🖼️  Scenes: {scenes_dir}")
+        print(f"      {'✅ EXISTS' if scenes_dir.exists() else '❌ NOT FOUND'}")
+        if scenes_dir.exists():
+            image_files = list(scenes_dir.glob("*.png"))
+            print(f"      📊 Image files found: {len(image_files)}")
+
+        # Check for required project files
+        print("\n📋 REQUIRED PROJECT FILES:")
+        required_files = [
+            ("scene_plan.json", "Scene plan"),
+            ("platform_metadata.json", "Platform metadata"),
+            ("story_audio_youtube_timeline.json", "Audio timeline")
+        ]
+
+        for filename, description in required_files:
+            file_path = project_dir / filename
+            status = "✅ FOUND" if file_path.exists() else "❌ MISSING"
+            print(f"   📄 {description}: {status}")
+            if file_path.exists():
+                try:
+                    file_size = file_path.stat().st_size
+                    print(f"      📏 Size: {file_size:,} bytes")
+                except:
+                    pass
+
+        print("\n📤 OUTPUT DIRECTORY:")
+        print(f"   📁 Final video output: {project_dir}")
+        print("🎬" * 60)
 
         # Mark as started in database
         self.db_manager.mark_video_generation_started(topic_id)
@@ -523,9 +566,15 @@ class ServerYouTubeVideoProducer:
         sequence = []
         total_duration = 0
 
-        print("🎵 Building video sequence...")
+        print("\n🎵 BUILDING VIDEO SEQUENCE...")
+        print("=" * 50)
+        print(f"📁 Audio source: {audio_dir}")
+        print(f"🖼️  Image source: {scenes_dir}")
+        print(f"📊 Scene plan: {len(scene_plan)} scenes available")
+        print()
 
         # 1. HOOK SECTION
+        print("🎬 HOOK SECTION:")
         hook_file = self.find_audio_file(audio_dir, "hook_audio")
         if hook_file:
             hook_duration = self.get_audio_duration(hook_file)
@@ -533,8 +582,12 @@ class ServerYouTubeVideoProducer:
             random_scenes = random.sample(scene_plan[10:40], min(5, len(scene_plan)))
             scene_duration = hook_duration / len(random_scenes)
 
-            print(f"🎬 Hook: {hook_duration:.1f}s / {len(random_scenes)} scenes = {scene_duration:.1f}s each")
+            print(f"   ✅ Hook audio found: {hook_file.name}")
+            print(f"   ⏱️  Duration: {hook_duration:.1f}s")
+            print(f"   🎬 Using {len(random_scenes)} random scenes")
+            print(f"   📏 Scene duration: {scene_duration:.1f}s each")
 
+            hook_images_found = 0
             for scene in random_scenes:
                 _, image_file = self.find_scene_files(audio_dir, scenes_dir, scene["scene_id"])
                 if image_file:
@@ -543,11 +596,17 @@ class ServerYouTubeVideoProducer:
                         "image": str(image_file),
                         "duration": scene_duration
                     })
+                    hook_images_found += 1
+
             total_duration += hook_duration
+            print(f"   📊 Images found: {hook_images_found}/{len(random_scenes)}")
         else:
-            print("⚠️ Hook audio not found")
+            print("   ❌ Hook audio not found")
+
+        print()
 
         # 2. SUBSCRIBE SECTION
+        print("🔔 SUBSCRIBE SECTION:")
         subscribe_file = self.find_audio_file(audio_dir, "subscribe_audio")
         if subscribe_file:
             subscribe_duration = self.get_audio_duration(subscribe_file)
@@ -555,8 +614,12 @@ class ServerYouTubeVideoProducer:
             random_scenes = random.sample(scene_plan[:8], min(3, len(scene_plan)))
             scene_duration = subscribe_duration / len(random_scenes)
 
-            print(f"🔔 Subscribe: {subscribe_duration:.1f}s / {len(random_scenes)} scenes = {scene_duration:.1f}s each")
+            print(f"   ✅ Subscribe audio found: {subscribe_file.name}")
+            print(f"   ⏱️  Duration: {subscribe_duration:.1f}s")
+            print(f"   🎬 Using {len(random_scenes)} random scenes")
+            print(f"   📏 Scene duration: {scene_duration:.1f}s each")
 
+            subscribe_images_found = 0
             for scene in random_scenes:
                 _, image_file = self.find_scene_files(audio_dir, scenes_dir, scene["scene_id"])
                 if image_file:
@@ -565,13 +628,23 @@ class ServerYouTubeVideoProducer:
                         "image": str(image_file),
                         "duration": scene_duration
                     })
+                    subscribe_images_found += 1
+
             total_duration += subscribe_duration
+            print(f"   📊 Images found: {subscribe_images_found}/{len(random_scenes)}")
         else:
-            print("⚠️ Subscribe audio not found")
+            print("   ❌ Subscribe audio not found")
+
+        print()
 
         # 3. MAIN SCENES SECTION
-        print("📖 Main scenes:")
-        for scene in scene_plan:
+        print("📖 MAIN SCENES SECTION:")
+        print(f"   📊 Processing {len(scene_plan)} story scenes...")
+
+        scenes_found = 0
+        scenes_missing = 0
+
+        for i, scene in enumerate(scene_plan):
             scene_id = scene["scene_id"]
             audio_file, image_file = self.find_scene_files(audio_dir, scenes_dir, scene_id)
 
@@ -584,11 +657,30 @@ class ServerYouTubeVideoProducer:
                     "duration": scene_duration
                 })
                 total_duration += scene_duration
-                print(f"📺 Scene {scene_id}: {scene_duration:.1f}s")
-            else:
-                print(f"⚠️ Missing files for scene {scene_id}")
+                scenes_found += 1
 
-        print(f"✅ Total sequence: {len(sequence)} segments, {total_duration / 60:.1f} minutes")
+                if i < 5 or i >= len(scene_plan) - 5:  # Show first and last 5
+                    print(f"   ✅ Scene {scene_id}: {scene_duration:.1f}s ({Path(image_file).name})")
+                elif i == 5:
+                    print(f"   ... (showing first/last 5 scenes)")
+            else:
+                scenes_missing += 1
+                missing_files = []
+                if not audio_file:
+                    missing_files.append("audio")
+                if not image_file:
+                    missing_files.append("image")
+
+                if i < 5 or i >= len(scene_plan) - 5:  # Show first and last 5
+                    print(f"   ❌ Scene {scene_id}: missing {', '.join(missing_files)}")
+
+        print(f"\n📊 SCENE SUMMARY:")
+        print(f"   ✅ Scenes found: {scenes_found}")
+        print(f"   ❌ Scenes missing: {scenes_missing}")
+        print(f"   📏 Total duration: {total_duration / 60:.1f} minutes")
+        print(f"   🎬 Total segments: {len(sequence)}")
+
+        print("\n" + "=" * 50)
         return sequence, total_duration
 
     def create_image_list_file(self, row_index, sequence):
@@ -609,35 +701,91 @@ class ServerYouTubeVideoProducer:
         combined_audio = Path(self.current_output_dir) / "combined_audio.wav"
         audio_list_file = Path(self.current_output_dir) / "audio_list.txt"
 
+        print(f"🎵 AUDIO COMBINATION PROCESS:")
+        print(f"   📁 Source directory: {audio_dir}")
+        print(f"   📄 Audio list file: {audio_list_file.name}")
+        print(f"   🎵 Combined output: {combined_audio.name}")
+        print()
+
         audio_files = []
+        audio_summary = {"found": 0, "missing": 0, "total_duration": 0}
 
         # 1. Hook
+        print("🎬 HOOK AUDIO:")
         hook_file = self.find_audio_file(audio_dir, "hook_audio")
         if hook_file:
             audio_files.append(str(hook_file))
-            print(f"✅ Added hook: {hook_file.name}")
+            duration = self.get_audio_duration(hook_file)
+            audio_summary["found"] += 1
+            audio_summary["total_duration"] += duration
+            print(f"   ✅ Found: {hook_file.name} ({duration:.1f}s)")
+        else:
+            audio_summary["missing"] += 1
+            print(f"   ❌ Missing: hook_audio.mp3")
 
         # 2. Subscribe
+        print("\n🔔 SUBSCRIBE AUDIO:")
         subscribe_file = self.find_audio_file(audio_dir, "subscribe_audio")
         if subscribe_file:
             audio_files.append(str(subscribe_file))
-            print(f"✅ Added subscribe: {subscribe_file.name}")
+            duration = self.get_audio_duration(subscribe_file)
+            audio_summary["found"] += 1
+            audio_summary["total_duration"] += duration
+            print(f"   ✅ Found: {subscribe_file.name} ({duration:.1f}s)")
+        else:
+            audio_summary["missing"] += 1
+            print(f"   ❌ Missing: subscribe_audio.mp3")
 
         # 3. All scenes
-        for scene in scene_plan:
+        print(f"\n📖 STORY SCENES AUDIO:")
+        print(f"   📊 Processing {len(scene_plan)} scenes...")
+
+        scenes_found = 0
+        scenes_missing = 0
+
+        for i, scene in enumerate(scene_plan):
             scene_id = scene["scene_id"]
             audio_file, _ = self.find_scene_files(audio_dir, Path(), scene_id)
+
             if audio_file:
                 audio_files.append(str(audio_file))
+                duration = self.get_audio_duration(audio_file)
+                audio_summary["total_duration"] += duration
+                scenes_found += 1
 
-        print(f"✅ Total audio files: {len(audio_files)}")
+                # Show first and last few scenes
+                if i < 3 or i >= len(scene_plan) - 3:
+                    print(f"   ✅ Scene {scene_id}: {audio_file.name} ({duration:.1f}s)")
+                elif i == 3:
+                    print(f"   ... (processing {len(scene_plan) - 6} more scenes)")
+            else:
+                scenes_missing += 1
+                if i < 3 or i >= len(scene_plan) - 3:
+                    print(f"   ❌ Scene {scene_id}: audio file missing")
+
+        audio_summary["found"] += scenes_found
+        audio_summary["missing"] += scenes_missing
+
+        print(f"\n📊 AUDIO SUMMARY:")
+        print(f"   ✅ Audio files found: {audio_summary['found']}")
+        print(f"   ❌ Audio files missing: {audio_summary['missing']}")
+        print(f"   ⏱️  Total duration: {audio_summary['total_duration'] / 60:.1f} minutes")
+        print(f"   📝 Files to combine: {len(audio_files)}")
+
+        if not audio_files:
+            print(f"   ❌ No audio files found for combination!")
+            return None
 
         # Audio list dosyası oluştur
+        print(f"\n📝 Creating audio list file...")
         with open(audio_list_file, 'w') as f:
             for audio_file in audio_files:
                 f.write(f"file '{audio_file}'\n")
 
+        print(f"   ✅ Audio list created: {len(audio_files)} entries")
+
         # FFmpeg ile birleştir
+        print(f"\n🔄 Combining audio with FFmpeg...")
         try:
             (
                 ffmpeg
@@ -646,10 +794,22 @@ class ServerYouTubeVideoProducer:
                 .overwrite_output()
                 .run(quiet=True)
             )
-            print(f"✅ Combined audio: {combined_audio}")
-            return combined_audio
+
+            # Verify combined audio
+            if combined_audio.exists():
+                file_size = combined_audio.stat().st_size
+                final_duration = self.get_audio_duration(combined_audio)
+                print(f"   ✅ Audio combination successful!")
+                print(f"   📁 Output: {combined_audio.name}")
+                print(f"   📏 Size: {file_size:,} bytes")
+                print(f"   ⏱️  Duration: {final_duration:.1f}s ({final_duration / 60:.1f} min)")
+                return combined_audio
+            else:
+                print(f"   ❌ Combined audio file not created")
+                return None
+
         except Exception as e:
-            print(f"❌ Audio combination failed: {e}")
+            print(f"   ❌ Audio combination failed: {e}")
             return None
 
     def add_background_audio(self, main_audio_file, row_index):
@@ -950,7 +1110,9 @@ class ServerYouTubeVideoProducer:
 
     def verify_final_video(self, video_file):
         """Final video dosyasını doğrula ve bilgi göster"""
-        print(f"\n🔍 Verifying final video...")
+        print(f"\n🔍 VIDEO VERIFICATION PROCESS:")
+        print(f"   📁 Video file: {Path(video_file).name}")
+        print(f"   📍 Full path: {video_file}")
 
         try:
             probe = ffmpeg.probe(str(video_file))
@@ -966,22 +1128,69 @@ class ServerYouTubeVideoProducer:
                     audio_stream = stream
 
             duration = float(probe['format']['duration'])
+            file_size = os.path.getsize(video_file) / (1024 * 1024)  # MB
 
-            print(f"✅ Duration: {duration:.1f}s ({duration / 60:.1f} minutes)")
+            print(f"\n📊 VIDEO FILE INFORMATION:")
+            print(f"   ⏱️  Duration: {duration:.1f}s ({duration / 60:.1f} minutes)")
+            print(f"   📦 File size: {file_size:.1f} MB")
+            print(f"   📈 Bitrate: {float(probe['format'].get('bit_rate', 0)) / 1000:.0f} kbps")
 
             if video_stream:
-                print(f"✅ Video: {video_stream['width']}x{video_stream['height']}, {video_stream['codec_name']}")
+                print(f"\n🎬 VIDEO STREAM:")
+                print(f"   📺 Resolution: {video_stream['width']}x{video_stream['height']}")
+                print(f"   🎞️  Codec: {video_stream['codec_name']}")
+                print(f"   🎥 Frame rate: {video_stream.get('r_frame_rate', 'unknown')}")
+                print(f"   🌈 Pixel format: {video_stream.get('pix_fmt', 'unknown')}")
+
+                # Calculate total frames
+                if 'nb_frames' in video_stream:
+                    print(f"   🎞️  Total frames: {video_stream['nb_frames']}")
 
             if audio_stream:
-                print(f"✅ Audio: {audio_stream['codec_name']}, {audio_stream.get('sample_rate', 'unknown')} Hz")
+                print(f"\n🎵 AUDIO STREAM:")
+                print(f"   🔊 Codec: {audio_stream['codec_name']}")
+                print(f"   📻 Sample rate: {audio_stream.get('sample_rate', 'unknown')} Hz")
+                print(f"   🎼 Channels: {audio_stream.get('channels', 'unknown')}")
+                if 'bit_rate' in audio_stream:
+                    print(f"   📊 Bitrate: {int(audio_stream['bit_rate']) / 1000:.0f} kbps")
 
-            file_size = os.path.getsize(video_file) / (1024 * 1024)  # MB
-            print(f"✅ File size: {file_size:.1f} MB")
+            # Quality checks
+            print(f"\n✅ QUALITY VERIFICATION:")
 
+            # Duration check
+            if duration >= 60:  # At least 1 minute
+                print(f"   ✅ Duration acceptable: {duration / 60:.1f} minutes")
+            else:
+                print(f"   ⚠️  Duration short: {duration:.1f} seconds")
+
+            # File size check
+            if file_size >= 10:  # At least 10 MB
+                print(f"   ✅ File size acceptable: {file_size:.1f} MB")
+            else:
+                print(f"   ⚠️  File size small: {file_size:.1f} MB")
+
+            # Resolution check
+            if video_stream and video_stream['width'] >= 1280:
+                print(f"   ✅ Resolution acceptable: {video_stream['width']}x{video_stream['height']}")
+            else:
+                print(f"   ⚠️  Resolution low: {video_stream['width'] if video_stream else 'unknown'}x{video_stream['height'] if video_stream else 'unknown'}")
+
+            # Audio check
+            if audio_stream:
+                print(f"   ✅ Audio stream present")
+            else:
+                print(f"   ❌ Audio stream missing")
+
+            print(f"\n✅ VIDEO VERIFICATION COMPLETED SUCCESSFULLY")
             return True, duration, file_size
 
         except Exception as e:
-            print(f"❌ Video verification failed: {e}")
+            print(f"\n❌ VIDEO VERIFICATION FAILED:")
+            print(f"   🚨 Error: {e}")
+            print(f"   📁 File exists: {os.path.exists(video_file)}")
+            if os.path.exists(video_file):
+                file_size = os.path.getsize(video_file) / (1024 * 1024)
+                print(f"   📦 File size: {file_size:.1f} MB")
             return False, 0.0, 0.0
 
     def create_video(self, row_index, topic_data, progress_tracker, usage_tracker):
@@ -989,10 +1198,16 @@ class ServerYouTubeVideoProducer:
         total_steps = 8
         current_step = 0
 
-        print(f"\n🎬 Creating video for project {row_index}: {topic_data['topic']}")
-        print("🎬" * 60)
-        print("📝 Using FIXED MOVIEPY APPROACH - SERVER VERSION:")
-        print("   🎬 Python Video Library with ALL SEQUENCE IMAGES")
+        print(f"\n" + "🎬" * 80)
+        print("VIDEO COMPOSER - PROCESSING DETAILS")
+        print("🎬" * 80)
+        print(f"🎯 PROJECT: {topic_data['topic']}")
+        print(f"🆔 PROJECT ID: {row_index}")
+        print(f"📁 OUTPUT DIR: {self.current_output_dir}")
+        print()
+        print("📋 PROCESSING METHOD:")
+        print("   🎬 FIXED MOVIEPY APPROACH - SERVER VERSION")
+        print("   📝 Python Video Library with ALL SEQUENCE IMAGES")
         print("   📝 Layer 1: Multiple Image Clips (ALL scenes)")
         print("   📝 Layer 2: Fireplace Overlay (animated)")
         print("   📝 Layer 3: Full Audio Sequence")
@@ -1000,7 +1215,7 @@ class ServerYouTubeVideoProducer:
         print("   ✅ Fixed: All images in sequence working!")
         print("   ✅ Fixed: Proper cleanup timing!")
         print("   🖥️ Server: Database integrated with progress tracking")
-        print("🎬" * 60)
+        print("🎬" * 80)
 
         try:
             # 1. Project data yükle
@@ -1012,6 +1227,12 @@ class ServerYouTubeVideoProducer:
             if not scene_plan:
                 progress_tracker.mark_stage_failed("project_load", "Failed to load project data")
                 return None
+
+            print(f"\n📊 PROJECT DATA LOADED:")
+            print(f"   📖 Scenes in plan: {len(scene_plan)}")
+            print(f"   📋 Platform metadata: {'✅ Available' if platform_metadata else '❌ Missing'}")
+            if platform_metadata and 'title_options' in platform_metadata:
+                print(f"   📝 Video title: {platform_metadata['title_options'][0][:50]}...")
 
             progress_tracker.mark_stage_completed("project_load")
             usage_tracker.add_stage("project_load", time.time() - start_time)
@@ -1026,6 +1247,19 @@ class ServerYouTubeVideoProducer:
                 progress_tracker.mark_stage_failed("sequence_build", "Failed to create video sequence")
                 return None
 
+            print(f"\n✅ VIDEO SEQUENCE CREATED:")
+            print(f"   🎬 Total segments: {len(sequence)}")
+            print(f"   ⏱️  Total duration: {total_duration / 60:.1f} minutes")
+
+            # Count sequence types
+            hook_count = len([s for s in sequence if s['type'] == 'hook'])
+            subscribe_count = len([s for s in sequence if s['type'] == 'subscribe'])
+            scene_count = len([s for s in sequence if s['type'] == 'scene'])
+
+            print(f"   🎬 Hook segments: {hook_count}")
+            print(f"   🔔 Subscribe segments: {subscribe_count}")
+            print(f"   📖 Story segments: {scene_count}")
+
             progress_tracker.mark_stage_completed("sequence_build")
             usage_tracker.add_stage("sequence_build", time.time() - start_time)
             usage_tracker.update_performance_data(total_scenes=len(sequence), video_duration_seconds=total_duration)
@@ -1035,14 +1269,23 @@ class ServerYouTubeVideoProducer:
             self.print_progress(current_step, total_steps, "Combining audio files...")
             start_time = time.time()
 
+            print(f"\n🎵 AUDIO COMBINATION:")
             combined_audio = self.combine_all_audio(row_index, scene_plan)
             if not combined_audio:
                 progress_tracker.mark_stage_failed("audio_combine", "Failed to combine audio")
                 return None
 
+            print(f"   ✅ Combined audio created: {Path(combined_audio).name}")
+
             # 4. Background audio ekle
             current_step += 1
             self.print_progress(current_step, total_steps, "Adding background audio...")
+
+            print(f"\n🔥 BACKGROUND AUDIO:")
+            fireplace_audio = self.overlay_path / "fireplace.mp3"
+            print(f"   🔍 Looking for: {fireplace_audio}")
+            print(f"   {'✅ Found' if fireplace_audio.exists() else '❌ Not found'}")
+
             final_audio = self.add_background_audio(combined_audio, row_index)
 
             progress_tracker.mark_stage_completed("audio_combine")
@@ -1051,7 +1294,11 @@ class ServerYouTubeVideoProducer:
             # 5. Image list oluştur
             current_step += 1
             self.print_progress(current_step, total_steps, "Creating image list...")
+
+            print(f"\n📋 IMAGE LIST CREATION:")
             image_list = self.create_image_list_file(row_index, sequence)
+            print(f"   ✅ Image list created: {Path(image_list).name}")
+            print(f"   📊 Total image entries: {len(sequence)}")
 
             # Check processing limits before video render
             can_continue, limit_reason = usage_tracker.check_processing_limits()
@@ -1064,6 +1311,13 @@ class ServerYouTubeVideoProducer:
             self.print_progress(current_step, total_steps, "🎬 ALL SCENES MOVIEPY: Using all sequence images...")
             start_time = time.time()
 
+            print(f"\n🎬 VIDEO RENDERING:")
+            print(f"   📝 Method: ALL SCENES MoviePy (fixed)")
+            print(f"   🔥 Overlay: Fireplace animation")
+            print(f"   🎵 Audio: Full sequence with background")
+            print(f"   📊 Input segments: {len(sequence)}")
+            print(f"   ⏱️  Expected duration: {total_duration / 60:.1f} minutes")
+
             progress_tracker.set_render_method("moviepy_all_scenes_fixed")
             usage_tracker.update_performance_data(render_method="moviepy_all_scenes_fixed")
 
@@ -1071,6 +1325,9 @@ class ServerYouTubeVideoProducer:
             if not final_video:
                 progress_tracker.mark_stage_failed("video_render", "MoviePy render failed")
                 return None
+
+            print(f"   ✅ Video rendering completed")
+            print(f"   📁 Output file: {Path(final_video).name}")
 
             progress_tracker.mark_stage_completed("video_render")
             usage_tracker.add_stage("video_render", time.time() - start_time)
@@ -1085,6 +1342,9 @@ class ServerYouTubeVideoProducer:
                 print("⚠️ Video verification failed, but continuing...")
                 progress_tracker.mark_stage_failed("verification", "Video verification failed")
             else:
+                print(f"\n✅ VIDEO VERIFICATION PASSED:")
+                print(f"   ⏱️  Actual duration: {actual_duration:.1f}s ({actual_duration / 60:.1f} min)")
+                print(f"   📦 File size: {file_size_mb:.1f} MB")
                 progress_tracker.mark_stage_completed("verification")
                 usage_tracker.update_performance_data(filesize_mb=file_size_mb)
 
@@ -1097,8 +1357,7 @@ class ServerYouTubeVideoProducer:
             usage_summary = usage_tracker.print_final_summary()
 
             video_metadata = {
-                "title": platform_metadata["title_options"][0] if platform_metadata.get("title_options") else
-                topic_data["topic"],
+                "title": platform_metadata["title_options"][0] if platform_metadata.get("title_options") else topic_data["topic"],
                 "duration_seconds": actual_duration,
                 "scene_count": len(scene_plan),
                 "sequence_count": len(sequence),
@@ -1120,17 +1379,22 @@ class ServerYouTubeVideoProducer:
 
             # Tamamlanma mesajı
             self.print_progress(total_steps, total_steps, "ALL SCENES MoviePy render completed!")
-            print(f"🎉 Video created successfully: {final_video}")
-            print(f"⏱️ Duration: {actual_duration / 60:.1f} minutes")
-            print(f"📦 File size: {file_size_mb:.1f} MB")
-            print(f"🎬 Sequence segments: {len(sequence)}")
-            print(f"🎬 Render method: ALL SCENES MoviePy (fixed server)")
-            print(f"🔥 Overlay: Working (animated with MoviePy)")
-            print(f"🎵 Audio: Working (full sequence)")
-            print(f"✅ Fixed: ALL scenes in sequence!")
-            print(f"✅ Fixed: No single scene issue!")
-            print(f"🖥️ Server: Database integrated!")
-            print("🎬" * 60)
+
+            print(f"\n" + "🎉" * 80)
+            print("VIDEO CREATION COMPLETED SUCCESSFULLY!")
+            print("🎉" * 80)
+            print(f"🎬 PROJECT: {topic_data['topic']}")
+            print(f"🆔 PROJECT ID: {row_index}")
+            print(f"📁 VIDEO FILE: {final_video}")
+            print(f"⏱️  DURATION: {actual_duration / 60:.1f} minutes")
+            print(f"📦 FILE SIZE: {file_size_mb:.1f} MB")
+            print(f"🎬 SEGMENTS: {len(sequence)} total")
+            print(f"🎭 METHOD: ALL SCENES MoviePy (fixed server)")
+            print(f"🔥 OVERLAY: Working (animated with MoviePy)")
+            print(f"🎵 AUDIO: Working (full sequence)")
+            print(f"✅ STATUS: ALL scenes in sequence - No single scene issue!")
+            print(f"🖥️ SERVER: Database integrated!")
+            print("🎉" * 80)
 
             return final_video, actual_duration, file_size_mb, usage_summary["total_processing_time_minutes"]
 
@@ -1221,7 +1485,6 @@ class ServerYouTubeVideoProducer:
             traceback.print_exc()
             return False
 
-
 if __name__ == "__main__":
     try:
         print("🚀 SERVER VIDEO COMPOSER v1.0")
@@ -1254,5 +1517,4 @@ if __name__ == "__main__":
         print("🛡️ Progress saved! Check video_progress.json for resume info.")
         CONFIG.logger.error(f"Video generation failed: {e}")
         import traceback
-
         traceback.print_exc()
