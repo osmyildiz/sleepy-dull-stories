@@ -560,8 +560,8 @@ class AutomatedStoryGenerator:
         """FIXED: Generate smart scene structure with random count and durations"""
 
         # Generate random scene count (28-45)
-        scene_count = random.randint(28, 45)
-        print(f"🎲 Smart Algorithm: Generated {scene_count} scenes (random 28-45)")
+        scene_count = random.randint(28, 40)
+        print(f"🎲 Smart Algorithm: Generated {scene_count} scenes (random 28-40)")
 
         # Add variation to target duration (120-150 minutes)
         actual_target = target_duration + random.randint(-15, 15)
