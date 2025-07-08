@@ -1,11 +1,11 @@
--- CSV verilerini SQLite topics tablosuna aktarma script'i (TÜM VERİLER DAHİL)
--- Bu script'i çalıştırmadan önce production.db'yi yedeklemeyi unutmayın!
+-- CSV verilerini MEVCUT topics tablosuna ekle
+-- Schema zaten var, sadece eksik kolonları ekleyip veri import edeceğiz
 
--- ADIM 1: Schema'yı genişlet (keywords ve historical_period için yeni kolonlar)
+-- ADIM 1: Eksik kolonları ekle
 ALTER TABLE topics ADD COLUMN keywords TEXT;
 ALTER TABLE topics ADD COLUMN historical_period TEXT;
 
--- ADIM 2: CSV verilerinden KAPSAMLI SQL INSERT statements
+-- ADIM 2: CSV verilerini mevcut topics tablosuna ekle
 INSERT INTO topics (
     topic,
     description,
@@ -49,41 +49,24 @@ INSERT INTO topics (
 ('Galileo''s Telescope Night', 'The wonder-filled evening Galileo first turned his telescope toward Jupiter''s dancing moons.', 'Scientific Revolution, astronomy, telescope, Jupiter, discovery', '17th Century', 'historical_narrative', 2, 120, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('The Last Samurai''s Meditation', 'A contemplative story about a samurai''s final night of reflection as the old ways gave way to new.', 'Meiji Restoration, bushido, honor, Japan, tradition', '19th Century', 'historical_narrative', 2, 120, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- ADIM 3: İndeksleri ekle (performans için)
+-- ADIM 3: Yeni kolonlar için indeksler
 CREATE INDEX IF NOT EXISTS idx_topics_keywords ON topics(keywords);
 CREATE INDEX IF NOT EXISTS idx_topics_historical_period ON topics(historical_period);
 
 -- ADIM 4: Kontrol sorguları
-SELECT 'Toplam kayıt sayısı:' as info, COUNT(*) as count FROM topics;
-SELECT 'Historical narrative sayısı:' as info, COUNT(*) as count FROM topics WHERE category = 'historical_narrative';
-SELECT 'Farklı historical period sayısı:' as info, COUNT(DISTINCT historical_period) as count FROM topics;
+SELECT 'Migration tamamlandı!' as message;
+SELECT COUNT(*) as toplam_kayit FROM topics;
+SELECT COUNT(*) as historical_narrative_sayisi FROM topics WHERE category = 'historical_narrative';
 
--- ADIM 5: Örnek sorgular
--- Historical period'a göre grupla
-SELECT historical_period, COUNT(*) as topic_count
+-- ADIM 5: Örnek veriler
+SELECT topic, keywords, historical_period, status
+FROM topics
+WHERE keywords LIKE '%Roman%' OR keywords LIKE '%Rome%'
+LIMIT 5;
+
+-- ADIM 6: Historical period grupları
+SELECT historical_period, COUNT(*) as sayı
 FROM topics
 WHERE historical_period IS NOT NULL
 GROUP BY historical_period
-ORDER BY topic_count DESC;
-
--- Keywords ile arama örneği
--- SELECT topic, keywords FROM topics WHERE keywords LIKE '%Rome%' OR keywords LIKE '%Roman%';
-
--- ADIM 6: Opsiyonel - Production tracking tablosu
--- CSV'deki production durumlarını da saklamak isterseniz:
-/*
-CREATE TABLE IF NOT EXISTS topic_production_status (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic_id INTEGER,
-    audio_generated BOOLEAN DEFAULT 0,
-    cover_image_created BOOLEAN DEFAULT 0,
-    teaser_video_created BOOLEAN DEFAULT 0,
-    images_generated BOOLEAN DEFAULT 0,
-    background_music_added BOOLEAN DEFAULT 0,
-    editing_completed BOOLEAN DEFAULT 0,
-    published BOOLEAN DEFAULT 0,
-    thumbnail BOOLEAN DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (topic_id) REFERENCES topics(id)
-);
-*/
+ORDER BY sayı DESC;
