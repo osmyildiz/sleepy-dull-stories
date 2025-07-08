@@ -83,13 +83,25 @@ class ServerConfig:
                 "scenes": "16:9",
                 "thumbnail": "16:9"
             },
-            "default_version": "6.1",
+            "default_version": "7.0",
             "process_mode": "relax",
             "character_generation": False,  # Disabled - use existing
             "scene_generation": True,       # Main focus
             "thumbnail_generation": True,   # Main focus
             "server_mode": True,
             "production_ready": True
+        }
+        self.prompt_template = {
+            "default_core": "cinematic realistic photograph professional film photography dramatic lighting photorealistic historical scene detailed textures",
+            "style_modifiers": "warm golden light deep shadows atmospheric weathered materials classical proportions",
+            "banned_words": [
+                "intimate", "romantic", "sensual", "seductive",
+                "nude", "naked", "bare", "undressed",
+                "kiss", "kissing", "embrace", "embracing",
+                "children", "child", "kids", "minor",
+                "violence", "blood", "fight", "weapon",
+                "bedroom", "bed", "bath", "bathing"
+            ]
         }
 
         # Get API key
@@ -830,28 +842,44 @@ class ServerMidjourneySceneGenerator:
         return missing_scenes
 
     def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build content policy safe scene prompt - EXACT COPY FROM LOCAL"""
+        """Build V7 scene prompt using 60-word template system"""
 
         base_prompt = scene.get("enhanced_prompt", scene["prompt"])
         scene_num = scene.get("scene_number")
 
-        # Scene 32 ve 34 için COMPLETE BYPASS - zaten ultra güvenli
-        if scene_num in [32, 34]:
-            print(f"🚫 Scene {scene_num}: COMPLETE BYPASS - Ultra safe content")
-            return base_prompt  # Hiçbir işlem yapma, direkt return
+        print(f"🎬 Building V7 prompt for Scene {scene_num}")
 
-        # Diğer scene'ler için normal processing
+        # Apply V7 content filter
+        filtered_base = self.apply_content_policy_filter(base_prompt)
+
+        # Character references
         char_refs = []
         if scene.get("characters_present") and len(self.character_references) > 0:
             for char_name in scene["characters_present"]:
                 if char_name in self.character_references:
                     char_refs.append(self.character_references[char_name])
 
-        if char_refs:
-            ref_string = " ".join(char_refs)
-            final_prompt = f"{ref_string} {base_prompt}"
+        # Scene-specific (15 words max)
+        scene_words = filtered_base.split()
+        if len(scene_words) > 15:
+            scene_specific = " ".join(scene_words[:15])
         else:
-            final_prompt = base_prompt
+            scene_specific = filtered_base
+
+        # ✅ USE TEMPLATE - Build 60-word prompt
+        prompt_parts = []
+
+        if char_refs:
+            prompt_parts.extend(char_refs)
+
+        prompt_parts.append(scene_specific)
+        prompt_parts.append(CONFIG.prompt_template["default_core"])  # ✅ TEMPLATE ACTIVE
+        prompt_parts.append(CONFIG.prompt_template["style_modifiers"])  # ✅ TEMPLATE ACTIVE
+        prompt_parts.append("--v 7.0 --ar 16:9")
+
+        final_prompt = " ".join(prompt_parts)
+
+        print(f"🔧 V7 template prompt: {final_prompt[:150]}...")
 
         return final_prompt
 
