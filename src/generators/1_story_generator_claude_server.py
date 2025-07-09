@@ -1612,263 +1612,91 @@ Plus full YouTube optimization and production specifications."""
             print(f"❌ Character extraction error: {e}")
             return {"main_characters": [], "character_stats": {"error": str(e)}}
 
-    def _generate_intelligent_thumbnail(self, topic: str, description: str, character_result: Dict,
-                                        clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
-        """STAGE 4: Generate intelligent thumbnail with FIXED composition for text overlay"""
+    # 1. REPLACE: _regenerate_visual_prompts_with_characters
+    def _regenerate_visual_prompts_with_characters(self, scene_plan: List[Dict], characters: List[Dict],
+                                                   scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
+        """Generate ENHANCED DRAMATIC visual prompts with better storytelling"""
 
-        self.character_system.log_extraction_step("Intelligent Thumbnail Generation with COMPOSITION FIX")
+        self.character_system.log_extraction_step("Enhanced Visual Prompts with Dramatic Storytelling")
 
-        characters = character_result.get('main_characters', [])
-        visual_style = character_result.get('visual_style_notes', {})
+        # Enhanced Midjourney safety awareness
+        ENHANCED_PROMPT_GUIDE = """
+        Create DRAMATIC, CINEMATIC visual prompts that tell visual stories.
 
-        thumbnail_character_selection = self.character_system.select_thumbnail_character(
-            characters, topic, description
-        )
+        SAFETY RULES:
+        - Never use: "intimate", "private", "mystical", "late at night"
+        - Use instead: "contemplative", "personal reflection", "atmospheric", "evening hours"
+        - Focus on educational/historical content
+        - Show character emotions and interactions
+        - Include environmental storytelling
 
-        character_info = ""
-        if thumbnail_character_selection['character_data']:
-            char_data = thumbnail_character_selection['character_data']
-            character_info = f"""
-    SELECTED CHARACTER: {char_data['name']}
-    PHYSICAL DESCRIPTION: {char_data['physical_description']}
-    VISUAL NOTES: {char_data.get('visual_notes', '')}
-    THUMBNAIL POTENTIAL: {char_data.get('thumbnail_potential', 'Strong visual presence')}
-    ROLE: {char_data['role']}
-    REASONING: {thumbnail_character_selection['reasoning']}
-    """
-        else:
-            character_info = f"""
-    ATMOSPHERIC APPROACH SELECTED
-    REASONING: {thumbnail_character_selection['reasoning']}
-    NO CHARACTER FOCUS - Use scenic/atmospheric elements
-    """
-
-        if not clickbait_title:
-            youtube_data = character_result.get('youtube_optimization', {})
-            clickbait_titles = youtube_data.get('clickbait_titles', [])
-            clickbait_title = clickbait_titles[
-                0] if clickbait_titles else f"The Secret History of {topic} (2 Hour Sleep Story)"
-
-        if not font_design:
-            font_design = "Bold impact font, uppercase for key words, warm golden color (#d4af37) for main text, contrasted with deep shadows for readability"
-
-        thumbnail_prompt = f"""Create an intelligent thumbnail design for the sleep story "{topic}" with OPTIMIZED COMPOSITION for text overlay.
-
-    STORY TOPIC: {topic}
-    STORY DESCRIPTION: {description}
-
-    {character_info}
-
-    VISUAL STYLE CONTEXT:
-    ART STYLE: {visual_style.get('art_style', 'Romantic realism with atmospheric lighting')}
-    COLOR PALETTE: {visual_style.get('color_palette', 'Warm golden, amber, rose tones')}
-    MOOD: {visual_style.get('mood', 'Peaceful, contemplative, nostalgic')}
-
-    CLICKBAIT TITLE: {clickbait_title}
-    FONT DESIGN: {font_design}
-
-    REQUIREMENTS:
-    Create a thumbnail that balances SLEEP CONTENT (peaceful, calming) with CLICKABILITY (attention-grabbing but not jarring).
-
-    ## CRITICAL COMPOSITION STRATEGY:
-    1. **Character Positioning**: RIGHT side of frame (60-70% from left edge) - NOT center
-    2. **Zoom Level**: ZOOM OUT enough so character's head/face is in safe area - NOT cropped
-    3. **Text Space**: LEFT side (30-40%) must be CLEAR for text overlay
-    4. **Safe Areas**: Character's head, hands, and key details in safe viewing area
-    5. **Balance**: Right-heavy character placement balanced with left-side text space
-
-    ## VISUAL STRATEGY:
-    1. **Background**: Choose most compelling scene location but keep LEFT side simple
-    2. **Lighting**: Warm, golden hour lighting for maximum appeal
-    3. **Composition**: Rule of thirds with character on RIGHT third
-    4. **Text Placement**: LEFT side reserved for readable text overlay
-    5. **Sleep Optimization**: Calming colors, not overstimulating
-    6. **Click Optimization**: Compelling visual hook, emotional appeal
-
-    ## LAYOUT EXAMPLE:
-    [TEXT OVERLAY SPACE] | [CHARACTER POSITIONED HERE]
-         (Left 40%)      |      (Right 60%)
-                         |
-       CLEAR FOR TEXT    |  FULL CHARACTER VISIBLE
-       Golden/warm bg    |  Head NOT cropped
-       Simple background |  Atmospheric setting
-
-    ## CHARACTER-BASED APPROACH:
-    If character selected: Feature the character prominently on RIGHT side in peaceful but visually striking pose
-    If atmospheric: Focus on the most visually compelling location with RIGHT-side emphasis
-
-    OUTPUT FORMAT:
-    {{
-      "thumbnail_prompt": {{
-        "scene_number": 99,
-        "character_used": "{thumbnail_character_selection['character_used']}",
-        "clickbait_title": "{clickbait_title}",
-        "font_design": "{font_design}",
-        "prompt": "[Detailed visual prompt optimized for RIGHT-side character placement with LEFT-side text space]",
-        "visual_style": "[Style notes including mood, lighting, composition]",
-        "character_positioning": "RIGHT side of frame (60-70% from left), character fully visible with head in safe area",
-        "text_overlay_strategy": "LEFT side (30-40%) reserved for text overlay with clear, simple background",
-        "composition_fix": "ZOOM OUT composition ensures character head not cropped, positioned RIGHT for text space",
-        "emotional_appeal": "[What emotion should viewer feel when seeing thumbnail]",
-        "target_audience_appeal": "[Why this appeals to sleep story viewers]",
-        "clickability_factors": "[What makes this thumbnail clickable]",
-        "sleep_content_balance": "[How it maintains sleep content feel while being clickable]",
-        "thumbnail_reasoning": "{thumbnail_character_selection['reasoning']}",
-        "background_scene": "[Primary scene/location for background]",
-        "lighting_strategy": "[Lighting approach for maximum visual appeal]",
-        "composition_notes": "Character positioned RIGHT (60-70% from left), zoomed out for safe area, LEFT side clear for text"
-      }},
-      "thumbnail_alternatives": [
-        {{
-          "variant": "Character Focus",
-          "prompt": "[Alternative thumbnail with character RIGHT-positioned and text space]"
-        }},
-        {{
-          "variant": "Atmospheric Focus", 
-          "prompt": "[Alternative thumbnail focusing on setting with RIGHT-side emphasis]"
-        }},
-        {{
-          "variant": "Action Moment",
-          "prompt": "[Alternative showing key story moment with composition fix]"
-        }}
-      ],
-      "thumbnail_stats": {{
-        "character_approach": "{thumbnail_character_selection['character_used']}",
-        "selection_reasoning": "{thumbnail_character_selection['reasoning']}",
-        "composition_optimized": true,
-        "text_overlay_ready": true,
-        "safe_area_protected": true,
-        "visual_style_matched": true,
-        "clickbait_optimized": true,
-        "sleep_content_appropriate": true
-      }}
-    }}
-
-    ## CRITICAL COMPOSITION REQUIREMENTS:
-    - **CHARACTER POSITION**: Place character on RIGHT side (60-70% from left edge)
-    - **ZOOM LEVEL**: Wide enough shot so head/face is NOT cropped - full character visible
-    - **TEXT SPACE**: LEFT side (30-40%) must be clear/simple for text overlay
-    - **SAFE AREA**: Character's head, face, hands must be in safe viewing area
-    - **BALANCE**: Right-heavy character placement balanced with left-side text space
-
-    REMEMBER: This thumbnail will have text overlaid on the LEFT side, so position character on RIGHT accordingly! Ensure character's head is not cropped and there's clear space for text."""
-
-        try:
-            self.api_call_count += 1
-
-            response = self.client.messages.create(
-                model=CONFIG.claude_config["model"],
-                max_tokens=8000,
-                temperature=0.4,
-                stream=True,
-                timeout=600,
-                system="You are a YouTube thumbnail optimization specialist who understands both sleep content marketing and visual psychology. Create thumbnails that balance peaceful sleep content with clickable appeal. CRITICAL: Position character on RIGHT side with LEFT side clear for text overlay. Ensure character head is not cropped with proper zoom level.",
-                messages=[{"role": "user", "content": thumbnail_prompt}]
-            )
-
-            content = ""
-            print("📡 Stage 4: Generating intelligent thumbnail with COMPOSITION FIX...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
-
-            print(f"✅ Thumbnail generation with composition fix complete: {len(content):,} characters")
-
-            input_tokens = len(thumbnail_prompt) // 4
-            output_tokens = len(content) // 4
-            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
-            self.total_cost += stage_cost
-
-            parsed_result = self._parse_claude_response(content, "thumbnail_generation")
-
-            self.character_system.log_extraction_step("Thumbnail Generation with Composition Fix", "SUCCESS", {
-                "character_approach": thumbnail_character_selection['character_used'],
-                "selection_reasoning": thumbnail_character_selection['reasoning'],
-                "composition_optimized": True,
-                "alternatives_generated": len(parsed_result.get('thumbnail_alternatives', [])),
-                "stage_cost": stage_cost
-            })
-
-            return parsed_result
-
-        except Exception as e:
-            self.character_system.log_extraction_step("Thumbnail Generation Failed", "ERROR")
-            print(f"❌ Thumbnail generation error: {e}")
-
-            fallback_thumbnail = {
-                "thumbnail_prompt": {
-                    "scene_number": 99,
-                    "character_used": "None (Atmospheric focus)",
-                    "clickbait_title": clickbait_title or f"The Secret History of {topic} (2 Hour Sleep Story)",
-                    "font_design": font_design or "Bold impact font with warm colors",
-                    "prompt": f"Atmospheric thumbnail of {topic}, warm golden lighting, RIGHT-side emphasis for character/scene, LEFT side clear for text overlay, peaceful but compelling visual",
-                    "visual_style": "Peaceful and inviting with composition fix",
-                    "character_positioning": "RIGHT side positioning with text space on LEFT",
-                    "thumbnail_reasoning": "Fallback with composition fix applied"
-                },
-                "thumbnail_stats": {"error": str(e), "composition_fix_applied": True}
-            }
-            return fallback_thumbnail
-
-    def _regenerate_visual_prompts_with_characters(self, scene_plan: List[Dict], characters: List[Dict], scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
-        """Character extraction'dan SONRA visual prompts'ı yeniden oluştur"""
-
-        self.character_system.log_extraction_step("Regenerating Visual Prompts with Character Integration")
+        DRAMATIC ENHANCEMENT:
+        - Show character emotions and reactions
+        - Include multiple visual layers (foreground + background)
+        - Add crisis elements for dramatic topics
+        - Use environmental storytelling
+        - Create cinematic composition
+        """
 
         regeneration_prompt = f"""
-        {MIDJOURNEY_CONTENT_AWARENESS_PROMPT}
-        Based on the completed scene plan and extracted character data, create accurate visual generation prompts for all scenes.
+        {ENHANCED_PROMPT_GUIDE}
 
-SCENE PLAN SUMMARY:
-{json.dumps(scene_plan, indent=2)}
+        Create DRAMATICALLY ENHANCED visual prompts for historical story scenes.
 
-MAIN CHARACTERS:
-{json.dumps([{
-    'name': char.get('name', ''),
-    'physical_description': char.get('physical_description', ''),
-    'visual_notes': char.get('visual_notes', ''),
-    'role': char.get('role', '')
-} for char in characters], indent=2)}
+        SCENE PLAN:
+        {json.dumps([{
+            'scene_id': s['scene_id'],
+            'title': s['title'],
+            'location': s['location'],
+            'emotion': s['emotion'],
+            'description': s['description']
+        } for s in scene_plan], indent=2)}
 
-SCENE-CHARACTER MAPPING:
-{json.dumps(scene_character_map, indent=2)}
+        MAIN CHARACTERS:
+        {json.dumps([{
+            'name': char.get('name', ''),
+            'physical_description': char.get('physical_description', ''),
+            'role': char.get('role', '')
+        } for char in characters], indent=2)}
 
-VISUAL STYLE NOTES:
-{json.dumps(style_notes, indent=2)}
+        SCENE-CHARACTER MAPPING:
+        {json.dumps(scene_character_map, indent=2)}
 
-REQUIREMENTS:
-Create accurate visual prompts that match the scene content and characters. Each prompt must:
+        REQUIREMENTS FOR EACH SCENE:
+        1. If characters present: Show their emotions and interactions
+        2. If no characters: Create atmospheric storytelling
+        3. Add dramatic elements appropriate to the scene emotion
+        4. Include environmental details that enhance the story
+        5. Use historically accurate period details
+        6. Create multiple visual layers (foreground + background activity)
+        7. Show consequences and stakes when appropriate
 
-1. **Match the scene location and activity exactly**
-2. **Include characters when they appear in the scene**
-3. **Use atmospheric descriptions when no characters present**
-4. **Be optimized for AI image generation**
+        For CRISIS scenes (emotion: concern): Add evacuation, smoke, worried crowds
+        For PEACEFUL scenes (emotion: peaceful): Add beauty, serenity, contemplation
+        For RESOLUTION scenes: Add hope, determination, community
 
-OUTPUT FORMAT for each scene:
-{{
-  "scene_number": X,
-  "title": "[Scene title from scene plan]",
-  "location": "[Scene location]",
-  "characters_present": ["Character1", "Character2"] or [],
-  "character_reference_needed": true/false,
-  "prompt": "[Detailed visual prompt matching scene content]",
-  "enhanced_prompt": "[Same prompt with character markers for reference system]",
-  "duration_minutes": X,
-  "emotion": "[Scene emotion]",
-  "template": "[Scene template]",
-  "characters_in_scene": [
-    {{
-      "name": "Character Name",
-      "description": "Physical description for visual reference",
-      "importance": X
-    }}
-  ]
-}}
+        OUTPUT FORMAT for each scene:
+        {{
+          "scene_number": X,
+          "title": "[Scene title]",
+          "location": "[Scene location]", 
+          "characters_present": ["Character1"] or [],
+          "character_reference_needed": true/false,
+          "prompt": "[DRAMATICALLY ENHANCED prompt with storytelling]",
+          "enhanced_prompt": "[Same prompt with character markers]",
+          "duration_minutes": X,
+          "emotion": "[Scene emotion]",
+          "characters_in_scene": [
+            {{
+              "name": "Character Name",
+              "description": "Physical description",
+              "importance": X
+            }}
+          ]
+        }}
 
-Generate visual prompts that accurately reflect the scene plan and character presence.
-
-OUTPUT (Complete JSON array of all scenes):
-"""
+        Create enhanced prompts that show VISUAL STORIES, not just static scenes.
+        """
 
         try:
             self.api_call_count += 1
@@ -1876,20 +1704,20 @@ OUTPUT (Complete JSON array of all scenes):
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
                 max_tokens=16000,
-                temperature=0.3,
+                temperature=0.4,
                 stream=True,
                 timeout=900,
-                system="You are a visual prompt specialist. Create accurate AI image generation prompts that exactly match the provided scene content and character data.",
+                system="You are a cinematic visual director. Create dramatic visual prompts that tell emotional stories with character interactions and environmental storytelling. Focus on showing consequences, emotions, and multiple visual layers.",
                 messages=[{"role": "user", "content": regeneration_prompt}]
             )
 
             content = ""
-            print("📡 Regenerating Visual Prompts with Character Integration...")
+            print("📡 Generating Enhanced Dramatic Visual Prompts...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
 
-            print(f"✅ Visual prompt regeneration complete: {len(content):,} characters")
+            print(f"✅ Enhanced visual prompts complete: {len(content):,} characters")
 
             # Calculate cost
             input_tokens = len(regeneration_prompt) // 4
@@ -1909,22 +1737,296 @@ OUTPUT (Complete JSON array of all scenes):
 
                 visual_prompts = json.loads(content)
 
-                self.character_system.log_extraction_step("Visual Prompt Regeneration", "SUCCESS", {
+                self.character_system.log_extraction_step("Enhanced Visual Prompts", "SUCCESS", {
                     "prompts_generated": len(visual_prompts),
-                    "character_integrated": True,
+                    "dramatic_enhancement": True,
                     "stage_cost": stage_cost
                 })
 
                 return visual_prompts
 
             except json.JSONDecodeError as e:
-                print(f"⚠️ JSON parsing failed, attempting partial extraction: {e}")
-                return self._extract_visual_prompts_from_text(content)
+                print(f"⚠️ JSON parsing failed, creating enhanced fallback: {e}")
+                return self._create_enhanced_fallback_prompts(scene_plan, characters, scene_character_map)
 
         except Exception as e:
-            self.character_system.log_extraction_step("Visual Prompt Regeneration Failed", "ERROR")
-            print(f"❌ Visual prompt regeneration error: {e}")
-            return self._create_fallback_visual_prompts(scene_plan, characters, scene_character_map)
+            self.character_system.log_extraction_step("Enhanced Visual Prompts Failed", "ERROR")
+            print(f"❌ Enhanced visual prompt error: {e}")
+            return self._create_enhanced_fallback_prompts(scene_plan, characters, scene_character_map)
+
+    def _create_enhanced_fallback_prompts(self, scene_plan: List[Dict], characters: List[Dict],
+                                          scene_character_map: Dict) -> List[Dict]:
+        """Create enhanced fallback prompts with dramatic storytelling"""
+
+        prompts = []
+
+        for scene in scene_plan:
+            scene_id = scene['scene_id']
+            scene_characters = scene_character_map.get(str(scene_id), [])
+            location = scene.get('location', 'Ancient setting')
+            emotion = scene.get('emotion', 'peaceful')
+            description = scene.get('description', '')
+            title = scene.get('title', f"Scene {scene_id}")
+
+            # Determine dramatic elements based on emotion
+            if emotion == 'concern':
+                drama_modifier = "showing worry and concern about unfolding events"
+                environmental_drama = "with evacuation activity, worried crowds, and signs of crisis in background"
+            elif emotion == 'resolution':
+                drama_modifier = "showing determination and hope"
+                environmental_drama = "with community coming together and hopeful atmosphere"
+            else:  # peaceful
+                drama_modifier = "in contemplative, serene poses"
+                environmental_drama = "with beautiful, calming atmosphere and peaceful daily activities"
+
+            # Character integration
+            if scene_characters:
+                char_names = [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters]
+                char_list = ', '.join(char_names)
+
+                prompt = f"Cinematic view of {location}, featuring {char_list} {drama_modifier}, {environmental_drama}, historically accurate period setting, warm atmospheric lighting, multiple visual layers showing both character emotions and environmental storytelling"
+                enhanced_prompt = f"[CHARACTERS: {char_list}] {prompt}"
+                char_ref_needed = True
+
+                # Character details
+                characters_in_scene = []
+                for char_name in char_names:
+                    full_char = next((c for c in characters if c['name'] == char_name), None)
+                    if full_char:
+                        characters_in_scene.append({
+                            'name': char_name,
+                            'description': full_char.get('physical_description', 'Period-appropriate character'),
+                            'importance': full_char.get('importance_score', 5)
+                        })
+            else:
+                prompt = f"Atmospheric cinematic view of {location} {environmental_drama}, historically accurate period setting, warm atmospheric lighting, environmental storytelling without characters"
+                enhanced_prompt = f"[ATMOSPHERIC SCENE] {prompt}"
+                char_ref_needed = False
+                characters_in_scene = []
+
+            prompt_data = {
+                "scene_number": scene_id,
+                "title": title,
+                "location": location,
+                "characters_present": [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters],
+                "character_reference_needed": char_ref_needed,
+                "prompt": prompt,
+                "enhanced_prompt": enhanced_prompt,
+                "duration_minutes": scene.get('duration_minutes', 4),
+                "emotion": emotion,
+                "characters_in_scene": characters_in_scene
+            }
+
+            prompts.append(prompt_data)
+
+        return prompts
+
+    # 2. REPLACE: _generate_intelligent_thumbnail
+    def _generate_intelligent_thumbnail(self, topic: str, description: str, character_result: Dict,
+                                        clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
+        """Generate DRAMATICALLY ENHANCED thumbnail with better storytelling and composition"""
+
+        self.character_system.log_extraction_step("Enhanced Dramatic Thumbnail Generation")
+
+        characters = character_result.get('main_characters', [])
+        visual_style = character_result.get('visual_style_notes', {})
+
+        # Analyze if this is a crisis topic
+        topic_lower = f"{topic} {description}".lower()
+        crisis_keywords = ['last day', 'fall', 'destruction', 'siege', 'fire', 'burning', 'final', 'end', 'war',
+                           'battle']
+        is_crisis = any(keyword in topic_lower for keyword in crisis_keywords)
+
+        if is_crisis:
+            drama_level = 8
+            crisis_elements = [kw for kw in crisis_keywords if kw in topic_lower]
+        else:
+            drama_level = 4
+            crisis_elements = []
+
+        thumbnail_character_selection = self.character_system.select_thumbnail_character(
+            characters, topic, description
+        )
+
+        if not clickbait_title:
+            youtube_data = character_result.get('youtube_optimization', {})
+            clickbait_titles = youtube_data.get('clickbait_titles', [])
+            clickbait_title = clickbait_titles[
+                0] if clickbait_titles else f"The Secret History of {topic} (2 Hour Sleep Story)"
+
+        if not font_design:
+            font_design = "Bold impact font, warm golden color (#d4af37), contrasted with deep shadows for readability"
+
+        thumbnail_prompt = f"""Create a DRAMATICALLY ENHANCED thumbnail for "{topic}" that maximizes visual storytelling and clickability.
+
+    TOPIC: {topic}
+    DESCRIPTION: {description}
+    CRISIS TOPIC: {is_crisis}
+    DRAMA LEVEL: {drama_level}/10
+    CRISIS ELEMENTS: {crisis_elements}
+
+    CHARACTER SELECTION:
+    {json.dumps(thumbnail_character_selection, indent=2)}
+
+    CLICKBAIT TITLE: {clickbait_title}
+
+    ## DRAMATIC THUMBNAIL REQUIREMENTS:
+
+    ### 🎬 VISUAL STORYTELLING STRATEGY:
+    1. Show EMOTIONAL REACTIONS and CONSEQUENCES, not just static poses
+    2. Include ENVIRONMENTAL STORYTELLING (background elements that hint at the story)
+    3. Use MULTIPLE VISUAL LAYERS (foreground emotions + background context)
+    4. Show CHARACTER INTERACTIONS when multiple characters present
+    5. Include SYMBOLIC ELEMENTS that enhance the narrative
+
+    ### 🎭 CRISIS vs PEACEFUL APPROACH:
+    {f'''
+    FOR CRISIS TOPICS like "{topic}":
+    - Characters showing concern, worry, or determination about historical events
+    - Environmental indicators: smoke, crowds, evacuation activity, crisis symbols
+    - Emotional expressions reflecting gravity of historical moment
+    - Symbolic elements: burning scrolls, falling architecture, worried communities
+    - Balance drama with peaceful, contemplative mood (not scary/jarring)
+    ''' if is_crisis else f'''
+    FOR PEACEFUL TOPICS like "{topic}":
+    - Characters in warm, contemplative interactions
+    - Beautiful environmental details: gardens, architecture, daily life
+    - Serene expressions showing contentment or gentle focus
+    - Symbolic elements: cultural artifacts, beautiful settings, community harmony
+    - Emphasize beauty, tranquility, and historical richness
+    '''}
+
+    ### 🎯 COMPOSITION STRATEGY (CRITICAL):
+    - **Character Position**: RIGHT side of frame (60-70% from left edge)
+    - **Text Space**: LEFT side (30-40%) must be CLEAR for text overlay
+    - **Zoom Level**: Wide enough so character heads are NOT cropped
+    - **Multiple Characters**: Show relationships and interactions when possible
+    - **Background**: Environmental storytelling that enhances the narrative
+
+    ### 💤 SLEEP CONTENT BALANCE:
+    - Maintain warm, inviting color palette even in dramatic scenes
+    - Focus on contemplative emotions rather than fear or terror
+    - Use atmospheric lighting that suggests comfort and relaxation
+    - Ensure overall mood invites peaceful sleep despite any drama
+
+    OUTPUT FORMAT:
+    {{
+      "thumbnail_prompt": {{
+        "scene_number": 99,
+        "character_used": "{thumbnail_character_selection['character_used']}",
+        "clickbait_title": "{clickbait_title}",
+        "font_design": "{font_design}",
+        "drama_level": {drama_level},
+        "is_crisis_topic": {is_crisis},
+        "prompt": "[DRAMATICALLY ENHANCED cinematic thumbnail with visual storytelling]",
+        "visual_style": "[Style emphasizing emotional storytelling]",
+        "character_positioning": "RIGHT side of frame (60-70% from left), heads not cropped",
+        "text_overlay_strategy": "LEFT side (30-40%) clear for title text",
+        "emotional_appeal": "[Specific emotion viewers should feel]",
+        "environmental_storytelling": "[Background elements that enhance story]",
+        "clickability_factors": ["factor1", "factor2", "factor3"],
+        "sleep_content_balance": "[How it maintains peaceful mood while being engaging]",
+        "symbolic_elements": ["element1", "element2"],
+        "thumbnail_reasoning": "{thumbnail_character_selection['reasoning']}",
+        "composition_notes": "RIGHT-positioned characters, LEFT text space, dramatic but peaceful"
+      }},
+      "thumbnail_alternatives": [
+        {{
+          "variant": "Character Focus",
+          "prompt": "[Alternative with character emotions emphasized]"
+        }},
+        {{
+          "variant": "Environmental Drama",
+          "prompt": "[Alternative focusing on setting with character reactions]"
+        }},
+        {{
+          "variant": "Symbolic Moment",
+          "prompt": "[Alternative showing key story symbols]"
+        }}
+      ],
+      "thumbnail_stats": {{
+        "character_approach": "{thumbnail_character_selection['character_used']}",
+        "visual_storytelling": true,
+        "environmental_elements": true,
+        "composition_optimized": true,
+        "clickability_enhanced": true,
+        "sleep_appropriate": true,
+        "crisis_balanced": {is_crisis}
+      }}
+    }}
+
+    CRITICAL: Create a thumbnail that tells a VISUAL STORY in one image. Show emotions, consequences, and environmental context that makes viewers want to click while maintaining sleep content appropriateness.
+
+    For crisis topics: Show human emotional response to historical events with contemplative sadness rather than fear.
+    For peaceful topics: Show beauty, warmth, and inviting historical atmosphere.
+    """
+
+        try:
+            self.api_call_count += 1
+
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=8000,
+                temperature=0.4,
+                stream=True,
+                timeout=600,
+                system="You are a YouTube thumbnail specialist focused on visual storytelling. Create thumbnails that show emotional stories and consequences while maintaining sleep content appropriateness. Balance engaging visuals with peaceful, contemplative mood.",
+                messages=[{"role": "user", "content": thumbnail_prompt}]
+            )
+
+            content = ""
+            print("📡 Generating Enhanced Dramatic Thumbnail...")
+            for chunk in response:
+                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
+                    content += chunk.delta.text
+
+            print(f"✅ Enhanced thumbnail complete: {len(content):,} characters")
+
+            input_tokens = len(thumbnail_prompt) // 4
+            output_tokens = len(content) // 4
+            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
+            self.total_cost += stage_cost
+
+            parsed_result = self._parse_claude_response(content, "thumbnail_generation")
+
+            self.character_system.log_extraction_step("Enhanced Dramatic Thumbnail", "SUCCESS", {
+                "drama_level": drama_level,
+                "is_crisis_topic": is_crisis,
+                "visual_storytelling": True,
+                "stage_cost": stage_cost
+            })
+
+            return parsed_result
+
+        except Exception as e:
+            print(f"❌ Enhanced thumbnail error: {e}")
+
+            # Enhanced fallback
+            if is_crisis:
+                fallback_elements = "showing concern about historical events, with environmental crisis indicators in background"
+                mood = "contemplative sadness appropriate for historical drama"
+            else:
+                fallback_elements = "in peaceful, warm interactions"
+                mood = "serene and inviting historical atmosphere"
+
+            fallback_prompt = f"Cinematic thumbnail of {topic}, characters positioned RIGHT side of frame {fallback_elements}, historically accurate setting, warm atmospheric lighting, {mood}, LEFT side clear for text overlay, visual storytelling with multiple layers"
+
+            return {
+                "thumbnail_prompt": {
+                    "scene_number": 99,
+                    "character_used": "Main characters (enhanced fallback)",
+                    "clickbait_title": clickbait_title,
+                    "drama_level": drama_level,
+                    "prompt": fallback_prompt,
+                    "character_positioning": "RIGHT side, LEFT text space",
+                    "visual_storytelling": "Enhanced environmental storytelling",
+                    "thumbnail_reasoning": "Enhanced fallback with dramatic elements"
+                },
+                "thumbnail_stats": {
+                    "visual_storytelling": True,
+                    "enhanced_fallback": True
+                }
+            }
 
     def _extract_visual_prompts_from_text(self, content: str) -> List[Dict]:
         """Extract visual prompts from text when JSON parsing fails"""
