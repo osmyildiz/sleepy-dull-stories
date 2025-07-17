@@ -524,6 +524,35 @@ class ServerYouTubeVideoProducer:
             print(f"❌ Error loading project data: {e}")
             return None, None
 
+    def load_audio_timeline(self, project_dir):
+        """Load actual generated scenes from audio timeline instead of scene plan"""
+        timeline_path = Path(project_dir) / "story_audio_youtube_timeline.json"
+
+        if not timeline_path.exists():
+            print(f"❌ Timeline not found: {timeline_path}")
+            return [], None
+
+        try:
+            with open(timeline_path, 'r', encoding='utf-8') as f:
+                timeline_data = json.load(f)
+
+            # Extract story scenes only (not hook/subscribe)
+            story_scenes = []
+            for scene in timeline_data['scenes']:
+                if scene['type'] == 'story_scene':
+                    story_scenes.append({
+                        'scene_id': scene['scene_number'],
+                        'title': scene['title'],
+                        'audio_file': scene['audio_file']
+                    })
+
+            print(f"✅ Timeline loaded: {len(story_scenes)} story scenes")
+            return story_scenes, timeline_data
+
+        except Exception as e:
+            print(f"❌ Timeline load error: {e}")
+            return [], None
+
     def get_audio_duration(self, audio_file_path):
         """Ses dosyasının süresini al"""
         try:
@@ -1340,10 +1369,20 @@ class ServerYouTubeVideoProducer:
             self.print_progress(current_step, total_steps, "Loading project data...")
             start_time = time.time()
 
-            scene_plan, platform_metadata = self.load_project_data(row_index)
-            if not scene_plan:
-                progress_tracker.mark_stage_failed("project_load", "Failed to load project data")
+            # Load scene plan and platform metadata
+            scene_plan_original, platform_metadata = self.load_project_data(row_index)
+            if not platform_metadata:
+                progress_tracker.mark_stage_failed("project_load", "Failed to load platform metadata")
                 return None
+
+            # Load actual generated scenes from audio timeline
+            story_scenes, timeline_data = self.load_audio_timeline(self.current_output_dir)
+            if not story_scenes:
+                progress_tracker.mark_stage_failed("project_load", "Failed to load audio timeline")
+                return None
+
+            # Use timeline scenes instead of scene plan
+            scene_plan = story_scenes
 
             print(f"\n📊 PROJECT DATA LOADED:")
             print(f"   📋 Platform metadata: {'✅ Available' if platform_metadata else '❌ Missing'}")
