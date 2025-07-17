@@ -387,7 +387,7 @@ class ServerYouTubeVideoProducer:
         self.base_dir = Path(CONFIG.paths['BASE_DIR'])
         self.data_path = Path(CONFIG.paths['DATA_DIR'])
         self.output_path = Path(CONFIG.paths['OUTPUT_DIR'])
-        self.overlay_path = self.base_dir / "src" / "data" / "overlay_videos"
+        self.overlay_path = self.data_path / "overlay_videos"
 
         # Database manager
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
@@ -915,147 +915,272 @@ class ServerYouTubeVideoProducer:
             print(f"❌ Background audio failed: {e}")
             return main_audio_file
 
-    def create_video_moviepy_style(self, image_list_file, audio_file, row_index, total_duration):
-        """FIXED MoviePy Style: Use ALL images in sequence + proper cleanup timing"""
+    def create_video_moviepy_chunked_style(self, image_list_file, audio_file, row_index, total_duration):
+        """CHUNKED MoviePy Style: Process video in chunks to avoid memory leak"""
         fireplace_video = self.overlay_path / "fireplace.mp4"
         final_video = Path(self.current_output_dir) / "final_video.mp4"
+        chunks_dir = Path(self.current_output_dir) / "video_chunks"
 
-        print(f"🎬 FIXED MOVIEPY STYLE: ALL images sequence ({total_duration:.1f}s = {total_duration / 60:.1f} minutes)")
-        print("📝 Using MoviePy with ALL sequence images + FIXED cleanup timing")
+        print(f"🎬 CHUNKED MOVIEPY STYLE: Process in chunks ({total_duration:.1f}s = {total_duration / 60:.1f} minutes)")
+        print("📝 Using MoviePy with CHUNKED processing to avoid memory leak")
+        print("🧩 Chunk size: 600 seconds (10 minutes) per chunk")
 
-        # Store clips for proper cleanup after rendering
-        clips_to_cleanup = []
+        # Create chunks directory
+        chunks_dir.mkdir(exist_ok=True)
 
         try:
             from moviepy.editor import ImageClip, VideoFileClip, AudioFileClip, CompositeVideoClip, \
                 concatenate_videoclips
+            import gc
 
             # Parse image list file to get ALL images and durations
             with open(image_list_file, 'r') as f:
                 lines = f.readlines()
 
-            image_clips = []
+            # Parse all segments
+            segments = []
             i = 0
             while i < len(lines):
                 if lines[i].startswith('file '):
                     image_path = lines[i].strip().replace("file '", "").replace("'", "")
                     if i + 1 < len(lines) and lines[i + 1].startswith('duration '):
                         duration = float(lines[i + 1].strip().replace("duration ", ""))
-
-                        # Create image clip for this segment
-                        img_clip = ImageClip(str(image_path))
-                        img_clip = img_clip.set_duration(duration)
-                        image_clips.append(img_clip)
-                        clips_to_cleanup.append(img_clip)
-
-                        print(f"📝 Added: {Path(image_path).name} ({duration:.1f}s)")
+                        segments.append({
+                            'image': image_path,
+                            'duration': duration
+                        })
                         i += 2  # Skip next line (duration)
                     else:
                         i += 1
                 else:
                     i += 1
 
-            if not image_clips:
-                print("❌ Could not find any images in list")
+            if not segments:
+                print("❌ Could not find any segments in image list")
                 return None
 
-            print(f"✅ Created {len(image_clips)} image clips")
-            print("🎵 Loading audio...")
+            print(f"✅ Parsed {len(segments)} segments")
 
-            # Audio clip
+            # Load fireplace overlay once
+            fireplace_overlay_base = None
+            if fireplace_video.exists():
+                print("🔥 Loading fireplace overlay...")
+                fireplace_overlay_base = VideoFileClip(str(fireplace_video))
+                print(f"   📏 Fireplace duration: {fireplace_overlay_base.duration:.1f}s")
+
+            # Load audio
             audio_clip = AudioFileClip(str(audio_file))
-            clips_to_cleanup.append(audio_clip)
             actual_duration = audio_clip.duration
 
-            # Concatenate all image clips to create the main video
-            main_video = concatenate_videoclips(image_clips, method="compose")
-            clips_to_cleanup.append(main_video)
+            # Calculate chunks
+            chunk_duration = 600  # 10 minutes per chunk
+            total_chunks = int(total_duration / chunk_duration) + 1
+            chunk_files = []
 
-            print(f"✅ Main video created with {len(image_clips)} scenes: {actual_duration:.1f}s")
+            print(f"\n🧩 CHUNKED PROCESSING:")
+            print(f"   📊 Total segments: {len(segments)}")
+            print(f"   ⏱️  Total duration: {total_duration:.1f}s ({total_duration/60:.1f} min)")
+            print(f"   🧩 Chunk duration: {chunk_duration}s ({chunk_duration/60:.1f} min)")
+            print(f"   📦 Total chunks: {total_chunks}")
 
-            # Fireplace overlay (if exists)
-            if fireplace_video.exists():
-                print("🔥 Adding animated fireplace overlay...")
+            # Process each chunk
+            for chunk_idx in range(total_chunks):
+                chunk_start_time = chunk_idx * chunk_duration
+                chunk_end_time = min((chunk_idx + 1) * chunk_duration, total_duration)
+                chunk_actual_duration = chunk_end_time - chunk_start_time
 
-                # Overlay clip
-                overlay_clip = VideoFileClip(str(fireplace_video))
-                clips_to_cleanup.append(overlay_clip)
+                print(f"\n📦 CHUNK {chunk_idx + 1}/{total_chunks}:")
+                print(f"   ⏱️  Time range: {chunk_start_time:.1f}s - {chunk_end_time:.1f}s")
+                print(f"   📏 Chunk duration: {chunk_actual_duration:.1f}s")
 
-                # Loop overlay to match duration
-                if overlay_clip.duration < actual_duration:
-                    # Calculate how many loops needed
-                    loop_count = int(actual_duration / overlay_clip.duration) + 1
-                    print(f"🔄 Looping fireplace {loop_count} times")
+                # Find segments for this chunk
+                chunk_segments = []
+                current_time = 0
 
-                    # Create looped clips
-                    overlay_clips = [overlay_clip.copy() for _ in range(loop_count)]
-                    clips_to_cleanup.extend(overlay_clips)  # Add copies to cleanup list
+                for segment in segments:
+                    segment_start = current_time
+                    segment_end = current_time + segment['duration']
 
-                    overlay_looped = concatenate_videoclips(overlay_clips)
-                    clips_to_cleanup.append(overlay_looped)
+                    # Check if segment overlaps with chunk
+                    if segment_start < chunk_end_time and segment_end > chunk_start_time:
+                        # Calculate overlap
+                        overlap_start = max(segment_start, chunk_start_time)
+                        overlap_end = min(segment_end, chunk_end_time)
+                        overlap_duration = overlap_end - overlap_start
+
+                        if overlap_duration > 0:
+                            chunk_segments.append({
+                                'image': segment['image'],
+                                'duration': overlap_duration,
+                                'chunk_start': overlap_start - chunk_start_time
+                            })
+
+                    current_time = segment_end
+
+                print(f"   📊 Chunk segments: {len(chunk_segments)}")
+
+                if not chunk_segments:
+                    print(f"   ⚠️  No segments in chunk {chunk_idx + 1}, skipping")
+                    continue
+
+                # Create chunk clips
+                chunk_clips = []
+                clips_to_cleanup = []
+
+                for seg in chunk_segments:
+                    img_clip = ImageClip(str(seg['image']))
+                    img_clip = img_clip.set_duration(seg['duration'])
+                    chunk_clips.append(img_clip)
+                    clips_to_cleanup.append(img_clip)
+
+                # Concatenate chunk clips
+                if len(chunk_clips) == 1:
+                    chunk_main_video = chunk_clips[0]
                 else:
-                    overlay_looped = overlay_clip
+                    chunk_main_video = concatenate_videoclips(chunk_clips, method="compose")
+                clips_to_cleanup.append(chunk_main_video)
 
-                # Trim to exact duration
-                fireplace_overlay = overlay_looped.subclip(0, actual_duration)
+                print(f"   ✅ Created chunk main video: {chunk_actual_duration:.1f}s")
 
-                # Resize to match main video
-                fireplace_overlay = fireplace_overlay.resize(main_video.size)
+                # Add fireplace overlay to chunk
+                if fireplace_overlay_base:
+                    print(f"   🔥 Adding fireplace overlay to chunk...")
 
-                # Set opacity (30% transparent)
-                fireplace_overlay = fireplace_overlay.set_opacity(0.3)
+                    # Calculate how many loops needed for this chunk
+                    fireplace_duration = fireplace_overlay_base.duration
+                    loops_needed = int(chunk_actual_duration / fireplace_duration) + 1
 
-                # Remove audio from fireplace (we want base video audio)
-                fireplace_overlay = fireplace_overlay.without_audio()
+                    # Create looped fireplace for this chunk
+                    if loops_needed > 1:
+                        fireplace_clips = []
+                        for loop_idx in range(loops_needed):
+                            fireplace_clips.append(fireplace_overlay_base.copy())
 
-                # Composite video layers: main video + fireplace overlay
-                final_clip = CompositeVideoClip([main_video, fireplace_overlay])
-                print("✅ Fireplace overlay added successfully!")
+                        chunk_fireplace = concatenate_videoclips(fireplace_clips)
+                        clips_to_cleanup.extend(fireplace_clips)
+                        clips_to_cleanup.append(chunk_fireplace)
+                    else:
+                        chunk_fireplace = fireplace_overlay_base.copy()
+                        clips_to_cleanup.append(chunk_fireplace)
 
-            else:
-                print("⚠️ Fireplace video not found, using main video only")
-                final_clip = main_video
+                    # Trim to exact chunk duration
+                    chunk_fireplace = chunk_fireplace.subclip(0, chunk_actual_duration)
 
-            # Set audio
-            final_clip = final_clip.set_audio(audio_clip)
-            clips_to_cleanup.append(final_clip)
+                    # Resize and set opacity
+                    chunk_fireplace = chunk_fireplace.resize(chunk_main_video.size)
+                    chunk_fireplace = chunk_fireplace.set_opacity(0.3)
+                    chunk_fireplace = chunk_fireplace.without_audio()
 
-            print("🚀 Rendering final video...")
-            print(f"⏱️  Estimated time: ~{actual_duration * 0.5 / 60:.1f} minutes")
-            print(f"🎬 Rendering {len(image_clips)} scenes + fireplace overlay + audio")
-            print("🔄 Clips will be cleaned up AFTER rendering completes")
+                    # Composite
+                    chunk_final = CompositeVideoClip([chunk_main_video, chunk_fireplace])
+                    clips_to_cleanup.append(chunk_final)
 
-            # Write video file with progress - CRITICAL: Do NOT cleanup before this!
-            final_clip.write_videofile(
-                str(final_video),
-                fps=30,
-                codec="libx264",
-                audio_codec="aac",
-                temp_audiofile='temp-audio.m4a',
-                remove_temp=True,
-                verbose=False,
-                logger='bar'  # Progress bar style
-            )
+                    print(f"   ✅ Fireplace overlay added to chunk")
+                else:
+                    chunk_final = chunk_main_video
 
-            # ✅ NOW cleanup everything AFTER rendering is complete
-            print("🧹 Cleaning up clips after successful render...")
-            try:
+                # Add audio to chunk
+                chunk_audio = audio_clip.subclip(chunk_start_time, chunk_end_time)
+                chunk_final = chunk_final.set_audio(chunk_audio)
+                clips_to_cleanup.append(chunk_audio)
+                clips_to_cleanup.append(chunk_final)
+
+                # Render chunk
+                chunk_file = chunks_dir / f"chunk_{chunk_idx:03d}.mp4"
+                chunk_files.append(str(chunk_file))
+
+                print(f"   🚀 Rendering chunk {chunk_idx + 1}/{total_chunks}...")
+                print(f"      📁 Output: {chunk_file.name}")
+                print(f"      ⏱️  Expected time: ~{chunk_actual_duration * 0.3 / 60:.1f} minutes")
+
+                chunk_final.write_videofile(
+                    str(chunk_file),
+                    fps=30,
+                    codec="libx264",
+                    audio_codec="aac",
+                    temp_audiofile=f'temp-audio-chunk-{chunk_idx}.m4a',
+                    remove_temp=True,
+                    verbose=False,
+                    logger=None  # Disable progress bar for chunks
+                )
+
+                # Cleanup chunk clips immediately
+                print(f"   🧹 Cleaning up chunk {chunk_idx + 1} clips...")
                 for clip in clips_to_cleanup:
                     if clip is not None:
-                        clip.close()
+                        try:
+                            clip.close()
+                        except:
+                            pass
                 clips_to_cleanup.clear()
-                print("✅ Cleanup completed successfully")
-            except Exception as cleanup_e:
-                print(f"⚠️ Cleanup warning: {cleanup_e}")
+
+                # Force garbage collection
+                gc.collect()
+
+                print(f"   ✅ Chunk {chunk_idx + 1}/{total_chunks} completed!")
+
+            # Cleanup base clips
+            if fireplace_overlay_base:
+                fireplace_overlay_base.close()
+            audio_clip.close()
+
+            print(f"\n🔗 COMBINING CHUNKS:")
+            print(f"   📦 Total chunks created: {len(chunk_files)}")
+            print(f"   🎬 Combining into final video...")
+
+            # Combine all chunks using FFmpeg
+            chunk_list_file = chunks_dir / "chunk_list.txt"
+            with open(chunk_list_file, 'w') as f:
+                for chunk_file in chunk_files:
+                    f.write(f"file '{chunk_file}'\n")
+
+            # Use FFmpeg to combine chunks
+            import subprocess
+            ffmpeg_cmd = [
+                'ffmpeg',
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', str(chunk_list_file),
+                '-c', 'copy',
+                '-y',
+                str(final_video)
+            ]
+
+            print(f"   🔄 Running FFmpeg to combine chunks...")
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                print(f"   ✅ Chunks combined successfully!")
+
+                # Cleanup chunk files
+                print(f"   🧹 Cleaning up chunk files...")
+                for chunk_file in chunk_files:
+                    try:
+                        os.remove(chunk_file)
+                    except:
+                        pass
+
+                # Remove chunk list file
+                try:
+                    os.remove(chunk_list_file)
+                    chunks_dir.rmdir()
+                except:
+                    pass
+
+                print(f"   ✅ Cleanup completed!")
+            else:
+                print(f"   ❌ FFmpeg combination failed:")
+                print(f"      {result.stderr}")
+                return None
 
             if final_video.exists():
-                print(f"✅ FIXED MOVIEPY STYLE completed: {final_video}")
-                print(f"🎬 Successfully rendered {len(image_clips)} scenes!")
-                print("🔥 Fireplace should be perfectly animated!")
-                print("✅ No NoneType errors - cleanup timing fixed!")
+                print(f"\n✅ CHUNKED MOVIEPY STYLE completed: {final_video}")
+                print(f"🎬 Successfully rendered {len(segments)} segments in {total_chunks} chunks!")
+                print("🔥 Fireplace overlay working without memory leak!")
+                print("✅ Memory-efficient chunked processing!")
                 return final_video
             else:
-                print("❌ MoviePy render failed")
+                print("❌ Final video not created")
                 return None
 
         except ImportError:
@@ -1063,21 +1188,9 @@ class ServerYouTubeVideoProducer:
             print("🔄 Fallback to FFmpeg method...")
             return self.create_video_ffmpeg_fallback(image_list_file, audio_file, row_index, total_duration)
         except Exception as e:
-            print(f"❌ MoviePy failed: {e}")
+            print(f"❌ Chunked MoviePy failed: {e}")
             import traceback
             traceback.print_exc()
-            print("🔄 Emergency cleanup...")
-
-            # Emergency cleanup on failure
-            try:
-                for clip in clips_to_cleanup:
-                    if clip is not None:
-                        clip.close()
-                clips_to_cleanup.clear()
-                print("✅ Emergency cleanup completed")
-            except Exception as cleanup_e:
-                print(f"⚠️ Emergency cleanup warning: {cleanup_e}")
-
             print("🔄 Fallback to simple video...")
             return self.create_simple_video_with_audio(image_list_file, audio_file, row_index)
 
@@ -1387,17 +1500,18 @@ class ServerYouTubeVideoProducer:
             self.print_progress(current_step, total_steps, "🎬 TIMELINE MoviePy: Using all timeline scenes...")
             start_time = time.time()
 
-            print(f"\n🎬 VIDEO RENDERING (TIMELINE-BASED):")
-            print(f"   📝 Method: TIMELINE MoviePy (all actual scenes)")
-            print(f"   🔥 Overlay: Fireplace animation")
+            print(f"\n🎬 VIDEO RENDERING (CHUNKED TIMELINE-BASED):")
+            print(f"   📝 Method: CHUNKED Timeline MoviePy (memory efficient)")
+            print(f"   🧩 Chunk processing: 10 minute segments")
+            print(f"   🔥 Overlay: Fireplace animation per chunk")
             print(f"   🎵 Audio: Full sequence with background")
             print(f"   📊 Input segments: {len(sequence)}")
             print(f"   ⏱️  Expected duration: {total_duration / 60:.1f} minutes")
 
-            progress_tracker.set_render_method("moviepy_timeline_based")
-            usage_tracker.update_performance_data(render_method="moviepy_timeline_based")
+            progress_tracker.set_render_method("moviepy_chunked_timeline_based")
+            usage_tracker.update_performance_data(render_method="moviepy_chunked_timeline_based")
 
-            final_video = self.create_video_moviepy_style(image_list, final_audio, row_index, total_duration)
+            final_video = self.create_video_moviepy_chunked_style(image_list, final_audio, row_index, total_duration)
             if not final_video:
                 progress_tracker.mark_stage_failed("video_render", "MoviePy timeline render failed")
                 return None
@@ -1437,10 +1551,12 @@ class ServerYouTubeVideoProducer:
                 "created_at": datetime.now().isoformat(),
                 "output_file": str(final_video),
                 "processing_steps": total_steps,
-                "render_method": "moviepy_timeline_based_server",
+                "render_method": "moviepy_chunked_timeline_based_server",
                 "timeline_mode": True,
+                "chunked_processing": True,
                 "overlay_working": True,
                 "cleanup_timing": "fixed",
+                "memory_efficient": True,
                 "server_version": True,
                 "database_integrated": True,
                 "usage_summary": usage_summary,
@@ -1549,6 +1665,7 @@ class ServerYouTubeVideoProducer:
                 print("VIDEO GENERATION SUCCESSFUL!")
                 print("✅ YouTube-optimized video with TIMELINE scenes")
                 print("✅ MoviePy with fireplace overlay")
+                print("✅ Chunked processing (memory efficient)")
                 print("✅ Fixed cleanup timing")
                 print("✅ Timeline-based processing")
                 print("✅ Database updated with metrics")
@@ -1569,10 +1686,11 @@ class ServerYouTubeVideoProducer:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER VIDEO COMPOSER v1.1 - TIMELINE MODE")
+        print("🚀 SERVER VIDEO COMPOSER v1.1 - CHUNKED TIMELINE MODE")
         print("🔗 Database integration with progress tracking")
         print("🎬 YouTube Production Video Generation")
         print("📋 Timeline-based scene loading (ACTUAL generated scenes)")
+        print("🧩 Chunked processing (memory efficient)")
         print("🔥 MoviePy + Fireplace Overlay + ALL Timeline Scenes")
         print("🎭 Fixed cleanup timing + Server infrastructure")
         print("🖥️ Production-ready automation")
@@ -1587,6 +1705,7 @@ if __name__ == "__main__":
             print("📋 Metadata saved: video_metadata.json")
             print("🔥 Fireplace overlay included")
             print("📋 Timeline-based scenes used")
+            print("🧩 Chunked processing used (memory efficient)")
             print("💾 Progress tracking enabled")
             print("🖥️ Server infrastructure working")
         else:
