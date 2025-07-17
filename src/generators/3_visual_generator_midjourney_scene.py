@@ -656,42 +656,50 @@ class MidjourneyVisualGenerator:
         print(f"✅ Character generation complete: {successful_downloads}/{len(marketing_characters)}")
         return successful_downloads > 0
 
-    def generate_scenes_with_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
-        """Generate all scenes with smart retry and universal content filtering"""
+    def generate_scenes_with_intelligent_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 15):
+        """Enhanced scene generation with intelligent retry using Claude AI - FINAL CLAUDE RETRY ONLY"""
+
+        print("🧠 ENHANCED SCENE GENERATION WITH FINAL CLAUDE RETRY")
+        print("🔄 Normal retry: Auto retry without Claude")
+        print("🧠 Final retry: Claude AI generates new prompts for failed downloads")
+        print("🛡️ Content filtering: All prompts")
+
+        # Track failed downloads separately from failed submissions
+        download_failed_scenes = set()
 
         for retry_round in range(max_retry_rounds):
             missing_scenes = self.get_missing_scenes(visual_prompts)
 
             if not missing_scenes:
                 print("✅ All scenes completed!")
+                # FINAL CLAUDE RETRY FOR DOWNLOAD FAILURES
+                if download_failed_scenes and self.intelligent_retry_enabled:
+                    print(f"\n🧠 FINAL CLAUDE RETRY: {len(download_failed_scenes)} scenes with download failures")
+                    return self._run_final_claude_retry(visual_prompts, download_failed_scenes)
                 return True
 
-            # Check if we have blacklisted scenes
+            # Determine retry mode - NO INTELLIGENT RETRY DURING NORMAL ROUNDS
+            retry_mode = "NORMAL"
+            print(f"\n🔄 NORMAL RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
+
+            # Check blacklisted scenes
             total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
             blacklisted_count = len(self.blacklisted_scenes)
 
-            if retry_round == 0:
-                print(f"🎬 Starting scene generation - {len(missing_scenes)} scenes to generate")
-                print("🛡️ Universal content filter active for all prompts")
-            else:
-                print(f"\n🔄 RETRY ROUND {retry_round}: {len(missing_scenes)} missing scenes")
-                if blacklisted_count > 0:
-                    print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
+            if blacklisted_count > 0:
+                print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
 
-                # Longer wait between retry rounds
-                print("⏳ Waiting 60 seconds before retry round...")
-                time.sleep(60)
-
-            # Check and update attempt counts
+            # Update attempt counts and blacklisting - MORE LENIENT
             for scene in missing_scenes:
                 scene_num = scene["scene_number"]
                 self.scene_attempt_count[scene_num] = self.scene_attempt_count.get(scene_num, 0) + 1
 
-                # Blacklist scenes that failed too many times
-                if self.scene_attempt_count[scene_num] > 5:
+                # INCREASED blacklisting threshold - give more chances
+                max_attempts = 8  # Increased from 5
+
+                if self.scene_attempt_count[scene_num] > max_attempts:
                     self.blacklisted_scenes.add(scene_num)
-                    print(
-                        f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} failed attempts")
+                    print(f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} attempts")
 
             # Re-get missing scenes after blacklisting
             missing_scenes = self.get_missing_scenes(visual_prompts)
@@ -699,11 +707,19 @@ class MidjourneyVisualGenerator:
             if not missing_scenes:
                 completed_count = total_scenes - blacklisted_count
                 print(f"✅ All processable scenes completed! ({completed_count}/{total_scenes})")
-                if blacklisted_count > 0:
-                    print(f"⚫ {blacklisted_count} scenes blacklisted due to repeated failures")
+                # FINAL CLAUDE RETRY FOR DOWNLOAD FAILURES
+                if download_failed_scenes and self.intelligent_retry_enabled:
+                    print(f"\n🧠 FINAL CLAUDE RETRY: {len(download_failed_scenes)} scenes with download failures")
+                    return self._run_final_claude_retry(visual_prompts, download_failed_scenes)
                 return True
 
-            # Submit missing scene tasks
+            # Wait between retry rounds
+            if retry_round > 0:
+                wait_time = 60
+                print(f"⏳ Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+
+            # Submit scene tasks - NORMAL PROMPTS ONLY
             scene_tasks = {}
             successful_submissions = 0
 
@@ -713,50 +729,36 @@ class MidjourneyVisualGenerator:
 
                 print(f"🎬 Processing Scene {scene_num} ({i + 1}/{len(missing_scenes)}) - Attempt #{attempt_num}")
 
-                # Build safe scene prompt (content filter applied automatically)
+                # ALWAYS use normal prompt building - NO CLAUDE DURING NORMAL RETRY
                 final_prompt = self.build_safe_scene_prompt(scene)
 
-                # Check prompt length and truncate if necessary
+                # Handle long prompts
                 if len(final_prompt) > 4000:
                     print(f"⚠️ Scene {scene_num}: Truncating long prompt...")
-                    base_prompt = scene.get("enhanced_prompt", scene["prompt"])
+                    final_prompt = final_prompt[:3900] + " --ar 16:9 --v 6.1"
 
-                    # Get character refs
-                    char_refs = []
-                    if scene.get("characters_present") and len(self.character_references) > 0:
-                        for char_name in scene["characters_present"]:
-                            if char_name in self.character_references:
-                                char_refs.append(self.character_references[char_name])
-
-                    if char_refs:
-                        ref_string = " ".join(char_refs)
-                        available_text_length = 3900 - len(ref_string) - len(" --ar 16:9 --v 6.1")
-                        truncated_text = base_prompt[:available_text_length]
-                        final_prompt = f"{ref_string} {truncated_text} --ar 16:9 --v 6.1"
-                    else:
-                        final_prompt = final_prompt[:3900] + " --ar 16:9 --v 6.1"
-
-                # Check for content policy issues (informational only)
+                # Content policy check (informational)
                 if not self.is_content_policy_safe(final_prompt):
                     print(f"🛡️ Scene {scene_num}: Content filter will be applied")
 
-                # Submit task (content filter applied automatically)
+                # Submit task
                 task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
 
                 if task_id:
                     scene_tasks[scene_num] = {
                         "task_id": task_id,
                         "prompt": final_prompt,
-                        "scene_data": scene
+                        "scene_data": scene,
+                        "retry_mode": retry_mode
                     }
                     successful_submissions += 1
                     print(f"✅ Scene {scene_num}: Submitted successfully")
                 else:
                     print(f"❌ Scene {scene_num}: Submission failed")
 
-                # Progressive rate limiting based on retry round
-                base_wait = 5 if retry_round == 0 else 8
-                wait_time = base_wait + (retry_round * 2)  # Increase wait time each retry round
+                # Rate limiting
+                base_wait = 5 if retry_round < 3 else 8
+                wait_time = base_wait + (retry_round * 2)
 
                 if i < len(missing_scenes) - 1:
                     print(f"⏳ Waiting {wait_time} seconds...")
@@ -766,12 +768,12 @@ class MidjourneyVisualGenerator:
                 f"📊 Round {retry_round + 1} submissions: ✅ {successful_submissions} | ❌ {len(missing_scenes) - successful_submissions}")
 
             if not scene_tasks:
-                print("❌ No tasks submitted in this round, trying next round...")
+                print("❌ No tasks submitted, continuing to next round...")
                 continue
 
-            # Monitor tasks with detailed logging
+            # Monitor tasks
             completed_scenes = {}
-            max_cycles = 45
+            max_cycles = 50
 
             for cycle in range(max_cycles):
                 if not scene_tasks:
@@ -807,15 +809,17 @@ class MidjourneyVisualGenerator:
 
                 time.sleep(30)
 
-            # Download completed scenes with detailed logging
+            # Download completed scenes - TRACK DOWNLOAD FAILURES
             successful_downloads = 0
 
             for scene_num, scene_data in completed_scenes.items():
                 result_data = scene_data["result_data"]
-                image_path = os.path.join(self.scenes_dir, f"scene_{scene_num:02d}.png")
+                image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
 
-                if self.download_image_detailed(result_data, image_path, scene_num):
+                if self.download_image_detailed(result_data, str(image_path), scene_num):
                     successful_downloads += 1
+                    # Remove from download failed if it was there
+                    download_failed_scenes.discard(scene_num)
 
                     # Save metadata
                     metadata = {
@@ -824,54 +828,252 @@ class MidjourneyVisualGenerator:
                         "prompt": scene_data["task_data"]["prompt"],
                         "image_url": result_data["url"],
                         "url_source": result_data["source"],
-                        "local_path": image_path,
+                        "local_path": str(image_path),
                         "generated_at": datetime.now().isoformat(),
                         "retry_round": retry_round,
+                        "retry_mode": scene_data["task_data"]["retry_mode"],
                         "attempt_number": self.scene_attempt_count.get(scene_num, 1),
                         "content_filtered": True
                     }
 
-                    json_path = os.path.join(self.scenes_dir, f"scene_{scene_num:02d}.json")
+                    json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
                     with open(json_path, 'w', encoding='utf-8') as f:
                         json.dump(metadata, f, indent=2, ensure_ascii=False)
                 else:
-                    print(f"❌ Scene {scene_num}: Download failed, will retry in next round")
+                    print(f"❌ Scene {scene_num}: Download failed, tracking for final Claude retry")
+                    # ADD TO DOWNLOAD FAILED TRACKING
+                    download_failed_scenes.add(scene_num)
 
             print(f"✅ Round {retry_round + 1} downloads: {successful_downloads}")
+            if download_failed_scenes:
+                print(f"📥 Download failures tracked: {len(download_failed_scenes)} scenes")
 
         # Final check and summary
         final_missing = self.get_missing_scenes(visual_prompts)
         total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
-        blacklisted_count = len(self.blacklisted_scenes)
-        completed_count = total_scenes - len(final_missing) - blacklisted_count
+        completed_count = total_scenes - len(final_missing) - len(self.blacklisted_scenes)
 
-        print(f"\n📊 FINAL SUMMARY:")
+        print(f"\n📊 NORMAL RETRY SUMMARY:")
         print(f"✅ Completed: {completed_count}")
         print(f"❌ Missing: {len(final_missing)}")
-        print(f"⚫ Blacklisted: {blacklisted_count}")
-        print(f"📋 Total: {total_scenes}")
-        print(f"🛡️ All prompts were content filtered")
+        print(f"⚫ Blacklisted: {len(self.blacklisted_scenes)}")
+        print(f"📥 Download failed: {len(download_failed_scenes)}")
 
-        if final_missing:
-            print(f"⚠️ Still missing after {max_retry_rounds} rounds:")
+        # FINAL CLAUDE RETRY FOR ALL FAILURES
+        if (final_missing or download_failed_scenes) and self.intelligent_retry_enabled:
+            all_failed_scenes = set()
+
+            # Add missing scenes (not blacklisted)
             for scene in final_missing:
-                attempts = self.scene_attempt_count.get(scene['scene_number'], 0)
-                print(f"  ❌ Scene {scene['scene_number']}: {scene['title']} (tried {attempts} times)")
+                if scene["scene_number"] not in self.blacklisted_scenes:
+                    all_failed_scenes.add(scene["scene_number"])
 
-        if self.blacklisted_scenes:
-            print(f"⚫ Blacklisted scenes (failed >5 times):")
-            for scene_num in self.blacklisted_scenes:
-                attempts = self.scene_attempt_count.get(scene_num, 0)
-                print(f"  ⚫ Scene {scene_num} (failed {attempts} times)")
+            # Add download failed scenes
+            all_failed_scenes.update(download_failed_scenes)
 
-        # Return success if we have most scenes (allowing some failures)
+            if all_failed_scenes:
+                print(f"\n🧠 RUNNING FINAL CLAUDE RETRY FOR {len(all_failed_scenes)} FAILED SCENES")
+                return self._run_final_claude_retry(visual_prompts, all_failed_scenes)
+
         success_rate = completed_count / total_scenes
-        if success_rate >= 0.9:  # 90% success rate is acceptable
-            print(f"✅ Generation successful with {success_rate:.1%} success rate")
+        return success_rate >= 0.85
+
+    def _run_final_claude_retry(self, visual_prompts: List[Dict], failed_scene_numbers: set) -> bool:
+        """Run final Claude-powered retry for failed scenes"""
+
+        print("\n" + "🧠" * 60)
+        print("FINAL CLAUDE AI RETRY - ALTERNATIVE PROMPTS")
+        print("🤖 Claude will generate completely new prompts")
+        print("🎯 Last chance for failed/download-failed scenes")
+        print("🧠" * 60)
+
+        if not self.intelligent_retry_system:
+            print("❌ Intelligent retry system not available")
+            return False
+
+        # Get scenes that need Claude retry
+        scenes_for_claude = []
+        for scene in visual_prompts:
+            if scene["scene_number"] in failed_scene_numbers:
+                scenes_for_claude.append(scene)
+
+        if not scenes_for_claude:
+            print("✅ No scenes need Claude retry")
+            return True
+
+        print(f"🧠 Claude will process {len(scenes_for_claude)} failed scenes")
+
+        # Submit Claude-generated prompts
+        claude_tasks = {}
+        successful_claude_submissions = 0
+
+        for i, scene in enumerate(scenes_for_claude):
+            scene_num = scene["scene_number"]
+
+            print(f"\n🧠 Claude Processing Scene {scene_num} ({i + 1}/{len(scenes_for_claude)})")
+
+            # Get failure context
+            failure_context = self.intelligent_retry_system.create_intelligent_retry_context(
+                scene, self.scene_attempt_count.get(scene_num, 0)
+            )
+
+            # Generate alternative prompt with Claude
+            alternative_prompt = self.intelligent_retry_system.generate_alternative_scene_prompt(
+                scene, failure_context
+            )
+
+            if alternative_prompt:
+                print(f"🤖 Scene {scene_num}: Claude generated alternative prompt")
+                print(f"📝 New prompt: {alternative_prompt[:100]}...")
+
+                # Submit Claude's prompt
+                task_id = self.submit_midjourney_task(alternative_prompt, aspect_ratio="16:9")
+
+                if task_id:
+                    claude_tasks[scene_num] = {
+                        "task_id": task_id,
+                        "prompt": alternative_prompt,
+                        "scene_data": scene,
+                        "claude_generated": True
+                    }
+                    successful_claude_submissions += 1
+                    print(f"✅ Scene {scene_num}: Claude prompt submitted successfully")
+
+                    # Track Claude retry
+                    if scene_num not in self.intelligent_retry_system.intelligent_retries:
+                        self.intelligent_retry_system.intelligent_retries[scene_num] = {
+                            "attempts": 1,
+                            "prompts": [alternative_prompt]
+                        }
+                    else:
+                        self.intelligent_retry_system.intelligent_retries[scene_num]["attempts"] += 1
+                        self.intelligent_retry_system.intelligent_retries[scene_num]["prompts"].append(
+                            alternative_prompt)
+                else:
+                    print(f"❌ Scene {scene_num}: Claude prompt submission failed")
+            else:
+                print(f"❌ Scene {scene_num}: Claude failed to generate alternative prompt")
+
+            # Wait between Claude submissions
+            if i < len(scenes_for_claude) - 1:
+                print("⏳ Waiting 10 seconds before next Claude prompt...")
+                time.sleep(10)
+
+        print(
+            f"\n📊 Claude submissions: ✅ {successful_claude_submissions} | ❌ {len(scenes_for_claude) - successful_claude_submissions}")
+
+        if not claude_tasks:
+            print("❌ No Claude tasks submitted")
+            return False
+
+        # Monitor Claude tasks
+        print("\n🔍 Monitoring Claude-generated tasks...")
+        completed_claude_scenes = {}
+        max_claude_cycles = 60  # Longer timeout for Claude tasks
+
+        for cycle in range(max_claude_cycles):
+            if not claude_tasks:
+                break
+
+            completed_count = len(completed_claude_scenes)
+            total_count = completed_count + len(claude_tasks)
+            print(f"🧠 Claude Monitoring Cycle {cycle + 1}: {completed_count}/{total_count} completed")
+
+            scenes_to_remove = []
+
+            for scene_num, task_data in claude_tasks.items():
+                task_id = task_data["task_id"]
+
+                result_data = self.check_task_status_detailed(task_id, scene_num)
+
+                if result_data and isinstance(result_data, dict):
+                    print(f"✅ Scene {scene_num}: Claude task completed!")
+                    completed_claude_scenes[scene_num] = {
+                        "result_data": result_data,
+                        "task_data": task_data
+                    }
+                    scenes_to_remove.append(scene_num)
+                elif result_data is False:
+                    print(f"❌ Scene {scene_num}: Claude task failed")
+                    scenes_to_remove.append(scene_num)
+
+            for scene_num in scenes_to_remove:
+                del claude_tasks[scene_num]
+
+            if not claude_tasks:
+                break
+
+            time.sleep(30)
+
+        # Download Claude-generated scenes
+        print("\n📥 Downloading Claude-generated scenes...")
+        claude_successful_downloads = 0
+
+        for scene_num, scene_data in completed_claude_scenes.items():
+            result_data = scene_data["result_data"]
+            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+
+            print(f"📥 Scene {scene_num}: Downloading Claude-generated image...")
+
+            if self.download_image_detailed(result_data, str(image_path), scene_num):
+                claude_successful_downloads += 1
+
+                # Enhanced metadata for Claude-generated scenes
+                metadata = {
+                    "scene_number": scene_num,
+                    "title": scene_data["task_data"]["scene_data"]["title"],
+                    "prompt": scene_data["task_data"]["prompt"],
+                    "image_url": result_data["url"],
+                    "url_source": result_data["source"],
+                    "local_path": str(image_path),
+                    "generated_at": datetime.now().isoformat(),
+                    "claude_generated": True,
+                    "final_retry": True,
+                    "claude_attempt_number": self.intelligent_retry_system.intelligent_retries[scene_num]["attempts"],
+                    "total_attempts": self.scene_attempt_count.get(scene_num, 0) + 1,
+                    "content_filtered": True,
+                    "intelligent_retry_details": self.intelligent_retry_system.intelligent_retries[scene_num]
+                }
+
+                json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+                print(f"✅ Scene {scene_num}: Claude-generated scene downloaded and saved!")
+            else:
+                print(f"❌ Scene {scene_num}: Claude-generated scene download failed")
+
+        # Final Claude retry summary
+        print(f"\n📊 CLAUDE RETRY RESULTS:")
+        print(f"🤖 Claude prompts generated: {successful_claude_submissions}")
+        print(f"✅ Successfully downloaded: {claude_successful_downloads}")
+        print(f"🧠 Total Claude API calls: {self.intelligent_retry_system.claude_calls_made}")
+
+        # Overall success assessment
+        final_missing_after_claude = self.get_missing_scenes(visual_prompts)
+        total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
+        blacklisted_count = len(self.blacklisted_scenes)
+        final_completed = total_scenes - len(final_missing_after_claude) - blacklisted_count
+
+        print(f"\n📊 FINAL RESULTS AFTER CLAUDE RETRY:")
+        print(f"✅ Total completed: {final_completed}/{total_scenes}")
+        print(f"❌ Still missing: {len(final_missing_after_claude)}")
+        print(f"⚫ Blacklisted: {blacklisted_count}")
+        print(f"🧠 Claude rescued: {claude_successful_downloads} scenes")
+
+        if final_missing_after_claude:
+            print(f"⚠️ Scenes still missing after Claude retry:")
+            for scene in final_missing_after_claude:
+                print(f"  ❌ Scene {scene['scene_number']}: {scene['title']}")
+
+        success_rate = final_completed / total_scenes
+
+        if success_rate >= 0.9:
+            print(f"🎉 CLAUDE RETRY SUCCESSFUL! {success_rate:.1%} completion rate")
             return True
         else:
-            print(f"❌ Generation failed with only {success_rate:.1%} success rate")
-            return False
+            print(f"⚠️ CLAUDE RETRY PARTIAL SUCCESS: {success_rate:.1%} completion rate")
+            return success_rate >= 0.8
 
     def generate_thumbnail(self, visual_prompts: List[Dict]) -> bool:
         """Generate YouTube thumbnail with dramatic expression and content filtering"""
