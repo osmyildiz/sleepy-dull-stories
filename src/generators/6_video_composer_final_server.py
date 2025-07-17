@@ -1082,7 +1082,12 @@ class ServerYouTubeVideoProducer:
 
                     print(f"   🚀 Rendering scene...")
                     print(f"      📁 Output: {scene_file.name}")
+                    print(f"      📏 Duration: {scene_duration:.1f}s")
                     print(f"      ⏱️  Expected time: ~{scene_duration * 0.3 / 60:.1f} minutes")
+                    print(f"      🎬 Starting MoviePy render...")
+                    print()
+
+                    start_render_time = time.time()
 
                     scene_final.write_videofile(
                         str(scene_file),
@@ -1092,11 +1097,21 @@ class ServerYouTubeVideoProducer:
                         temp_audiofile=f'temp-audio-{scene_file.stem}.m4a',
                         remove_temp=True,
                         verbose=False,
-                        logger=None  # Disable progress bar for individual scenes
+                        logger='bar'  # Enable progress bar for each scene
                     )
 
+                    render_time = time.time() - start_render_time
+                    file_size_mb = os.path.getsize(scene_file) / (1024 * 1024)
+
+                    print(f"      ⏱️  Actual render time: {render_time / 60:.1f} minutes")
+                    print(f"      📊 Render speed: {scene_duration / render_time:.1f}x realtime")
+                    print(f"      📦 File size: {file_size_mb:.1f} MB")
+                    print(f"      📁 Saved to: {scene_file}")
+                    print()
+
                     # Cleanup scene clips immediately
-                    print(f"   🧹 Cleaning up scene clips...")
+                    print(f"      🧹 Cleaning up {len(clips_to_cleanup)} clips...")
+                    cleanup_start = time.time()
                     for clip in clips_to_cleanup:
                         if clip is not None:
                             try:
@@ -1107,6 +1122,8 @@ class ServerYouTubeVideoProducer:
 
                     # Force garbage collection
                     gc.collect()
+                    cleanup_time = time.time() - cleanup_start
+                    print(f"      ✅ Cleanup completed in {cleanup_time:.1f}s")
 
                     print(f"   ✅ Scene rendered successfully!")
                     return str(scene_file)
@@ -1125,30 +1142,69 @@ class ServerYouTubeVideoProducer:
             # Process all scenes
             scene_counter = 0
             total_scenes = len(story_scenes) + (1 if hook_scene else 0) + (1 if subscribe_scene else 0)
+            overall_start_time = time.time()
+
+            print(f"\n🎬 STARTING SCENE-BY-SCENE PROCESSING:")
+            print(f"   📊 Total scenes to process: {total_scenes}")
+            print(f"   ⏱️  Estimated total time: {total_scenes * 2:.1f} minutes")
+            print()
 
             # 1. Hook scene
             if hook_scene:
                 scene_counter += 1
                 print(f"\n📊 PROCESSING SCENE {scene_counter}/{total_scenes} (Hook)")
+                print(f"   🎬 Scene type: YouTube Hook")
+                print(f"   📏 Expected duration: ~40 seconds")
+                scene_start_time = time.time()
+
                 hook_video = render_single_scene(hook_scene, "hook")
                 if hook_video:
                     scene_video_files.append(hook_video)
+                    scene_time = time.time() - scene_start_time
+                    print(f"   ✅ Hook scene completed in {scene_time / 60:.1f} minutes")
+                else:
+                    print(f"   ❌ Hook scene failed")
 
             # 2. Subscribe scene
             if subscribe_scene:
                 scene_counter += 1
                 print(f"\n📊 PROCESSING SCENE {scene_counter}/{total_scenes} (Subscribe)")
+                print(f"   🔔 Scene type: YouTube Subscribe")
+                print(f"   📏 Expected duration: ~30 seconds")
+                scene_start_time = time.time()
+
                 subscribe_video = render_single_scene(subscribe_scene, "subscribe")
                 if subscribe_video:
                     scene_video_files.append(subscribe_video)
+                    scene_time = time.time() - scene_start_time
+                    print(f"   ✅ Subscribe scene completed in {scene_time / 60:.1f} minutes")
+                else:
+                    print(f"   ❌ Subscribe scene failed")
 
             # 3. Story scenes
             for scene_data in story_scenes:
                 scene_counter += 1
+                elapsed_time = time.time() - overall_start_time
+                estimated_remaining = (elapsed_time / scene_counter) * (total_scenes - scene_counter)
+
                 print(f"\n📊 PROCESSING SCENE {scene_counter}/{total_scenes} (Story Scene {scene_data['scene_id']})")
+                print(f"   📖 Scene type: Story Scene")
+                print(f"   ⏱️  Elapsed: {elapsed_time / 60:.1f}m | Remaining: {estimated_remaining / 60:.1f}m")
+                scene_start_time = time.time()
+
                 scene_video = render_single_scene(scene_data, "story")
                 if scene_video:
                     scene_video_files.append(scene_video)
+                    scene_time = time.time() - scene_start_time
+                    print(f"   ✅ Story scene {scene_data['scene_id']} completed in {scene_time / 60:.1f} minutes")
+                else:
+                    print(f"   ❌ Story scene {scene_data['scene_id']} failed")
+
+            total_processing_time = time.time() - overall_start_time
+            print(f"\n📊 ALL SCENES PROCESSED:")
+            print(f"   ✅ Successful scenes: {len(scene_video_files)}/{total_scenes}")
+            print(f"   ⏱️  Total processing time: {total_processing_time / 60:.1f} minutes")
+            print(f"   📈 Average time per scene: {total_processing_time / total_scenes / 60:.1f} minutes")
 
             # Cleanup fireplace overlay
             if fireplace_overlay_base:
