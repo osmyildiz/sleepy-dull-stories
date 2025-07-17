@@ -387,7 +387,7 @@ class ServerYouTubeVideoProducer:
         self.base_dir = Path(CONFIG.paths['BASE_DIR'])
         self.data_path = Path(CONFIG.paths['DATA_DIR'])
         self.output_path = Path(CONFIG.paths['OUTPUT_DIR'])
-        self.overlay_path = self.data_path / "overlay_videos"
+        self.overlay_path = self.base_dir / "src" / "data" / "overlay_videos"
 
         # Database manager
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
