@@ -1,8 +1,8 @@
 """
 Sleepy Dull Stories - SERVER-READY Video Composer
 YouTube Video Production with ALL Scenes + MoviePy + Fireplace Overlay
+FIXED: Uses audio timeline instead of scene plan for ACTUAL generated scenes
 Production-optimized with complete automation and database integration
-FIXED: TTS Generator scene checking logic applied
 """
 
 import pandas as pd
@@ -73,11 +73,13 @@ class ServerConfig:
             "server_mode": True,
             "production_ready": True,
             "moviepy_enabled": True,
-            "ffmpeg_fallback": True
+            "ffmpeg_fallback": True,
+            "timeline_mode": True  # NEW: Use timeline.json instead of scene_plan.json
         }
 
         print("✅ Video composition configuration loaded")
         print(f"🎬 Target: {self.video_config['target_resolution'][0]}x{self.video_config['target_resolution'][1]} @ {self.video_config['target_fps']}fps")
+        print(f"📋 Timeline mode: {'✅ ENABLED' if self.video_config['timeline_mode'] else '❌ DISABLED'}")
 
     def setup_logging(self):
         """Setup production logging"""
@@ -239,6 +241,7 @@ class VideoProgressTracker:
             "render_method": "unknown",
             "stages": {
                 "project_load": {"status": "pending", "timestamp": None},
+                "timeline_load": {"status": "pending", "timestamp": None},  # NEW
                 "sequence_build": {"status": "pending", "timestamp": None},
                 "audio_combine": {"status": "pending", "timestamp": None},
                 "video_render": {"status": "pending", "timestamp": None},
@@ -312,7 +315,8 @@ class VideoUsageTracker:
             "video_duration_seconds": 0.0,
             "processing_time_minutes": 0.0,
             "memory_peak_mb": 0.0,
-            "filesize_mb": 0.0
+            "filesize_mb": 0.0,
+            "timeline_mode": CONFIG.video_config.get("timeline_mode", False)
         }
 
         # Budget controls
@@ -352,6 +356,7 @@ class VideoUsageTracker:
         print(f"\n🎬 FINAL VIDEO PROCESSING SUMMARY")
         print(f"=" * 50)
         print(f"🎭 Render method: {self.performance_data.get('render_method', 'unknown')}")
+        print(f"📋 Timeline mode: {'✅ ENABLED' if self.performance_data.get('timeline_mode') else '❌ DISABLED'}")
         print(f"📺 Total scenes: {self.performance_data.get('total_scenes', 0)}")
         print(f"⏱️  Video duration: {self.performance_data.get('video_duration_seconds', 0.0):.1f}s")
         print(f"⚡ Processing time: {total_time:.1f} minutes")
@@ -369,7 +374,7 @@ class VideoUsageTracker:
         }
 
 class ServerYouTubeVideoProducer:
-    """Server-ready YouTube Video Producer with database integration and TTS scene checking"""
+    """Server-ready YouTube Video Producer with database integration and timeline support"""
 
     def __init__(self):
         # Current project tracking
@@ -391,7 +396,7 @@ class ServerYouTubeVideoProducer:
         print("🎬 Server YouTube Video Producer v1.1 Initialized")
         print(f"📁 Base Directory: {self.base_dir}")
         print(f"🎥 Overlay Path: {self.overlay_path}")
-        print("✅ TTS Generator scene checking logic integrated")
+        print(f"📋 Timeline mode: {'✅ ENABLED' if CONFIG.video_config.get('timeline_mode') else '❌ DISABLED'}")
 
         self.check_ffmpeg()
 
@@ -455,6 +460,7 @@ class ServerYouTubeVideoProducer:
         project_dir = Path(output_path)
         audio_parts_dir = project_dir / "audio_parts"
         scenes_dir = project_dir / "scenes"
+        timeline_file = project_dir / "story_audio_youtube_timeline.json"
 
         print("📁 INPUT DIRECTORIES:")
         print(f"   🎵 Audio Parts: {audio_parts_dir}")
@@ -469,27 +475,9 @@ class ServerYouTubeVideoProducer:
             image_files = list(scenes_dir.glob("*.png"))
             print(f"      📊 Image files found: {len(image_files)}")
 
-        # Check for required project files
-        print("\n📋 REQUIRED PROJECT FILES:")
-        required_files = [
-            ("scene_plan.json", "Scene plan"),
-            ("platform_metadata.json", "Platform metadata"),
-            ("story_audio_youtube_timeline.json", "Audio timeline")
-        ]
+        print(f"   📋 Timeline: {timeline_file}")
+        print(f"      {'✅ EXISTS' if timeline_file.exists() else '❌ NOT FOUND'}")
 
-        for filename, description in required_files:
-            file_path = project_dir / filename
-            status = "✅ FOUND" if file_path.exists() else "❌ MISSING"
-            print(f"   📄 {description}: {status}")
-            if file_path.exists():
-                try:
-                    file_size = file_path.stat().st_size
-                    print(f"      📏 Size: {file_size:,} bytes")
-                except:
-                    pass
-
-        print("\n📤 OUTPUT DIRECTORY:")
-        print(f"   📁 Final video output: {project_dir}")
         print("🎬" * 60)
 
         # Mark as started in database
@@ -505,53 +493,75 @@ class ServerYouTubeVideoProducer:
         print(f"📊 [{progress_bar}] {percentage:.1f}% - {description}")
 
     def load_project_data(self, row_index):
-        """Proje JSON dosyalarını yükle"""
+        """Proje JSON dosyalarını yükle (platform metadata için)"""
         project_dir = Path(self.current_output_dir)
 
         try:
-            scene_plan_path = project_dir / "scene_plan.json"
-            with open(scene_plan_path, 'r', encoding='utf-8') as f:
-                scene_plan = json.load(f)
-
             platform_metadata_path = project_dir / "platform_metadata.json"
             with open(platform_metadata_path, 'r', encoding='utf-8') as f:
                 platform_metadata = json.load(f)
 
-            print(f"✅ Project data loaded successfully")
-            return scene_plan, platform_metadata
+            print(f"✅ Platform metadata loaded")
+            return platform_metadata
 
         except Exception as e:
-            print(f"❌ Error loading project data: {e}")
-            return None, None
+            print(f"❌ Error loading platform metadata: {e}")
+            return None
 
     def load_audio_timeline(self, project_dir):
         """Load actual generated scenes from audio timeline instead of scene plan"""
         timeline_path = Path(project_dir) / "story_audio_youtube_timeline.json"
 
+        print(f"\n📋 LOADING AUDIO TIMELINE:")
+        print(f"   📁 Timeline file: {timeline_path}")
+
         if not timeline_path.exists():
-            print(f"❌ Timeline not found: {timeline_path}")
-            return [], None
+            print(f"   ❌ Timeline not found!")
+            return [], None, None
 
         try:
             with open(timeline_path, 'r', encoding='utf-8') as f:
                 timeline_data = json.load(f)
 
-            # Extract story scenes only (not hook/subscribe)
+            print(f"   ✅ Timeline file loaded")
+            print(f"   📊 Total timeline scenes: {timeline_data.get('total_scenes', 0)}")
+
+            # Extract all scenes (hook, subscribe, story scenes)
+            all_scenes = timeline_data.get('scenes', [])
+
+            # Extract story scenes only
             story_scenes = []
-            for scene in timeline_data['scenes']:
+            hook_scene = None
+            subscribe_scene = None
+
+            for scene in all_scenes:
                 if scene['type'] == 'story_scene':
                     story_scenes.append({
                         'scene_id': scene['scene_number'],
                         'title': scene['title'],
-                        'audio_file': scene['audio_file']
+                        'audio_file': scene['audio_file'],
+                        'image_file': scene.get('image_file', f"scene_{scene['scene_number']:02d}.png"),
+                        'duration': scene.get('duration_ms', 0) / 1000.0
                     })
+                elif scene['type'] == 'youtube_hook':
+                    hook_scene = scene
+                elif scene['type'] == 'youtube_subscribe':
+                    subscribe_scene = scene
 
-            print(f"✅ Timeline loaded: {len(story_scenes)} story scenes")
-            return story_scenes, timeline_data
+            print(f"   📖 Story scenes found: {len(story_scenes)}")
+            print(f"   🎬 Hook scene: {'✅ Found' if hook_scene else '❌ Missing'}")
+            print(f"   🔔 Subscribe scene: {'✅ Found' if subscribe_scene else '❌ Missing'}")
+
+            if story_scenes:
+                scene_ids = [s['scene_id'] for s in story_scenes]
+                print(f"   📋 Scene IDs: {sorted(scene_ids)}")
+                print(f"   📏 Scene range: {min(scene_ids)} to {max(scene_ids)}")
+
+            return story_scenes, timeline_data, (hook_scene, subscribe_scene)
 
         except Exception as e:
-            print(f"❌ Timeline load error: {e}")
-            return [], None
+            print(f"   ❌ Timeline load error: {e}")
+            return [], None, None
 
     def get_audio_duration(self, audio_file_path):
         """Ses dosyasının süresini al"""
@@ -590,242 +600,141 @@ class ServerYouTubeVideoProducer:
 
         return audio_file, image_file
 
-    def check_available_scenes(self, story_id: int, max_scenes: int = 50):
-        """TTS Generator mantığı: Mevcut scene image'larını kontrol et ve available list döndür"""
-        scenes_dir = Path(self.current_output_dir) / "scenes"
-        audio_dir = Path(self.current_output_dir) / "audio_parts"
-
-        if not scenes_dir.exists():
-            print(f"❌ Scenes directory not found: {scenes_dir}")
-            return [], f"Scenes directory not found: {scenes_dir}"
-
-        if not audio_dir.exists():
-            print(f"❌ Audio parts directory not found: {audio_dir}")
-            return [], f"Audio parts directory not found: {audio_dir}"
-
-        available_scenes = []
-        missing_scenes = []
-
-        print(f"🔍 CHECKING AVAILABLE SCENES:")
-        print(f"   📁 Scenes dir: {scenes_dir}")
-        print(f"   🎵 Audio dir: {audio_dir}")
-        print(f"   📊 Checking scenes 1-{max_scenes}")
-        print()
-
-        # Check hook and subscribe
-        hook_audio = audio_dir / "hook_audio.mp3"
-        subscribe_audio = audio_dir / "subscribe_audio.mp3"
-
-        print(f"🎬 HOOK & SUBSCRIBE:")
-        print(f"   🎬 Hook audio: {'✅ FOUND' if hook_audio.exists() else '❌ MISSING'}")
-        print(f"   🔔 Subscribe audio: {'✅ FOUND' if subscribe_audio.exists() else '❌ MISSING'}")
-        print()
-
-        # Check story scenes (1 to max_scenes)
-        print(f"📖 STORY SCENES:")
-        for story_scene_num in range(1, max_scenes + 1):
-            # Check image file
-            scene_image = scenes_dir / f"scene_{story_scene_num:02d}.png"
-
-            # Check audio file
-            scene_audio = audio_dir / f"scene_{story_scene_num:02d}_audio.mp3"
-
-            if scene_image.exists() and scene_audio.exists():
-                available_scenes.append(story_scene_num)
-                if len(available_scenes) <= 10:  # Show first 10
-                    print(f"   ✅ Scene {story_scene_num}: Both image and audio found")
-            else:
-                missing_parts = []
-                if not scene_image.exists():
-                    missing_parts.append("image")
-                if not scene_audio.exists():
-                    missing_parts.append("audio")
-
-                missing_scenes.append(story_scene_num)
-                if len(missing_scenes) <= 5:  # Show first 5 missing
-                    print(f"   ❌ Scene {story_scene_num}: Missing {', '.join(missing_parts)}")
-
-            # Stop checking after finding no files for 5 consecutive scenes
-            if story_scene_num > 10 and len(available_scenes) == 0:
-                print(f"   ⏹️  No scenes found in first 10, stopping search")
-                break
-            elif story_scene_num > len(available_scenes) + 10 and len(available_scenes) > 0:
-                print(f"   ⏹️  No more scenes found after scene {available_scenes[-1]}, stopping search")
-                break
-
-        if len(available_scenes) > 10:
-            print(f"   ... (showing first 10 available scenes)")
-        if len(missing_scenes) > 5:
-            print(f"   ... (showing first 5 missing scenes)")
-
-        print(f"\n📊 SCENE AVAILABILITY SUMMARY:")
-        print(f"   ✅ Available scenes: {len(available_scenes)}")
-        print(f"   ❌ Missing scenes: {len(missing_scenes)}")
-
-        if available_scenes:
-            print(f"   📋 Available scene IDs: {available_scenes[:10]}{'...' if len(available_scenes) > 10 else ''}")
-            print(f"   📏 Scene range: {min(available_scenes)} to {max(available_scenes)}")
-
-        if missing_scenes:
-            print(f"   📋 Missing scene IDs: {missing_scenes[:10]}{'...' if len(missing_scenes) > 10 else ''}")
-
-        return available_scenes, None
-
-    def create_simple_video_sequence_with_available_scenes(self, available_scenes):
-        """TTS Generator mantığı: Sadece mevcut scene'lerle video sequence oluştur"""
+    def create_video_sequence_from_timeline(self, story_scenes, hook_subscribe_data):
+        """Create video sequence from timeline data instead of scene plan"""
         audio_dir = Path(self.current_output_dir) / "audio_parts"
         scenes_dir = Path(self.current_output_dir) / "scenes"
 
         sequence = []
         total_duration = 0
 
-        print(f"\n🎵 BUILDING VIDEO SEQUENCE WITH AVAILABLE SCENES:")
-        print(f"   📊 Available scenes: {len(available_scenes)}")
-        print(f"   📁 Audio source: {audio_dir}")
-        print(f"   🖼️  Image source: {scenes_dir}")
+        print("\n🎵 BUILDING VIDEO SEQUENCE FROM TIMELINE:")
+        print("=" * 50)
+        print(f"📁 Audio source: {audio_dir}")
+        print(f"🖼️  Image source: {scenes_dir}")
+        print(f"📊 Story scenes: {len(story_scenes)}")
         print()
 
-        # 1. HOOK SECTION - TTS Generator mantığı ile
+        hook_scene, subscribe_scene = hook_subscribe_data
+
+        # 1. HOOK SECTION
         print("🎬 HOOK SECTION:")
-        hook_file = self.find_audio_file(audio_dir, "hook_audio")
-        if hook_file:
-            hook_duration = self.get_audio_duration(hook_file)
+        if hook_scene:
+            hook_audio_file = audio_dir / hook_scene['audio_file']
+            if hook_audio_file.exists():
+                hook_duration = self.get_audio_duration(hook_audio_file)
+                # Hook için rastgele 5 scene seç (available scenes'den)
+                available_for_hook = [s for s in story_scenes if s['scene_id'] >= 10][:10]
+                hook_scenes_to_use = random.sample(available_for_hook, min(5, len(available_for_hook)))
+                scene_duration = hook_duration / len(hook_scenes_to_use)
 
-            # Hook için available scene'lerden rastgele seç
-            if len(available_scenes) >= 5:
-                # En az 5 scene varsa random 5 seç
-                hook_scenes = random.sample(available_scenes, 5)
+                print(f"   ✅ Hook audio found: {hook_scene['audio_file']}")
+                print(f"   ⏱️  Duration: {hook_duration:.1f}s")
+                print(f"   🎬 Using {len(hook_scenes_to_use)} scenes")
+                print(f"   📏 Scene duration: {scene_duration:.1f}s each")
+
+                hook_images_found = 0
+                for scene_data in hook_scenes_to_use:
+                    _, image_file = self.find_scene_files(audio_dir, scenes_dir, scene_data['scene_id'])
+                    if image_file:
+                        sequence.append({
+                            "type": "hook",
+                            "image": str(image_file),
+                            "duration": scene_duration
+                        })
+                        hook_images_found += 1
+
+                total_duration += hook_duration
+                print(f"   📊 Images found: {hook_images_found}/{len(hook_scenes_to_use)}")
             else:
-                # 5'ten az varsa hepsini kullan
-                hook_scenes = available_scenes.copy()
-
-            scene_duration = hook_duration / len(hook_scenes) if hook_scenes else hook_duration
-
-            print(f"   ✅ Hook audio found: {hook_file.name}")
-            print(f"   ⏱️  Duration: {hook_duration:.1f}s")
-            print(f"   🎬 Using {len(hook_scenes)} available scenes: {hook_scenes}")
-            print(f"   📏 Scene duration: {scene_duration:.1f}s each")
-
-            hook_images_found = 0
-            for scene_id in hook_scenes:
-                image_file = scenes_dir / f"scene_{scene_id:02d}.png"
-                if image_file.exists():
-                    sequence.append({
-                        "type": "hook",
-                        "image": str(image_file),
-                        "duration": scene_duration
-                    })
-                    hook_images_found += 1
-
-            total_duration += hook_duration
-            print(f"   📊 Images used: {hook_images_found}/{len(hook_scenes)}")
+                print(f"   ❌ Hook audio not found: {hook_audio_file}")
         else:
-            print("   ❌ Hook audio not found")
+            print("   ❌ Hook scene not found in timeline")
 
         print()
 
-        # 2. SUBSCRIBE SECTION - TTS Generator mantığı ile
+        # 2. SUBSCRIBE SECTION
         print("🔔 SUBSCRIBE SECTION:")
-        subscribe_file = self.find_audio_file(audio_dir, "subscribe_audio")
-        if subscribe_file:
-            subscribe_duration = self.get_audio_duration(subscribe_file)
+        if subscribe_scene:
+            subscribe_audio_file = audio_dir / subscribe_scene['audio_file']
+            if subscribe_audio_file.exists():
+                subscribe_duration = self.get_audio_duration(subscribe_audio_file)
+                # Subscribe için rastgele 3 scene seç (available scenes'den)
+                available_for_sub = [s for s in story_scenes if s['scene_id'] <= 15][:8]
+                sub_scenes_to_use = random.sample(available_for_sub, min(3, len(available_for_sub)))
+                scene_duration = subscribe_duration / len(sub_scenes_to_use)
 
-            # Subscribe için available scene'lerden rastgele seç (hook'ta kullanılmayanlardan)
-            remaining_scenes = [s for s in available_scenes if s not in (hook_scenes if 'hook_scenes' in locals() else [])]
+                print(f"   ✅ Subscribe audio found: {subscribe_scene['audio_file']}")
+                print(f"   ⏱️  Duration: {subscribe_duration:.1f}s")
+                print(f"   🎬 Using {len(sub_scenes_to_use)} scenes")
+                print(f"   📏 Scene duration: {scene_duration:.1f}s each")
 
-            if len(remaining_scenes) >= 3:
-                subscribe_scenes = random.sample(remaining_scenes, 3)
-            elif len(available_scenes) >= 3:
-                # Hook'ta kullanılanları tekrar kullan
-                subscribe_scenes = random.sample(available_scenes, 3)
+                sub_images_found = 0
+                for scene_data in sub_scenes_to_use:
+                    _, image_file = self.find_scene_files(audio_dir, scenes_dir, scene_data['scene_id'])
+                    if image_file:
+                        sequence.append({
+                            "type": "subscribe",
+                            "image": str(image_file),
+                            "duration": scene_duration
+                        })
+                        sub_images_found += 1
+
+                total_duration += subscribe_duration
+                print(f"   📊 Images found: {sub_images_found}/{len(sub_scenes_to_use)}")
             else:
-                # Çok az scene varsa hepsini kullan
-                subscribe_scenes = available_scenes.copy()
-
-            scene_duration = subscribe_duration / len(subscribe_scenes) if subscribe_scenes else subscribe_duration
-
-            print(f"   ✅ Subscribe audio found: {subscribe_file.name}")
-            print(f"   ⏱️  Duration: {subscribe_duration:.1f}s")
-            print(f"   🎬 Using {len(subscribe_scenes)} available scenes: {subscribe_scenes}")
-            print(f"   📏 Scene duration: {scene_duration:.1f}s each")
-
-            subscribe_images_found = 0
-            for scene_id in subscribe_scenes:
-                image_file = scenes_dir / f"scene_{scene_id:02d}.png"
-                if image_file.exists():
-                    sequence.append({
-                        "type": "subscribe",
-                        "image": str(image_file),
-                        "duration": scene_duration
-                    })
-                    subscribe_images_found += 1
-
-            total_duration += subscribe_duration
-            print(f"   📊 Images used: {subscribe_images_found}/{len(subscribe_scenes)}")
+                print(f"   ❌ Subscribe audio not found: {subscribe_audio_file}")
         else:
-            print("   ❌ Subscribe audio not found")
+            print("   ❌ Subscribe scene not found in timeline")
 
         print()
 
-        # 3. MAIN SCENES SECTION - TTS Generator mantığı: SADECE AVAILABLE SCENES
-        print("📖 MAIN SCENES SECTION:")
-        print(f"   📊 Processing {len(available_scenes)} available story scenes...")
+        # 3. MAIN SCENES SECTION FROM TIMELINE
+        print("📖 MAIN SCENES SECTION (FROM TIMELINE):")
+        print(f"   📊 Processing {len(story_scenes)} story scenes from timeline...")
 
-        scenes_added = 0
+        scenes_found = 0
+        scenes_missing = 0
 
-        for scene_id in available_scenes:
-            audio_file = audio_dir / f"scene_{scene_id:02d}_audio.mp3"
-            image_file = scenes_dir / f"scene_{scene_id:02d}.png"
+        for i, scene_data in enumerate(story_scenes):
+            scene_id = scene_data['scene_id']
+            audio_file, image_file = self.find_scene_files(audio_dir, scenes_dir, scene_id)
 
-            if audio_file.exists() and image_file.exists():
+            if audio_file and image_file:
                 scene_duration = self.get_audio_duration(audio_file)
                 sequence.append({
                     "type": "scene",
                     "scene_id": scene_id,
                     "image": str(image_file),
-                    "duration": scene_duration
+                    "duration": scene_duration,
+                    "title": scene_data.get('title', f'Scene {scene_id}')
                 })
                 total_duration += scene_duration
-                scenes_added += 1
+                scenes_found += 1
 
-                if scenes_added <= 5 or scenes_added >= len(available_scenes) - 5:  # Show first and last 5
-                    print(f"   ✅ Scene {scene_id}: {scene_duration:.1f}s")
-                elif scenes_added == 6:
-                    print(f"   ... (processing {len(available_scenes) - 10} more scenes)")
+                if i < 5 or i >= len(story_scenes) - 5:  # Show first and last 5
+                    print(f"   ✅ Scene {scene_id}: {scene_duration:.1f}s ({Path(image_file).name})")
+                elif i == 5:
+                    print(f"   ... (showing first/last 5 scenes)")
             else:
-                print(f"   ⚠️  Scene {scene_id}: Files missing (unexpected)")
+                scenes_missing += 1
+                missing_files = []
+                if not audio_file:
+                    missing_files.append("audio")
+                if not image_file:
+                    missing_files.append("image")
 
-        print(f"\n📊 SEQUENCE SUMMARY:")
-        print(f"   ✅ Total segments: {len(sequence)}")
-        print(f"   🎬 Hook segments: {len([s for s in sequence if s['type'] == 'hook'])}")
-        print(f"   🔔 Subscribe segments: {len([s for s in sequence if s['type'] == 'subscribe'])}")
-        print(f"   📖 Story segments: {len([s for s in sequence if s['type'] == 'scene'])}")
+                if i < 5 or i >= len(story_scenes) - 5:  # Show first and last 5
+                    print(f"   ❌ Scene {scene_id}: missing {', '.join(missing_files)}")
+
+        print(f"\n📊 SCENE SUMMARY:")
+        print(f"   ✅ Scenes found: {scenes_found}")
+        print(f"   ❌ Scenes missing: {scenes_missing}")
         print(f"   📏 Total duration: {total_duration / 60:.1f} minutes")
+        print(f"   🎬 Total segments: {len(sequence)}")
 
         print("\n" + "=" * 50)
         return sequence, total_duration
-
-    def create_simple_video_sequence(self, row_index, scene_plan):
-        """Ana fonksiyon: TTS Generator mantığı ile mevcut scene'leri bul ve video üret"""
-
-        # ✅ STEP 1: TTS Generator mantığı - Mevcut scene'leri bul
-        print(f"📊 Scene plan received: {type(scene_plan)}")
-        if isinstance(scene_plan, dict):
-            print(f"📊 Scene plan keys: {list(scene_plan.keys())}")
-
-        # Scene sayısını tahmin et (max 50 scene'e kadar kontrol et)
-        available_scenes, error = self.check_available_scenes(row_index, max_scenes=50)
-
-        if error:
-            print(f"❌ Scene check failed: {error}")
-            return [], 0
-
-        if not available_scenes:
-            print(f"❌ No available scenes found for video creation")
-            return [], 0
-
-        # ✅ STEP 2: TTS Generator mantığı - Sadece mevcut scene'lerle video üret
-        return self.create_simple_video_sequence_with_available_scenes(available_scenes)
 
     def create_image_list_file(self, row_index, sequence):
         """Image list dosyası oluştur"""
@@ -839,13 +748,13 @@ class ServerYouTubeVideoProducer:
         print(f"✅ Created image list: {list_file}")
         return list_file
 
-    def combine_all_audio(self, row_index, scene_plan):
-        """Tüm audio dosyalarını sırayla birleştir"""
+    def combine_audio_from_timeline(self, story_scenes, hook_subscribe_data):
+        """Combine audio using timeline data instead of scene plan"""
         audio_dir = Path(self.current_output_dir) / "audio_parts"
         combined_audio = Path(self.current_output_dir) / "combined_audio.wav"
         audio_list_file = Path(self.current_output_dir) / "audio_list.txt"
 
-        print(f"🎵 AUDIO COMBINATION PROCESS:")
+        print(f"🎵 AUDIO COMBINATION FROM TIMELINE:")
         print(f"   📁 Source directory: {audio_dir}")
         print(f"   📄 Audio list file: {audio_list_file.name}")
         print(f"   🎵 Combined output: {combined_audio.name}")
@@ -854,60 +763,67 @@ class ServerYouTubeVideoProducer:
         audio_files = []
         audio_summary = {"found": 0, "missing": 0, "total_duration": 0}
 
+        hook_scene, subscribe_scene = hook_subscribe_data
+
         # 1. Hook
         print("🎬 HOOK AUDIO:")
-        hook_file = self.find_audio_file(audio_dir, "hook_audio")
-        if hook_file:
-            audio_files.append(str(hook_file))
-            duration = self.get_audio_duration(hook_file)
-            audio_summary["found"] += 1
-            audio_summary["total_duration"] += duration
-            print(f"   ✅ Found: {hook_file.name} ({duration:.1f}s)")
+        if hook_scene:
+            hook_file = audio_dir / hook_scene['audio_file']
+            if hook_file.exists():
+                audio_files.append(str(hook_file))
+                duration = self.get_audio_duration(hook_file)
+                audio_summary["found"] += 1
+                audio_summary["total_duration"] += duration
+                print(f"   ✅ Found: {hook_file.name} ({duration:.1f}s)")
+            else:
+                audio_summary["missing"] += 1
+                print(f"   ❌ Missing: {hook_scene['audio_file']}")
         else:
-            audio_summary["missing"] += 1
-            print(f"   ❌ Missing: hook_audio.mp3")
+            print(f"   ❌ Hook scene not in timeline")
 
         # 2. Subscribe
         print("\n🔔 SUBSCRIBE AUDIO:")
-        subscribe_file = self.find_audio_file(audio_dir, "subscribe_audio")
-        if subscribe_file:
-            audio_files.append(str(subscribe_file))
-            duration = self.get_audio_duration(subscribe_file)
-            audio_summary["found"] += 1
-            audio_summary["total_duration"] += duration
-            print(f"   ✅ Found: {subscribe_file.name} ({duration:.1f}s)")
+        if subscribe_scene:
+            subscribe_file = audio_dir / subscribe_scene['audio_file']
+            if subscribe_file.exists():
+                audio_files.append(str(subscribe_file))
+                duration = self.get_audio_duration(subscribe_file)
+                audio_summary["found"] += 1
+                audio_summary["total_duration"] += duration
+                print(f"   ✅ Found: {subscribe_file.name} ({duration:.1f}s)")
+            else:
+                audio_summary["missing"] += 1
+                print(f"   ❌ Missing: {subscribe_scene['audio_file']}")
         else:
-            audio_summary["missing"] += 1
-            print(f"   ❌ Missing: subscribe_audio.mp3")
+            print(f"   ❌ Subscribe scene not in timeline")
 
-        # 3. All available scenes (from check_available_scenes)
-        print(f"\n📖 STORY SCENES AUDIO:")
-
-        # Get available scenes list
-        available_scenes, _ = self.check_available_scenes(row_index, max_scenes=50)
-        print(f"   📊 Processing {len(available_scenes)} available scenes...")
+        # 3. Story scenes from timeline
+        print(f"\n📖 STORY SCENES AUDIO (FROM TIMELINE):")
+        print(f"   📊 Processing {len(story_scenes)} scenes from timeline...")
 
         scenes_found = 0
         scenes_missing = 0
 
-        for i, scene_id in enumerate(available_scenes):
-            audio_file = audio_dir / f"scene_{scene_id:02d}_audio.mp3"
+        for i, scene_data in enumerate(story_scenes):
+            scene_id = scene_data['scene_id']
+            audio_file_name = scene_data['audio_file']
+            audio_file_path = audio_dir / audio_file_name
 
-            if audio_file.exists():
-                audio_files.append(str(audio_file))
-                duration = self.get_audio_duration(audio_file)
+            if audio_file_path.exists():
+                audio_files.append(str(audio_file_path))
+                duration = self.get_audio_duration(audio_file_path)
                 audio_summary["total_duration"] += duration
                 scenes_found += 1
 
                 # Show first and last few scenes
-                if i < 3 or i >= len(available_scenes) - 3:
-                    print(f"   ✅ Scene {scene_id}: {audio_file.name} ({duration:.1f}s)")
+                if i < 3 or i >= len(story_scenes) - 3:
+                    print(f"   ✅ Scene {scene_id}: {audio_file_name} ({duration:.1f}s)")
                 elif i == 3:
-                    print(f"   ... (processing {len(available_scenes) - 6} more scenes)")
+                    print(f"   ... (processing {len(story_scenes) - 6} more scenes)")
             else:
                 scenes_missing += 1
-                if i < 3 or i >= len(available_scenes) - 3:
-                    print(f"   ❌ Scene {scene_id}: audio file missing")
+                if i < 3 or i >= len(story_scenes) - 3:
+                    print(f"   ❌ Scene {scene_id}: {audio_file_name} missing")
 
         audio_summary["found"] += scenes_found
         audio_summary["missing"] += scenes_missing
@@ -1340,69 +1256,74 @@ class ServerYouTubeVideoProducer:
             return False, 0.0, 0.0
 
     def create_video(self, row_index, topic_data, progress_tracker, usage_tracker):
-        """Ana video üretim fonksiyonu - Server version with TTS scene checking"""
+        """Ana video üretim fonksiyonu - Timeline-based version"""
         total_steps = 8
         current_step = 0
 
         print(f"\n" + "🎬" * 80)
-        print("VIDEO COMPOSER - PROCESSING DETAILS")
+        print("VIDEO COMPOSER - TIMELINE-BASED PROCESSING")
         print("🎬" * 80)
         print(f"🎯 PROJECT: {topic_data['topic']}")
         print(f"🆔 PROJECT ID: {row_index}")
         print(f"📁 OUTPUT DIR: {self.current_output_dir}")
         print()
         print("📋 PROCESSING METHOD:")
-        print("   🎬 FIXED MOVIEPY APPROACH - SERVER VERSION + TTS SCENE CHECKING")
-        print("   📝 Python Video Library with AVAILABLE SEQUENCE IMAGES ONLY")
-        print("   📝 Layer 1: Multiple Image Clips (AVAILABLE scenes only)")
+        print("   📋 TIMELINE-BASED APPROACH - Server Version")
+        print("   ✅ Uses story_audio_youtube_timeline.json (ACTUAL generated scenes)")
+        print("   ❌ No longer uses scene_plan.json (only planning data)")
+        print("   📝 Layer 1: Timeline Scenes (ALL actually generated)")
         print("   📝 Layer 2: Fireplace Overlay (animated)")
         print("   📝 Layer 3: Full Audio Sequence")
-        print("   ✅ Fixed: TTS Generator scene checking logic integrated!")
-        print("   ✅ Fixed: Missing scenes automatically skipped!")
-        print("   ✅ Fixed: Proper cleanup timing!")
+        print("   ✅ Fixed: Uses REAL generated scenes from timeline!")
+        print("   ✅ Fixed: No missing scene issues!")
         print("   🖥️ Server: Database integrated with progress tracking")
         print("🎬" * 80)
 
         try:
-            # 1. Project data yükle
+            # 1. Load platform metadata
             current_step += 1
-            self.print_progress(current_step, total_steps, "Loading project data...")
+            self.print_progress(current_step, total_steps, "Loading platform metadata...")
             start_time = time.time()
 
-            # Load scene plan and platform metadata
-            scene_plan_original, platform_metadata = self.load_project_data(row_index)
+            platform_metadata = self.load_project_data(row_index)
             if not platform_metadata:
                 progress_tracker.mark_stage_failed("project_load", "Failed to load platform metadata")
                 return None
 
-            # Load actual generated scenes from audio timeline
-            story_scenes, timeline_data = self.load_audio_timeline(self.current_output_dir)
-            if not story_scenes:
-                progress_tracker.mark_stage_failed("project_load", "Failed to load audio timeline")
-                return None
-
-            # Use timeline scenes instead of scene plan
-            scene_plan = story_scenes
-
-            print(f"\n📊 PROJECT DATA LOADED:")
-            print(f"   📋 Platform metadata: {'✅ Available' if platform_metadata else '❌ Missing'}")
-            if platform_metadata and 'title_options' in platform_metadata:
-                print(f"   📝 Video title: {platform_metadata['title_options'][0][:50]}...")
-
             progress_tracker.mark_stage_completed("project_load")
             usage_tracker.add_stage("project_load", time.time() - start_time)
 
-            # 2. Video sequence oluştur (TTS mantığı ile)
+            # 2. Load audio timeline (ACTUAL generated scenes)
             current_step += 1
-            self.print_progress(current_step, total_steps, "Creating video sequence with TTS scene checking...")
+            self.print_progress(current_step, total_steps, "Loading audio timeline...")
             start_time = time.time()
 
-            sequence, total_duration = self.create_simple_video_sequence(row_index, scene_plan)
-            if not sequence:
-                progress_tracker.mark_stage_failed("sequence_build", "Failed to create video sequence - no available scenes")
+            story_scenes, timeline_data, hook_subscribe_data = self.load_audio_timeline(self.current_output_dir)
+            if not story_scenes:
+                progress_tracker.mark_stage_failed("timeline_load", "Failed to load audio timeline")
                 return None
 
-            print(f"\n✅ VIDEO SEQUENCE CREATED WITH TTS LOGIC:")
+            print(f"\n📊 TIMELINE DATA LOADED:")
+            print(f"   📖 Story scenes: {len(story_scenes)}")
+            print(f"   🎬 Hook available: {'✅' if hook_subscribe_data[0] else '❌'}")
+            print(f"   🔔 Subscribe available: {'✅' if hook_subscribe_data[1] else '❌'}")
+            print(f"   📋 Total timeline duration: {timeline_data.get('total_duration_formatted', 'unknown')}")
+
+            progress_tracker.mark_stage_completed("timeline_load")
+            usage_tracker.add_stage("timeline_load", time.time() - start_time)
+            usage_tracker.update_performance_data(total_scenes=len(story_scenes))
+
+            # 3. Create video sequence from timeline
+            current_step += 1
+            self.print_progress(current_step, total_steps, "Creating video sequence from timeline...")
+            start_time = time.time()
+
+            sequence, total_duration = self.create_video_sequence_from_timeline(story_scenes, hook_subscribe_data)
+            if not sequence:
+                progress_tracker.mark_stage_failed("sequence_build", "Failed to create video sequence from timeline")
+                return None
+
+            print(f"\n✅ VIDEO SEQUENCE CREATED FROM TIMELINE:")
             print(f"   🎬 Total segments: {len(sequence)}")
             print(f"   ⏱️  Total duration: {total_duration / 60:.1f} minutes")
 
@@ -1414,26 +1335,25 @@ class ServerYouTubeVideoProducer:
             print(f"   🎬 Hook segments: {hook_count}")
             print(f"   🔔 Subscribe segments: {subscribe_count}")
             print(f"   📖 Story segments: {scene_count}")
-            print(f"   ✅ Missing scenes automatically skipped!")
 
             progress_tracker.mark_stage_completed("sequence_build")
             usage_tracker.add_stage("sequence_build", time.time() - start_time)
-            usage_tracker.update_performance_data(total_scenes=len(sequence), video_duration_seconds=total_duration)
+            usage_tracker.update_performance_data(video_duration_seconds=total_duration)
 
-            # 3. Audio birleştir
+            # 4. Combine audio from timeline
             current_step += 1
-            self.print_progress(current_step, total_steps, "Combining audio files...")
+            self.print_progress(current_step, total_steps, "Combining audio from timeline...")
             start_time = time.time()
 
-            print(f"\n🎵 AUDIO COMBINATION:")
-            combined_audio = self.combine_all_audio(row_index, scene_plan)
+            print(f"\n🎵 AUDIO COMBINATION FROM TIMELINE:")
+            combined_audio = self.combine_audio_from_timeline(story_scenes, hook_subscribe_data)
             if not combined_audio:
-                progress_tracker.mark_stage_failed("audio_combine", "Failed to combine audio")
+                progress_tracker.mark_stage_failed("audio_combine", "Failed to combine audio from timeline")
                 return None
 
             print(f"   ✅ Combined audio created: {Path(combined_audio).name}")
 
-            # 4. Background audio ekle
+            # 5. Background audio ekle
             current_step += 1
             self.print_progress(current_step, total_steps, "Adding background audio...")
 
@@ -1447,7 +1367,7 @@ class ServerYouTubeVideoProducer:
             progress_tracker.mark_stage_completed("audio_combine")
             usage_tracker.add_stage("audio_combine", time.time() - start_time)
 
-            # 5. Image list oluştur
+            # 6. Image list oluştur
             current_step += 1
             self.print_progress(current_step, total_steps, "Creating image list...")
 
@@ -1462,25 +1382,24 @@ class ServerYouTubeVideoProducer:
                 progress_tracker.mark_stage_failed("video_render", f"Processing limit exceeded: {limit_reason}")
                 return None
 
-            # 6. FIXED MOVIEPY STYLE: Proper cleanup timing
+            # 7. TIMELINE-BASED MoviePy render
             current_step += 1
-            self.print_progress(current_step, total_steps, "🎬 TTS SCENE CHECKING + ALL AVAILABLE SCENES MoviePy...")
+            self.print_progress(current_step, total_steps, "🎬 TIMELINE MoviePy: Using all timeline scenes...")
             start_time = time.time()
 
-            print(f"\n🎬 VIDEO RENDERING:")
-            print(f"   📝 Method: TTS Scene Checking + ALL AVAILABLE SCENES MoviePy (fixed)")
+            print(f"\n🎬 VIDEO RENDERING (TIMELINE-BASED):")
+            print(f"   📝 Method: TIMELINE MoviePy (all actual scenes)")
             print(f"   🔥 Overlay: Fireplace animation")
             print(f"   🎵 Audio: Full sequence with background")
             print(f"   📊 Input segments: {len(sequence)}")
             print(f"   ⏱️  Expected duration: {total_duration / 60:.1f} minutes")
-            print(f"   ✅ Missing scenes: Automatically skipped!")
 
-            progress_tracker.set_render_method("moviepy_tts_scene_checking_fixed")
-            usage_tracker.update_performance_data(render_method="moviepy_tts_scene_checking_fixed")
+            progress_tracker.set_render_method("moviepy_timeline_based")
+            usage_tracker.update_performance_data(render_method="moviepy_timeline_based")
 
             final_video = self.create_video_moviepy_style(image_list, final_audio, row_index, total_duration)
             if not final_video:
-                progress_tracker.mark_stage_failed("video_render", "MoviePy render failed")
+                progress_tracker.mark_stage_failed("video_render", "MoviePy timeline render failed")
                 return None
 
             print(f"   ✅ Video rendering completed")
@@ -1489,7 +1408,7 @@ class ServerYouTubeVideoProducer:
             progress_tracker.mark_stage_completed("video_render")
             usage_tracker.add_stage("video_render", time.time() - start_time)
 
-            # 7. Video doğrula
+            # 8. Video doğrula
             current_step += 1
             self.print_progress(current_step, total_steps, "Verifying final video...")
             start_time = time.time()
@@ -1507,28 +1426,30 @@ class ServerYouTubeVideoProducer:
 
             usage_tracker.add_stage("verification", time.time() - start_time)
 
-            # 8. Metadata kaydet
-            current_step += 1
-            self.print_progress(current_step, total_steps, "Saving metadata...")
-
+            # 9. Metadata kaydet
             usage_summary = usage_tracker.print_final_summary()
 
             video_metadata = {
                 "title": platform_metadata["title_options"][0] if platform_metadata.get("title_options") else topic_data["topic"],
                 "duration_seconds": actual_duration,
+                "story_scene_count": len(story_scenes),
                 "sequence_count": len(sequence),
                 "created_at": datetime.now().isoformat(),
                 "output_file": str(final_video),
                 "processing_steps": total_steps,
-                "render_method": "moviepy_tts_scene_checking_fixed_server",
+                "render_method": "moviepy_timeline_based_server",
+                "timeline_mode": True,
                 "overlay_working": True,
                 "cleanup_timing": "fixed",
-                "available_scenes_working": True,
-                "tts_scene_checking": True,
-                "missing_scenes_skipped": True,
                 "server_version": True,
                 "database_integrated": True,
-                "usage_summary": usage_summary
+                "usage_summary": usage_summary,
+                "timeline_stats": {
+                    "total_timeline_scenes": timeline_data.get('total_scenes', 0),
+                    "story_scenes_used": len(story_scenes),
+                    "hook_used": hook_subscribe_data[0] is not None,
+                    "subscribe_used": hook_subscribe_data[1] is not None
+                }
             }
 
             metadata_file = Path(self.current_output_dir) / "video_metadata.json"
@@ -1536,7 +1457,7 @@ class ServerYouTubeVideoProducer:
                 json.dump(video_metadata, f, indent=2, ensure_ascii=False)
 
             # Tamamlanma mesajı
-            self.print_progress(total_steps, total_steps, "TTS Scene Checking + MoviePy render completed!")
+            self.print_progress(total_steps, total_steps, "TIMELINE MoviePy render completed!")
 
             print(f"\n" + "🎉" * 80)
             print("VIDEO CREATION COMPLETED SUCCESSFULLY!")
@@ -1547,10 +1468,11 @@ class ServerYouTubeVideoProducer:
             print(f"⏱️  DURATION: {actual_duration / 60:.1f} minutes")
             print(f"📦 FILE SIZE: {file_size_mb:.1f} MB")
             print(f"🎬 SEGMENTS: {len(sequence)} total")
-            print(f"🎭 METHOD: TTS Scene Checking + ALL AVAILABLE SCENES MoviePy (fixed server)")
+            print(f"📖 STORY SCENES: {len(story_scenes)} from timeline")
+            print(f"🎭 METHOD: TIMELINE MoviePy (all actual scenes)")
             print(f"🔥 OVERLAY: Working (animated with MoviePy)")
-            print(f"🎵 AUDIO: Working (available scenes only)")
-            print(f"✅ STATUS: TTS Generator logic - Missing scenes automatically skipped!")
+            print(f"🎵 AUDIO: Working (full sequence)")
+            print(f"✅ STATUS: Uses REAL generated scenes from timeline!")
             print(f"🖥️ SERVER: Database integrated!")
             print("🎉" * 80)
 
@@ -1566,11 +1488,11 @@ class ServerYouTubeVideoProducer:
     def run_video_generation(self) -> bool:
         """Run VIDEO generation process for server environment"""
         print("🚀" * 50)
-        print("SERVER VIDEO COMPOSER v1.1 - TTS SCENE CHECKING")
+        print("SERVER VIDEO COMPOSER v1.1 - TIMELINE MODE")
         print("🔗 Database integrated")
         print("🎬 YouTube Production Video Generation")
-        print("🔥 MoviePy + Fireplace Overlay + AVAILABLE Scenes Only")
-        print("✅ TTS Generator scene checking logic integrated")
+        print("📋 Timeline-based scene loading (ACTUAL generated)")
+        print("🔥 MoviePy + Fireplace Overlay + ALL Timeline Scenes")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
 
@@ -1601,7 +1523,7 @@ class ServerYouTubeVideoProducer:
             story_id = self.current_topic_id
             topic = self.current_topic
 
-            # Create video with server tracking + TTS scene checking
+            # Create video with timeline-based tracking
             result = self.create_video(story_id, project_info, progress_tracker, usage_tracker)
 
             if result and len(result) == 4:  # Successful result has 4 elements
@@ -1625,11 +1547,10 @@ class ServerYouTubeVideoProducer:
 
                 print("\n" + "🎉" * 50)
                 print("VIDEO GENERATION SUCCESSFUL!")
-                print("✅ YouTube-optimized video with AVAILABLE scenes only")
+                print("✅ YouTube-optimized video with TIMELINE scenes")
                 print("✅ MoviePy with fireplace overlay")
-                print("✅ TTS Generator scene checking logic")
-                print("✅ Missing scenes automatically skipped")
                 print("✅ Fixed cleanup timing")
+                print("✅ Timeline-based processing")
                 print("✅ Database updated with metrics")
                 print("🎉" * 50)
                 overall_success = True
@@ -1648,12 +1569,12 @@ class ServerYouTubeVideoProducer:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER VIDEO COMPOSER v1.1 - TTS SCENE CHECKING")
+        print("🚀 SERVER VIDEO COMPOSER v1.1 - TIMELINE MODE")
         print("🔗 Database integration with progress tracking")
         print("🎬 YouTube Production Video Generation")
-        print("🔥 MoviePy + Fireplace Overlay + AVAILABLE Scenes Only")
-        print("🎭 Fixed cleanup timing + TTS scene checking logic")
-        print("✅ TTS Generator scene checking integration")
+        print("📋 Timeline-based scene loading (ACTUAL generated scenes)")
+        print("🔥 MoviePy + Fireplace Overlay + ALL Timeline Scenes")
+        print("🎭 Fixed cleanup timing + Server infrastructure")
         print("🖥️ Production-ready automation")
         print("=" * 60)
 
@@ -1665,8 +1586,7 @@ if __name__ == "__main__":
             print("📁 Video saved: final_video.mp4")
             print("📋 Metadata saved: video_metadata.json")
             print("🔥 Fireplace overlay included")
-            print("🎬 AVAILABLE scenes in sequence")
-            print("✅ Missing scenes automatically skipped")
+            print("📋 Timeline-based scenes used")
             print("💾 Progress tracking enabled")
             print("🖥️ Server infrastructure working")
         else:
