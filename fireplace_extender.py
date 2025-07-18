@@ -162,12 +162,13 @@ def create_extended_fireplace():
 
         export_start = time.time()
 
+        # Fixed: Removed unsupported 'crf' parameter and simplified codec options
         final_clip.write_videofile(
             str(extended_fireplace),
             fps=30,
             codec="libx264",
             preset="fast",
-            crf=23,  # Good quality for background overlay
+            bitrate="2000k",  # Use bitrate instead of crf for quality control
             verbose=False,
             logger='bar'
         )
@@ -217,26 +218,6 @@ def create_extended_fireplace():
         import traceback
         traceback.print_exc()
         return False
-
-
-def main():
-    """Main function"""
-    print("🚀 Starting fireplace extension process...")
-
-    success = create_extended_fireplace()
-
-    if success:
-        print("🎉 FIREPLACE EXTENSION COMPLETED!")
-        print("   Your video composer is now optimized for fast rendering!")
-    else:
-        print("❌ FIREPLACE EXTENSION FAILED!")
-        print("   Video composer will fall back to original method")
-
-    return success
-
-
-if __name__ == "__main__":
-    main()
 
 
 def main():
