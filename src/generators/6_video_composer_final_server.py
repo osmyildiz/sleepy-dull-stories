@@ -940,12 +940,49 @@ class ServerYouTubeVideoProducer:
             import gc
             import subprocess
 
-            # Load fireplace overlay once
-            fireplace_overlay_base = None
-            if fireplace_video.exists():
-                print("🔥 Loading fireplace overlay...")
-                fireplace_overlay_base = VideoFileClip(str(fireplace_video))
-                print(f"   📏 Fireplace duration: {fireplace_overlay_base.duration:.1f}s")
+    def create_long_fireplace_overlay(self, fireplace_video, target_duration=600):
+        """Create a long fireplace overlay (10 minutes) to avoid repeated copying"""
+        print(f"🔥 Creating long fireplace overlay ({target_duration}s)...")
+
+        try:
+            from moviepy.editor import VideoFileClip, concatenate_videoclips
+
+            base_fireplace = VideoFileClip(str(fireplace_video))
+            fireplace_duration = base_fireplace.duration
+
+            # Calculate loops needed for target duration
+            loops_needed = int(target_duration / fireplace_duration) + 1
+
+            print(f"   📏 Base fireplace duration: {fireplace_duration:.1f}s")
+            print(f"   🔄 Loops needed: {loops_needed}")
+            print(f"   ⏱️  Creating {target_duration}s fireplace...")
+
+            # Create looped fireplace
+            fireplace_clips = []
+            for i in range(loops_needed):
+                fireplace_clips.append(base_fireplace.copy())
+
+            long_fireplace = concatenate_videoclips(fireplace_clips)
+
+            # Trim to exact target duration
+            long_fireplace = long_fireplace.subclip(0, target_duration)
+
+            # Set properties for overlay
+            long_fireplace = long_fireplace.resize((1920, 1080))
+            long_fireplace = long_fireplace.set_opacity(0.3)
+            long_fireplace = long_fireplace.without_audio()
+
+            # Cleanup base clips
+            base_fireplace.close()
+            for clip in fireplace_clips:
+                clip.close()
+
+            print(f"   ✅ Long fireplace created: {target_duration}s")
+            return long_fireplace
+
+        except Exception as e:
+            print(f"   ❌ Long fireplace creation failed: {e}")
+            return None
 
             hook_scene, subscribe_scene = hook_subscribe_data
             scene_video_files = []
