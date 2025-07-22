@@ -3121,6 +3121,8 @@ def run_autonomous_mode():
 
             if next_topic:
                 topic_id, topic, description = next_topic
+                clickbait_title = ""
+                font_design = ""
 
                 print(f"\n🔄 Processing topic {topic_id}: {topic}")
 
