@@ -1,282 +1,164 @@
 """
-Database Inspector - Check Topics Table Structure
-Check current topics table structure and data
+Find Database - Locate production.db file
 """
 
-import sqlite3
-import json
+import os
 from pathlib import Path
-from datetime import datetime
 
+def find_production_db():
+    """Find production.db file in project structure"""
 
-def inspect_topics_table():
-    """Check topics table structure and sample data"""
+    print("🔍 SEARCHING FOR PRODUCTION.DB")
+    print("=" * 40)
 
-    db_path = Path("data/production.db")
+    # Current directory
+    current_dir = Path.cwd()
+    print(f"📍 Current directory: {current_dir}")
 
-    if not db_path.exists():
-        print("❌ Database not found: data/production.db")
-        return
-
-    print("🔍 TOPICS TABLE INSPECTION")
-    print("=" * 60)
-    print(f"📁 Database: {db_path}")
-    print(f"📦 Size: {db_path.stat().st_size / 1024:.1f} KB")
-    print(f"📅 Modified: {datetime.fromtimestamp(db_path.stat().st_mtime)}")
-    print()
-
-    try:
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-
-            # Get table schema
-            print("📋 TABLE STRUCTURE:")
-            print("-" * 40)
-            cursor.execute("PRAGMA table_info(topics);")
-            columns = cursor.fetchall()
-
-            print(f"{'Column':<35} {'Type':<15} {'Null':<8} {'Default':<20} {'PK'}")
-            print("-" * 90)
-
-            for col in columns:
-                col_id, name, type_name, not_null, default_val, pk = col
-                null_str = "NOT NULL" if not_null else "NULL OK"
-                default_str = str(default_val) if default_val is not None else "None"
-                pk_str = "PK" if pk else ""
-
-                print(f"{name:<35} {type_name:<15} {null_str:<8} {default_str:<20} {pk_str}")
-
-            print()
-
-            # Get record counts
-            print("📊 RECORD COUNTS:")
-            print("-" * 20)
-            cursor.execute("SELECT COUNT(*) FROM topics;")
-            total_count = cursor.fetchone()[0]
-            print(f"Total records: {total_count}")
-
-            if total_count > 0:
-                # Status distribution
-                print("\n📈 STATUS DISTRIBUTION:")
-                print("-" * 25)
-
-                # Main status
-                cursor.execute("""
-                    SELECT status, COUNT(*) 
-                    FROM topics 
-                    GROUP BY status 
-                    ORDER BY COUNT(*) DESC
-                """)
-                status_dist = cursor.fetchall()
-
-                for status, count in status_dist:
-                    percentage = (count / total_count * 100) if total_count > 0 else 0
-                    print(f"  {status or 'NULL':<15} {count:>3} ({percentage:>5.1f}%)")
-
-                # Check stage status columns
-                stage_columns = [
-                    'story_generation_status',
-                    'character_generation_status',
-                    'scene_generation_status',
-                    'audio_generation_status',
-                    'video_generation_status',
-                    'thumbnail_generation_status',
-                    'youtube_upload_status'
-                ]
-
-                print("\n🔄 STAGE STATUS COLUMNS:")
-                print("-" * 30)
-
-                existing_stage_columns = []
-
-                for col_name in stage_columns:
-                    try:
-                        cursor.execute(f"SELECT COUNT(*) FROM topics WHERE {col_name} IS NOT NULL;")
-                        non_null_count = cursor.fetchone()[0]
-
-                        cursor.execute(f"SELECT COUNT(*) FROM topics WHERE {col_name} IS NULL;")
-                        null_count = cursor.fetchone()[0]
-
-                        existing_stage_columns.append(col_name)
-
-                        # Get unique values for this column
-                        cursor.execute(f"SELECT DISTINCT {col_name} FROM topics WHERE {col_name} IS NOT NULL;")
-                        unique_values = [row[0] for row in cursor.fetchall()]
-
-                        print(f"  ✅ {col_name:<30} NULL: {null_count:>3} | Non-NULL: {non_null_count:>3}")
-                        if unique_values:
-                            print(f"     Values: {', '.join(unique_values)}")
-
-                    except sqlite3.OperationalError:
-                        print(f"  ❌ {col_name:<30} Column doesn't exist")
-
-                # Check other important columns
-                print("\n📋 OTHER IMPORTANT COLUMNS:")
-                print("-" * 35)
-
-                important_columns = [
-                    'thumbnail_generated',
-                    'api_calls_used',
-                    'total_cost',
-                    'scenes_generated',
-                    'output_path',
-                    'created_at',
-                    'updated_at'
-                ]
-
-                for col_name in important_columns:
-                    try:
-                        cursor.execute(f"SELECT COUNT(*) FROM topics WHERE {col_name} IS NOT NULL;")
-                        non_null_count = cursor.fetchone()[0]
-
-                        print(f"  📝 {col_name:<25} Non-NULL: {non_null_count:>3}")
-
-                        # Show sample values for some columns
-                        if col_name in ['api_calls_used', 'total_cost', 'scenes_generated']:
-                            cursor.execute(f"SELECT AVG({col_name}) FROM topics WHERE {col_name} IS NOT NULL;")
-                            avg_val = cursor.fetchone()[0]
-                            if avg_val is not None:
-                                print(f"     Average: {avg_val:.2f}")
-
-                    except sqlite3.OperationalError:
-                        print(f"  ❌ {col_name:<25} Column doesn't exist")
-
-                # Sample records
-                print("\n📄 SAMPLE RECORDS:")
-                print("-" * 20)
-
-                cursor.execute("""
-                    SELECT id, topic, status, 
-                           story_generation_status,
-                           character_generation_status,
-                           scene_generation_status,
-                           audio_generation_status,
-                           video_generation_status,
-                           thumbnail_generated,
-                           created_at
-                    FROM topics 
-                    ORDER BY id DESC 
-                    LIMIT 5
-                """)
-
-                sample_records = cursor.fetchall()
-
-                print(
-                    f"{'ID':<4} {'Topic':<25} {'Status':<12} {'Story':<10} {'Char':<8} {'Scene':<8} {'Audio':<8} {'Video':<8} {'Thumb':<6}")
-                print("-" * 100)
-
-                for record in sample_records:
-                    id_val, topic, status, story_st, char_st, scene_st, audio_st, video_st, thumb, created = record
-
-                    topic_short = (topic[:22] + "...") if topic and len(topic) > 25 else (topic or "")
-                    status_short = (status[:9] + "...") if status and len(status) > 12 else (status or "")
-
-                    print(
-                        f"{id_val:<4} {topic_short:<25} {status_short:<12} {story_st or 'NULL':<10} {char_st or 'NULL':<8} {scene_st or 'NULL':<8} {audio_st or 'NULL':<8} {video_st or 'NULL':<8} {thumb or 'NULL':<6}")
-
-                # Pipeline readiness check
-                print("\n🚀 PIPELINE READINESS CHECK:")
-                print("-" * 35)
-
-                # Topics ready for each stage
-                pipeline_checks = [
-                    ("Story Generation", "status = 'pending'"),
-                    ("Character Generation",
-                     "story_generation_status = 'completed' AND (character_generation_status IS NULL OR character_generation_status = 'pending')"),
-                    ("Scene Generation",
-                     "character_generation_status = 'completed' AND (scene_generation_status IS NULL OR scene_generation_status = 'pending')"),
-                    ("Audio Generation",
-                     "scene_generation_status = 'completed' AND (audio_generation_status IS NULL OR audio_generation_status = 'pending')"),
-                    ("Video Composition",
-                     "audio_generation_status = 'completed' AND (video_generation_status IS NULL OR video_generation_status = 'pending')"),
-                ]
-
-                for stage_name, condition in pipeline_checks:
-                    try:
-                        cursor.execute(f"SELECT COUNT(*) FROM topics WHERE {condition};")
-                        ready_count = cursor.fetchone()[0]
-
-                        if ready_count > 0:
-                            print(f"  🎯 {stage_name:<20} {ready_count:>3} topics ready")
-
-                            # Show some ready topics
-                            cursor.execute(f"SELECT id, topic FROM topics WHERE {condition} LIMIT 3;")
-                            ready_topics = cursor.fetchall()
-                            for topic_id, topic_title in ready_topics:
-                                topic_short = (topic_title[:30] + "...") if topic_title and len(topic_title) > 33 else (
-                                            topic_title or "")
-                                print(f"     - ID {topic_id}: {topic_short}")
-                        else:
-                            print(f"  ⚪ {stage_name:<20} No topics ready")
-
-                    except sqlite3.OperationalError as e:
-                        print(f"  ❌ {stage_name:<20} Error: {e}")
-
-            else:
-                print("No records found in topics table")
-
-    except Exception as e:
-        print(f"❌ Error inspecting database: {e}")
-        import traceback
-        traceback.print_exc()
-
-
-def suggest_missing_columns():
-    """Suggest missing columns for autonomous pipeline"""
-
-    print("\n🔧 AUTONOMOUS PIPELINE COLUMN SUGGESTIONS:")
-    print("=" * 50)
-
-    suggested_columns = [
-        ("story_generation_status", "TEXT DEFAULT 'pending'", "Track story generation progress"),
-        ("story_generation_started_at", "DATETIME", "When story generation started"),
-        ("story_generation_completed_at", "DATETIME", "When story generation completed"),
-
-        ("character_generation_status", "TEXT DEFAULT NULL", "Track character generation progress"),
-        ("character_generation_started_at", "DATETIME", "When character generation started"),
-        ("character_generation_completed_at", "DATETIME", "When character generation completed"),
-
-        ("scene_generation_status", "TEXT DEFAULT NULL", "Track scene generation progress"),
-        ("scene_generation_started_at", "DATETIME", "When scene generation started"),
-        ("scene_generation_completed_at", "DATETIME", "When scene generation completed"),
-
-        ("audio_generation_status", "TEXT DEFAULT NULL", "Track audio generation progress"),
-        ("audio_generation_started_at", "DATETIME", "When audio generation started"),
-        ("audio_generation_completed_at", "DATETIME", "When audio generation completed"),
-
-        ("video_generation_status", "TEXT DEFAULT NULL", "Track video generation progress"),
-        ("video_generation_started_at", "DATETIME", "When video generation started"),
-        ("video_generation_completed_at", "DATETIME", "When video generation completed"),
-
-        ("thumbnail_generated", "BOOLEAN DEFAULT FALSE", "Whether thumbnail is ready"),
-        ("thumbnail_path", "TEXT", "Path to thumbnail file"),
-
-        ("orchestration_status", "TEXT DEFAULT 'pending'", "Overall pipeline status"),
-        ("current_pipeline_stage", "TEXT", "Current stage in pipeline"),
-        ("pipeline_started_at", "DATETIME", "When pipeline started"),
-        ("pipeline_completed_at", "DATETIME", "When pipeline completed"),
-
-        ("error_count", "INTEGER DEFAULT 0", "Number of errors encountered"),
-        ("last_error", "TEXT", "Last error message"),
-        ("retry_count", "INTEGER DEFAULT 0", "Number of retries attempted"),
+    # Search patterns
+    search_patterns = [
+        "production.db",
+        "data/production.db",
+        "../data/production.db",
+        "../../data/production.db",
+        "../../../data/production.db"
     ]
 
-    print("📋 Suggested columns for autonomous pipeline:")
-    print()
+    print("\n🔎 Searching in common locations:")
 
-    for col_name, col_type, description in suggested_columns:
-        print(f"  📝 {col_name:<35} {col_type:<25} # {description}")
+    found_databases = []
 
-    print("\n🔧 SQL to add missing columns:")
-    print("-" * 30)
+    for pattern in search_patterns:
+        db_path = Path(pattern)
+        if db_path.exists():
+            abs_path = db_path.resolve()
+            size_kb = abs_path.stat().st_size / 1024
+            print(f"  ✅ Found: {pattern} -> {abs_path} ({size_kb:.1f} KB)")
+            found_databases.append(abs_path)
+        else:
+            print(f"  ❌ Not found: {pattern}")
 
-    for col_name, col_type, description in suggested_columns:
-        print(f"ALTER TABLE topics ADD COLUMN {col_name} {col_type};")
+    # Search recursively in parent directories
+    print(f"\n🔍 Recursive search from current directory...")
 
+    search_root = current_dir
+    max_levels = 5
+
+    for level in range(max_levels):
+        for db_file in search_root.rglob("production.db"):
+            if db_file not in found_databases:
+                size_kb = db_file.stat().st_size / 1024
+                print(f"  ✅ Found: {db_file} ({size_kb:.1f} KB)")
+                found_databases.append(db_file)
+
+        # Go up one level
+        search_root = search_root.parent
+        if search_root == search_root.parent:  # Reached filesystem root
+            break
+
+    # Look for any .db files
+    print(f"\n🔍 Looking for any .db files...")
+
+    search_root = current_dir
+    for level in range(3):
+        for db_file in search_root.rglob("*.db"):
+            size_kb = db_file.stat().st_size / 1024
+            print(f"  📄 Found DB: {db_file} ({size_kb:.1f} KB)")
+
+        search_root = search_root.parent
+        if search_root == search_root.parent:
+            break
+
+    print(f"\n📊 SUMMARY:")
+    if found_databases:
+        print(f"✅ Found {len(found_databases)} production.db file(s):")
+        for i, db_path in enumerate(found_databases, 1):
+            print(f"  {i}. {db_path}")
+
+        # Use the first found database
+        chosen_db = found_databases[0]
+        print(f"\n🎯 Using: {chosen_db}")
+        return chosen_db
+    else:
+        print("❌ No production.db found!")
+
+        # Check if we need to create one
+        project_root = find_project_root()
+        if project_root:
+            data_dir = project_root / "data"
+            suggested_path = data_dir / "production.db"
+            print(f"\n💡 Suggested location: {suggested_path}")
+
+            if not data_dir.exists():
+                print(f"📁 Creating data directory: {data_dir}")
+                data_dir.mkdir(parents=True, exist_ok=True)
+
+            return suggested_path
+
+        return None
+
+def find_project_root():
+    """Find project root directory"""
+
+    current = Path.cwd()
+
+    # Look for indicators of project root
+    indicators = [
+        'src',
+        'data',
+        'output',
+        'config',
+        '.env',
+        'requirements.txt',
+        '.git'
+    ]
+
+    max_levels = 10
+
+    for level in range(max_levels):
+        for indicator in indicators:
+            if (current / indicator).exists():
+                print(f"📍 Project root detected: {current} (found {indicator})")
+                return current
+
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+
+    # Fallback - assume current directory's parent or grandparent
+    current_dir = Path.cwd()
+
+    if current_dir.name in ['src', 'database', 'generators']:
+        return current_dir.parent
+    elif current_dir.parent.name == 'src':
+        return current_dir.parent.parent
+
+    return current_dir
 
 if __name__ == "__main__":
-    inspect_topics_table()
-    suggest_missing_columns()
+    db_path = find_production_db()
 
-    print("\n✅ Database inspection completed!")
-    print("🚀 Ready to implement autonomous pipeline!")
+    if db_path and db_path.exists():
+        print(f"\n🚀 Ready to inspect database: {db_path}")
+
+        # Quick check if it's a SQLite database
+        try:
+            import sqlite3
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+
+                print(f"\n📋 Tables found: {[table[0] for table in tables]}")
+
+                if ('topics',) in tables:
+                    cursor.execute("SELECT COUNT(*) FROM topics;")
+                    count = cursor.fetchone()[0]
+                    print(f"📊 Topics count: {count}")
+
+        except Exception as e:
+            print(f"❌ Error reading database: {e}")
+
+    else:
+        print(f"\n💭 Database needs to be created or path corrected")
