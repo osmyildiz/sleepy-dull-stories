@@ -3120,7 +3120,7 @@ def run_autonomous_mode():
             next_topic = db_manager.get_next_story_generation_topic()
 
             if next_topic:
-                topic_id, topic, description, clickbait_title, font_design = next_topic
+                topic_id, topic, description = next_topic
 
                 print(f"\n🔄 Processing topic {topic_id}: {topic}")
 
