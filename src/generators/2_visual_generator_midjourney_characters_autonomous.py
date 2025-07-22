@@ -824,19 +824,17 @@ class ServerMidjourneyVisualGenerator:
 
 
 def run_autonomous_mode():
-    """Run autonomous mode - continuously process completed stories for character generation"""
+    """Run autonomous mode - continuously process completed story topics for character generation"""
     print("🤖 AUTONOMOUS CHARACTER GENERATION MODE STARTED")
-    print("🔄 Will process all completed stories continuously")
+    print("🔄 Will process all completed story topics continuously")
     print("⏹️ Press Ctrl+C to stop gracefully")
-
-    # Initialize database manager for pipeline status
-    db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
-    db_manager = DatabaseTopicManager(str(db_path))
 
     # Setup graceful shutdown
     running = True
     processed_count = 0
+    cycles_count = 0
     start_time = time.time()
+    last_activity_time = time.time()
 
     def signal_handler(signum, frame):
         nonlocal running
@@ -849,36 +847,72 @@ def run_autonomous_mode():
 
     while running:
         try:
-            # Check pipeline status
-            status = db_manager.get_pipeline_status()
+            # Initialize character generator to check for work
+            character_generator = ServerMidjourneyVisualGenerator()
+            found, project_info = character_generator.get_next_project_from_database()
 
-            if status['character_generation_queue'] > 0:
-                print(
-                    f"\n🎭 Found {status['character_generation_queue']} completed stories ready for character generation")
+            if found:
+                cycle_had_work = False
+                cycle_start_time = time.time()
 
-                # Initialize generator
-                generator = ServerMidjourneyVisualGenerator()
+                print(f"\n🔄 CYCLE {cycles_count + 1}: Found completed story topics ready for character generation")
 
-                # Process one story
-                success = generator.run_character_only_generation()
+                # Process ALL available topics in this cycle
+                while running and found:
+                    # Process one topic (generator already has the project loaded)
+                    success = character_generator.run_character_generation()
 
-                if success:
-                    processed_count += 1
-                    print(f"\n✅ Character generation completed!")
-                    print(f"📊 Progress: {processed_count} topics processed")
-                else:
-                    print(f"\n⚠️ Character generation failed or no projects ready")
+                    if success:
+                        processed_count += 1
+                        cycle_had_work = True
+                        last_activity_time = time.time()
+                        print(f"✅ Character generation completed! (Topic {processed_count})")
+                    else:
+                        print(f"⚠️ Character generation failed")
+                        break
 
-                # Short pause between topics
+                    # Short pause between topics in same cycle
+                    if running:
+                        time.sleep(2)
+
+                    # Check for more work with fresh generator instance
+                    character_generator = ServerMidjourneyVisualGenerator()
+                    found, project_info = character_generator.get_next_project_from_database()
+
+                # Cycle completed
+                cycles_count += 1
+                cycle_time = time.time() - cycle_start_time
+
+                if cycle_had_work:
+                    print(f"\n📊 CYCLE {cycles_count} COMPLETED:")
+                    print(f"   ✅ Topics processed this cycle: {processed_count}")
+                    print(f"   ⏱️ Cycle time: {cycle_time:.1f} seconds")
+                    print(f"   📈 Total topics processed: {processed_count}")
+
+                # Short pause between cycles
                 if running:
-                    time.sleep(5)
+                    print("⏳ Pausing 10 seconds before next cycle...")
+                    time.sleep(10)
 
             else:
-                # No topics ready, wait
-                print("😴 No completed stories ready for character generation. Waiting 60s...")
-                for i in range(60):
+                # No topics ready - smart waiting
+                time_since_activity = time.time() - last_activity_time
+
+                if time_since_activity < 300:  # Less than 5 minutes since last activity
+                    wait_time = 60  # Wait 1 minute
+                    print("😴 No topics ready. Recent activity detected - waiting 60s...")
+                else:
+                    wait_time = 3600  # Wait 1 hour
+                    print("😴 No topics ready for extended period - waiting 1 hour...")
+                    print(f"⏰ Last activity: {time_since_activity / 60:.1f} minutes ago")
+
+                # Wait with interrupt capability
+                for i in range(wait_time):
                     if not running:
                         break
+                    if i > 0 and i % 300 == 0:  # Show progress every 5 minutes
+                        remaining = (wait_time - i) / 60
+                        print(f"⏳ Still waiting... {remaining:.1f} minutes remaining")
                     time.sleep(1)
 
         except KeyboardInterrupt:
@@ -893,7 +927,10 @@ def run_autonomous_mode():
     runtime = time.time() - start_time
     print(f"\n🏁 AUTONOMOUS CHARACTER GENERATION SHUTDOWN")
     print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
+    print(f"🔄 Total cycles: {cycles_count}")
     print(f"✅ Topics processed: {processed_count}")
+    if processed_count > 0:
+        print(f"📈 Average topics per cycle: {processed_count / cycles_count:.1f}")
     print("👋 Goodbye!")
 
 
