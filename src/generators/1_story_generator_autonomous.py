@@ -3087,6 +3087,9 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 
 def run_autonomous_mode():
     """Run autonomous mode - continuously process pending topics"""
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent / 'database'))
     from autonomous_database_manager import AutonomousDatabaseManager
     import signal
 
