@@ -12,7 +12,7 @@ from datetime import datetime
 def inspect_topics_table():
     """Check topics table structure and sample data"""
 
-    db_path = Path("/home/youtube-automation/channels/sleepy-dull-stories/data/production.db")
+    db_path = Path("data/production.db")
 
     if not db_path.exists():
         print("❌ Database not found: data/production.db")
