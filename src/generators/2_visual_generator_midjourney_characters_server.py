@@ -928,7 +928,7 @@ if __name__ == "__main__":
     else:
         # Original single topic mode
         try:
-            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
+            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR v17.0")  # ✅ v17.0 ekle
             print("🔗 Database integration with story generator")
             print("🎭 CHARACTER REFERENCES ONLY")
             print("🖥️ Production-ready automation")
@@ -948,5 +948,4 @@ if __name__ == "__main__":
             print(f"💥 Character generation failed: {e}")
             CONFIG.logger.error(f"Character generation failed: {e}")
             import traceback
-
             traceback.print_exc()
