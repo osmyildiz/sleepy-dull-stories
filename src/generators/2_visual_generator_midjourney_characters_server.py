@@ -758,9 +758,19 @@ class ServerMidjourneyVisualGenerator:
                     self.current_topic_id, characters_count
                 )
             else:
-                self.db_manager.mark_character_generation_failed(
-                    self.current_topic_id, "Character generation failed"
-                )
+                # DON'T mark as failed - leave as pending for retry in next cycle
+                print(f"⚠️ Character generation failed for topic {self.current_topic_id} - will retry in next cycle")
+                # Reset status to pending so it can be retried
+                conn = sqlite3.connect(self.db_manager.db_path)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE topics 
+                    SET character_generation_status = 'pending',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (self.current_topic_id,))
+                conn.commit()
+                conn.close()
 
             # Final success assessment
             if characters_success:
@@ -772,18 +782,27 @@ class ServerMidjourneyVisualGenerator:
                 print(f"📁 Saved to: {self.characters_dir}")
                 print("🎉" * 50)
             else:
-                print("\n" + "❌" * 50)
+                print("\n" + "⚠️" * 50)
                 print("CHARACTER GENERATION FAILED!")
-                print("Check logs for details")
-                print("❌" * 50)
+                print("🔄 Topic will be retried in next cycle")
+                print("⚠️" * 50)
 
             return characters_success
 
         except Exception as e:
             self.log_step(f"❌ Character generation failed: {e}", "ERROR")
-            self.db_manager.mark_character_generation_failed(
-                self.current_topic_id, str(e)
-            )
+            # Reset to pending for retry instead of marking as failed
+            print(f"⚠️ Character generation exception for topic {self.current_topic_id} - will retry in next cycle")
+            conn = sqlite3.connect(self.db_manager.db_path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE topics 
+                SET character_generation_status = 'pending',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (self.current_topic_id,))
+            conn.commit()
+            conn.close()
             import traceback
             traceback.print_exc()
             return False
@@ -813,53 +832,55 @@ def run_autonomous_mode():
 
     while running:
         try:
-            # Initialize character generator to check for work
-            character_generator = ServerMidjourneyVisualGenerator()
-            found, project_info = character_generator.get_next_project_from_database()
+            cycle_had_work = False
+            cycle_start_time = time.time()
+            cycle_processed = 0
 
-            if found:
-                cycle_had_work = False
-                cycle_start_time = time.time()
+            print(f"\n🔄 CYCLE {cycles_count + 1} STARTING...")
 
-                print(f"\n🔄 CYCLE {cycles_count + 1}: Found completed story topics ready for character generation")
+            # Process ALL available topics in this cycle
+            while running:
+                # Initialize fresh character generator for each topic
+                character_generator = ServerMidjourneyVisualGenerator()
+                found, project_info = character_generator.get_next_project_from_database()
 
-                # Process ALL available topics in this cycle
-                while running and found:
-                    # Process one topic (generator already has the project loaded)
-                    success = character_generator.run_character_only_generation()
+                if not found:
+                    # No more topics available in this cycle
+                    break
 
-                    if success:
-                        processed_count += 1
-                        cycle_had_work = True
-                        last_activity_time = time.time()
-                        print(f"✅ Character generation completed! (Topic {processed_count})")
-                    else:
-                        print(f"⚠️ Character generation failed")
-                        break
+                # Process one topic
+                print(f"🎭 Processing topic: {project_info['topic']}")
+                success = character_generator.run_character_only_generation()
 
-                    # Short pause between topics in same cycle
-                    if running:
-                        time.sleep(2)
+                if success:
+                    cycle_processed += 1
+                    processed_count += 1
+                    cycle_had_work = True
+                    last_activity_time = time.time()
+                    print(f"✅ Character generation completed! (Cycle: {cycle_processed}, Total: {processed_count})")
+                else:
+                    print(f"⚠️ Character generation failed for topic {project_info['topic_id']}")
+                    print("🔄 Will retry in next cycle - not marking as permanently failed")
+                    # DON'T BREAK - Continue to next topic in this cycle
 
-                    # Check for more work with fresh generator instance
-                    character_generator = ServerMidjourneyVisualGenerator()
-                    found, project_info = character_generator.get_next_project_from_database()
+                # Short pause between topics in same cycle
+                if running:
+                    time.sleep(2)
 
-                # Cycle completed
-                cycles_count += 1
-                cycle_time = time.time() - cycle_start_time
+            # Cycle completed
+            cycles_count += 1
+            cycle_time = time.time() - cycle_start_time
 
-                if cycle_had_work:
-                    print(f"\n📊 CYCLE {cycles_count} COMPLETED:")
-                    print(f"   ✅ Topics processed this cycle: {processed_count}")
-                    print(f"   ⏱️ Cycle time: {cycle_time:.1f} seconds")
-                    print(f"   📈 Total topics processed: {processed_count}")
+            if cycle_had_work:
+                print(f"\n📊 CYCLE {cycles_count} COMPLETED:")
+                print(f"   ✅ Topics processed this cycle: {cycle_processed}")
+                print(f"   ⏱️ Cycle time: {cycle_time:.1f} seconds")
+                print(f"   📈 Total topics processed: {processed_count}")
 
-                # Short pause between cycles
+                # Short pause between cycles when there was work
                 if running:
                     print("⏳ Pausing 10 seconds before next cycle...")
                     time.sleep(10)
-
             else:
                 # No topics ready - smart waiting
                 time_since_activity = time.time() - last_activity_time
@@ -895,7 +916,7 @@ def run_autonomous_mode():
     print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
     print(f"🔄 Total cycles: {cycles_count}")
     print(f"✅ Topics processed: {processed_count}")
-    if processed_count > 0:
+    if cycles_count > 0:
         print(f"📈 Average topics per cycle: {processed_count / cycles_count:.1f}")
     print("👋 Goodbye!")
 
