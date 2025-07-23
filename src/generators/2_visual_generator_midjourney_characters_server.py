@@ -112,6 +112,7 @@ class ServerConfig:
                 "Or environment variable: PIAPI_KEY"
             )
 
+
         print("✅ Midjourney API key loaded successfully")
         return api_key
 
