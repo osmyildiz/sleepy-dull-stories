@@ -1,7 +1,7 @@
 """
-Sleepy Dull Stories - SERVER-READY Midjourney Visual Generator
+Sleepy Dull Stories - AUTONOMOUS Midjourney Visual Generator
 COMPLETE server integration with database + story generator output integration
-Production-optimized with complete automation and error recovery
+Production-optimized with complete automation and error recovery + AUTONOMOUS MODE
 """
 
 import requests
@@ -11,6 +11,7 @@ import pandas as pd
 import time
 import sys
 import sqlite3
+import signal
 from datetime import datetime
 from dotenv import load_dotenv
 from typing import Dict, List, Optional, Tuple
@@ -20,6 +21,7 @@ import logging
 
 # Load environment first
 load_dotenv()
+
 
 # Server Configuration Class (from story generator)
 class ServerConfig:
@@ -80,10 +82,10 @@ class ServerConfig:
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
         api_key = (
-            os.getenv('PIAPI_KEY') or
-            os.getenv('MIDJOURNEY_API_KEY') or
-            os.getenv('PIAPI_API_KEY') or
-            os.getenv('MIDJOURNEY_KEY')
+                os.getenv('PIAPI_KEY') or
+                os.getenv('MIDJOURNEY_API_KEY') or
+                os.getenv('PIAPI_API_KEY') or
+                os.getenv('MIDJOURNEY_KEY')
         )
 
         if not api_key:
@@ -145,6 +147,7 @@ class ServerConfig:
 
         print("✅ All visual generator directories created/verified")
 
+
 # Initialize server config
 try:
     CONFIG = ServerConfig()
@@ -152,6 +155,7 @@ try:
 except Exception as e:
     print(f"❌ Visual Generator server configuration failed: {e}")
     sys.exit(1)
+
 
 # Database Topic Management Integration (from story generator)
 class DatabaseTopicManager:
@@ -221,6 +225,22 @@ class DatabaseTopicManager:
 
         conn.commit()
         conn.close()
+
+    def mark_character_generation_failed(self, topic_id: int, error_message: str):
+        """Mark character generation as failed"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE topics 
+            SET character_generation_status = 'failed',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (topic_id,))
+
+        conn.commit()
+        conn.close()
+
 
 class ServerMidjourneyVisualGenerator:
     """Server-ready Midjourney visual generator with database integration"""
@@ -694,239 +714,6 @@ class ServerMidjourneyVisualGenerator:
 
         return successful_downloads > 0
 
-    def generate_all_scenes_parallel(self, visual_prompts: List[Dict]):
-        """Generate all scenes in parallel with character references"""
-        self.log_step("🎬 Starting parallel scene generation")
-
-        # Get regular scenes (not thumbnail)
-        regular_scenes = [s for s in visual_prompts if s.get("scene_number", 0) != 99]
-
-        if not regular_scenes:
-            self.log_step("❌ No scenes found", "ERROR")
-            return False
-
-        print(f"🎬 Found {len(regular_scenes)} scenes to generate")
-        print(f"🎭 Available character references: {len(self.character_references)}")
-
-        # Submit all scene tasks
-        scene_tasks = {}
-
-        for scene in regular_scenes:
-            scene_num = scene.get("scene_number", 0)
-
-            # Build scene prompt with character references
-            base_prompt = scene.get("enhanced_prompt", scene.get("prompt", ""))
-
-            # Add character references if characters are present in scene
-            characters_present = scene.get("characters_present", [])
-            if characters_present and len(self.character_references) > 0:
-                char_refs = []
-                char_names = []
-                for char_name in characters_present:
-                    if char_name in self.character_references:
-                        char_refs.append(self.character_references[char_name])
-                        char_names.append(char_name)
-
-                if char_refs:
-                    ref_string = " ".join(char_refs)
-                    base_prompt = f"{base_prompt} {ref_string}"
-                    print(f"🎬 Scene {scene_num}: Added {len(char_refs)} character refs ({', '.join(char_names)})")
-                else:
-                    print(f"ℹ️ Scene {scene_num}: Characters listed but no refs available")
-            else:
-                print(f"ℹ️ Scene {scene_num}: No character references needed")
-
-            final_prompt = f"{base_prompt} --ar 16:9 --v 6.1"
-
-            # Submit task
-            task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
-            if task_id:
-                scene_tasks[scene_num] = {
-                    "task_id": task_id,
-                    "prompt": final_prompt,
-                    "scene_data": scene
-                }
-
-            time.sleep(1)  # Brief rate limiting
-
-        if not scene_tasks:
-            self.log_step("❌ No scene tasks submitted", "ERROR")
-            return False
-
-        self.log_step(f"✅ Submitted {len(scene_tasks)} scene tasks", "SUCCESS")
-
-        # Monitor all tasks (scenes take longer)
-        completed_scenes = {}
-        max_cycles = CONFIG.visual_config["max_wait_cycles"]
-
-        for cycle in range(max_cycles):
-            if not scene_tasks:
-                break
-
-            completed_count = len(completed_scenes)
-            total_count = completed_count + len(scene_tasks)
-            self.log_step(f"📊 Scene Cycle {cycle + 1}: {completed_count}/{total_count} completed")
-
-            # Check each pending scene
-            scenes_to_remove = []
-
-            for scene_num, task_data in scene_tasks.items():
-                task_id = task_data["task_id"]
-
-                result_data = self.check_task_status(task_id)
-
-                if result_data and isinstance(result_data, dict):
-                    # Scene completed!
-                    self.log_step(f"✅ Scene {scene_num} completed!", "SUCCESS")
-                    completed_scenes[scene_num] = {
-                        "result_data": result_data,
-                        "task_data": task_data
-                    }
-                    scenes_to_remove.append(scene_num)
-                elif result_data is False:
-                    # Scene failed
-                    self.log_step(f"❌ Scene {scene_num} failed", "ERROR")
-                    scenes_to_remove.append(scene_num)
-
-            # Remove completed/failed scenes
-            for scene_num in scenes_to_remove:
-                del scene_tasks[scene_num]
-
-            if not scene_tasks:
-                break
-
-            # Wait before next cycle
-            time.sleep(CONFIG.visual_config["wait_interval_seconds"])
-
-        # Download all completed scenes
-        successful_downloads = 0
-
-        for scene_num, scene_data in completed_scenes.items():
-            result_data = scene_data["result_data"]
-
-            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
-
-            if self.download_image(result_data, str(image_path)):
-                successful_downloads += 1
-
-                # Save metadata
-                metadata = {
-                    "scene_number": scene_num,
-                    "title": scene_data["task_data"]["scene_data"].get("title", f"Scene {scene_num}"),
-                    "prompt": scene_data["task_data"]["prompt"],
-                    "image_url": result_data["url"],
-                    "url_source": result_data["source"],
-                    "local_path": str(image_path),
-                    "generated_at": datetime.now().isoformat()
-                }
-
-                json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump(metadata, f, indent=2, ensure_ascii=False)
-
-        self.log_step(f"✅ Scene generation complete: {successful_downloads}/{len(regular_scenes)}", "SUCCESS")
-
-        return successful_downloads > 0
-
-    def generate_thumbnail(self, visual_prompts: List[Dict]):
-        """Generate thumbnail image"""
-        self.log_step("🖼️ Starting thumbnail generation")
-
-        # Find thumbnail scene (scene_number == 99)
-        thumbnail_scene = next((s for s in visual_prompts if s.get("scene_number", 0) == 99), None)
-
-        if not thumbnail_scene:
-            self.log_step("❌ No thumbnail scene found (scene 99)", "ERROR")
-            return False
-
-        # Build thumbnail prompt
-        base_prompt = thumbnail_scene.get("prompt", "")
-
-        # Add character references if available
-        character_used = thumbnail_scene.get("character_used", "")
-        if character_used and character_used in self.character_references:
-            char_ref = self.character_references[character_used]
-            base_prompt = f"{base_prompt} {char_ref}"
-            print(f"🖼️ Thumbnail: Added character reference for {character_used}")
-
-        final_prompt = f"{base_prompt} --ar 16:9 --v 6.1"
-
-        # Submit thumbnail task
-        task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
-        if not task_id:
-            return False
-
-        self.log_step(f"✅ Thumbnail task submitted: {task_id}", "SUCCESS")
-
-        # Monitor thumbnail task
-        max_cycles = CONFIG.visual_config["max_wait_cycles"]
-
-        for cycle in range(max_cycles):
-            result_data = self.check_task_status(task_id)
-
-            if result_data and isinstance(result_data, dict):
-                # Thumbnail completed!
-                self.log_step("✅ Thumbnail generation completed!", "SUCCESS")
-
-                image_path = self.thumbnail_dir / "thumbnail.png"
-
-                if self.download_image(result_data, str(image_path)):
-                    # Save metadata
-                    metadata = {
-                        "scene_number": 99,
-                        "type": "thumbnail",
-                        "character_used": character_used,
-                        "prompt": final_prompt,
-                        "image_url": result_data["url"],
-                        "url_source": result_data["source"],
-                        "local_path": str(image_path),
-                        "generated_at": datetime.now().isoformat()
-                    }
-
-                    json_path = self.thumbnail_dir / "thumbnail.json"
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump(metadata, f, indent=2, ensure_ascii=False)
-
-                    return True
-                else:
-                    return False
-
-            elif result_data is False:
-                self.log_step("❌ Thumbnail generation failed", "ERROR")
-                return False
-            else:
-                print(f"⏳ Thumbnail processing... (cycle {cycle + 1}/{max_cycles})")
-                time.sleep(CONFIG.visual_config["wait_interval_seconds"])
-
-        self.log_step("⏰ Thumbnail generation timeout", "ERROR")
-        return False
-
-    def save_generation_report(self):
-        """Save comprehensive generation report"""
-        output_dir = Path(self.current_output_dir)
-
-        report = {
-            "visual_generation_completed": datetime.now().isoformat(),
-            "topic_id": self.current_topic_id,
-            "topic": self.current_topic,
-            "api_calls_made": self.api_calls_made,
-            "successful_downloads": self.successful_downloads,
-            "character_references_created": len(self.character_references),
-            "characters_dir": str(self.characters_dir),
-            "scenes_dir": str(self.scenes_dir),
-            "thumbnail_dir": str(self.thumbnail_dir),
-            "historical_period": self.current_historical_period,
-            "generation_log": self.generation_log,
-            "server_optimized": True,
-            "production_ready": True
-        }
-
-        report_path = output_dir / "visual_generation_report.json"
-        with open(report_path, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False)
-
-        self.log_step(f"✅ Generation report saved: {report_path}", "SUCCESS")
-
     def run_character_only_generation(self) -> bool:
         """Run CHARACTER-ONLY generation process for server environment"""
         print("🚀" * 50)
@@ -966,9 +753,14 @@ class ServerMidjourneyVisualGenerator:
             # Step 6: Update database
             characters_count = len(self.character_references)
 
-            self.db_manager.mark_character_generation_completed(
-                self.current_topic_id, characters_count
-            )
+            if characters_success:
+                self.db_manager.mark_character_generation_completed(
+                    self.current_topic_id, characters_count
+                )
+            else:
+                self.db_manager.mark_character_generation_failed(
+                    self.current_topic_id, "Character generation failed"
+                )
 
             # Final success assessment
             if characters_success:
@@ -989,31 +781,151 @@ class ServerMidjourneyVisualGenerator:
 
         except Exception as e:
             self.log_step(f"❌ Character generation failed: {e}", "ERROR")
+            self.db_manager.mark_character_generation_failed(
+                self.current_topic_id, str(e)
+            )
             import traceback
             traceback.print_exc()
             return False
 
 
+def run_autonomous_mode():
+    """Run autonomous mode - continuously process completed story topics for character generation"""
+    print("🤖 AUTONOMOUS CHARACTER GENERATION MODE STARTED")
+    print("🔄 Will process all completed story topics continuously")
+    print("⏹️ Press Ctrl+C to stop gracefully")
+
+    # Setup graceful shutdown
+    running = True
+    processed_count = 0
+    cycles_count = 0
+    start_time = time.time()
+    last_activity_time = time.time()
+
+    def signal_handler(signum, frame):
+        nonlocal running
+        print(f"\n⏹️ Received shutdown signal ({signum})")
+        print("🔄 Finishing current character generation and shutting down...")
+        running = False
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    while running:
+        try:
+            # Initialize character generator to check for work
+            character_generator = ServerMidjourneyVisualGenerator()
+            found, project_info = character_generator.get_next_project_from_database()
+
+            if found:
+                cycle_had_work = False
+                cycle_start_time = time.time()
+
+                print(f"\n🔄 CYCLE {cycles_count + 1}: Found completed story topics ready for character generation")
+
+                # Process ALL available topics in this cycle
+                while running and found:
+                    # Process one topic (generator already has the project loaded)
+                    success = character_generator.run_character_only_generation()
+
+                    if success:
+                        processed_count += 1
+                        cycle_had_work = True
+                        last_activity_time = time.time()
+                        print(f"✅ Character generation completed! (Topic {processed_count})")
+                    else:
+                        print(f"⚠️ Character generation failed")
+                        break
+
+                    # Short pause between topics in same cycle
+                    if running:
+                        time.sleep(2)
+
+                    # Check for more work with fresh generator instance
+                    character_generator = ServerMidjourneyVisualGenerator()
+                    found, project_info = character_generator.get_next_project_from_database()
+
+                # Cycle completed
+                cycles_count += 1
+                cycle_time = time.time() - cycle_start_time
+
+                if cycle_had_work:
+                    print(f"\n📊 CYCLE {cycles_count} COMPLETED:")
+                    print(f"   ✅ Topics processed this cycle: {processed_count}")
+                    print(f"   ⏱️ Cycle time: {cycle_time:.1f} seconds")
+                    print(f"   📈 Total topics processed: {processed_count}")
+
+                # Short pause between cycles
+                if running:
+                    print("⏳ Pausing 10 seconds before next cycle...")
+                    time.sleep(10)
+
+            else:
+                # No topics ready - smart waiting
+                time_since_activity = time.time() - last_activity_time
+
+                if time_since_activity < 300:  # Less than 5 minutes since last activity
+                    wait_time = 60  # Wait 1 minute
+                    print("😴 No topics ready. Recent activity detected - waiting 60s...")
+                else:
+                    wait_time = 3600  # Wait 1 hour
+                    print("😴 No topics ready for extended period - waiting 1 hour...")
+                    print(f"⏰ Last activity: {time_since_activity / 60:.1f} minutes ago")
+
+                # Wait with interrupt capability
+                for i in range(wait_time):
+                    if not running:
+                        break
+                    if i > 0 and i % 300 == 0:  # Show progress every 5 minutes
+                        remaining = (wait_time - i) / 60
+                        print(f"⏳ Still waiting... {remaining:.1f} minutes remaining")
+                    time.sleep(1)
+
+        except KeyboardInterrupt:
+            print("\n⏹️ Keyboard interrupt received")
+            break
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            print("⏳ Waiting 30 seconds before retry...")
+            time.sleep(30)
+
+    # Shutdown summary
+    runtime = time.time() - start_time
+    print(f"\n🏁 AUTONOMOUS CHARACTER GENERATION SHUTDOWN")
+    print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
+    print(f"🔄 Total cycles: {cycles_count}")
+    print(f"✅ Topics processed: {processed_count}")
+    if processed_count > 0:
+        print(f"📈 Average topics per cycle: {processed_count / cycles_count:.1f}")
+    print("👋 Goodbye!")
+
+
 if __name__ == "__main__":
-    try:
-        print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
-        print("🔗 Database integration with story generator")
-        print("🎭 CHARACTER REFERENCES ONLY")
-        print("🖥️ Production-ready automation")
-        print("=" * 60)
+    # Check for autonomous mode
+    if len(sys.argv) > 1 and sys.argv[1] == '--autonomous':
+        run_autonomous_mode()
+    else:
+        # Original single topic mode
+        try:
+            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
+            print("🔗 Database integration with story generator")
+            print("🎭 CHARACTER REFERENCES ONLY")
+            print("🖥️ Production-ready automation")
+            print("=" * 60)
 
-        generator = ServerMidjourneyVisualGenerator()
-        success = generator.run_character_only_generation()
+            generator = ServerMidjourneyVisualGenerator()
+            success = generator.run_character_only_generation()
 
-        if success:
-            print("🎊 Character generation completed successfully!")
-        else:
-            print("⚠️ Character generation failed or no projects ready")
+            if success:
+                print("🎊 Character generation completed successfully!")
+            else:
+                print("⚠️ Character generation failed or no projects ready")
 
-    except KeyboardInterrupt:
-        print("\n⏹️ Character generation stopped by user")
-    except Exception as e:
-        print(f"💥 Character generation failed: {e}")
-        CONFIG.logger.error(f"Character generation failed: {e}")
-        import traceback
-        traceback.print_exc()
+        except KeyboardInterrupt:
+            print("\n⏹️ Character generation stopped by user")
+        except Exception as e:
+            print(f"💥 Character generation failed: {e}")
+            CONFIG.logger.error(f"Character generation failed: {e}")
+            import traceback
+
+            traceback.print_exc()
