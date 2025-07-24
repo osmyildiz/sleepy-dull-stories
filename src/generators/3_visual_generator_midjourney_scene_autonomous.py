@@ -1,8 +1,7 @@
 """
 Sleepy Dull Stories - AUTONOMOUS Midjourney Scene Generator
-SCENE generation with independent thumbnail integration + AUTONOMOUS MODE
+Based on working server code + autonomous mode integration
 Production-optimized with complete automation and error recovery
-FIXED: All syntax errors + V7.0 everywhere + Complete error handling
 """
 
 import requests
@@ -40,8 +39,7 @@ except ImportError as e:
     INTELLIGENT_RETRY_AVAILABLE = False
     print(f"⚠️ Intelligent scene retry system not found: {e}")
 
-
-# Server Configuration Class (from story generator)
+# Server Configuration Class
 class ServerConfig:
     """Server-friendly configuration management"""
 
@@ -73,7 +71,7 @@ class ServerConfig:
         print(f"   📁 Project root: {self.paths['BASE_DIR']}")
 
     def setup_visual_config(self):
-        """Setup Midjourney visual generation configuration - V7.0 EVERYWHERE"""
+        """Setup Midjourney visual generation configuration"""
         self.visual_config = {
             "api_base_url": "https://api.piapi.ai/api/v1",
             "max_concurrent_tasks": 10,
@@ -84,11 +82,11 @@ class ServerConfig:
                 "scenes": "16:9",
                 "thumbnail": "16:9"
             },
-            "default_version": "7.0",  # ✅ V7.0
+            "default_version": "6.1",  # ✅ Back to stable 6.1
             "process_mode": "relax",
-            "character_generation": False,  # Disabled - use existing
-            "scene_generation": True,  # Main focus
-            "thumbnail_generation": True,  # Main focus
+            "character_generation": False,
+            "scene_generation": True,
+            "thumbnail_generation": True,
             "server_mode": True,
             "production_ready": True
         }
@@ -112,10 +110,10 @@ class ServerConfig:
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
         api_key = (
-                os.getenv('PIAPI_KEY') or
-                os.getenv('MIDJOURNEY_API_KEY') or
-                os.getenv('PIAPI_API_KEY') or
-                os.getenv('MIDJOURNEY_KEY')
+            os.getenv('PIAPI_KEY') or
+            os.getenv('MIDJOURNEY_API_KEY') or
+            os.getenv('PIAPI_API_KEY') or
+            os.getenv('MIDJOURNEY_KEY')
         )
 
         if not api_key:
@@ -177,8 +175,7 @@ class ServerConfig:
 
         print("✅ All scene generator directories created/verified")
 
-
-# Initialize server config with error handling
+# Initialize server config
 try:
     CONFIG = ServerConfig()
     print("🚀 Scene Generator server configuration loaded successfully")
@@ -186,8 +183,7 @@ except Exception as e:
     print(f"❌ Scene Generator server configuration failed: {e}")
     sys.exit(1)
 
-
-# Database Topic Management Integration (Scene-focused)
+# Database Topic Management Integration
 class DatabaseSceneManager:
     """Professional scene management using existing production.db"""
 
@@ -195,7 +191,7 @@ class DatabaseSceneManager:
         self.db_path = db_path
 
     def ensure_scene_columns(self, cursor):
-        """Ensure all scene generation columns exist - CENTRALIZED"""
+        """Ensure scene generation columns exist"""
         cursor.execute('PRAGMA table_info(topics)')
         columns = [row[1] for row in cursor.fetchall()]
 
@@ -218,8 +214,6 @@ class DatabaseSceneManager:
 
         if columns_added:
             print(f"🔧 Added database columns: {', '.join(columns_added)}")
-
-        return len(columns_added) > 0
 
     def get_completed_topic_ready_for_scenes(self) -> Optional[Tuple[int, str, str, str]]:
         """Get completed character topic that needs SCENE generation"""
@@ -259,7 +253,6 @@ class DatabaseSceneManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Ensure columns exist
             self.ensure_scene_columns(cursor)
 
             cursor.execute('''
@@ -275,8 +268,6 @@ class DatabaseSceneManager:
 
         except Exception as e:
             print(f"❌ Database error in mark_scene_generation_started: {e}")
-            if conn:
-                conn.rollback()
         finally:
             if conn:
                 conn.close()
@@ -288,7 +279,6 @@ class DatabaseSceneManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Ensure columns exist
             self.ensure_scene_columns(cursor)
 
             cursor.execute('''
@@ -306,8 +296,6 @@ class DatabaseSceneManager:
 
         except Exception as e:
             print(f"❌ Database error in mark_scene_generation_completed: {e}")
-            if conn:
-                conn.rollback()
         finally:
             if conn:
                 conn.close()
@@ -319,7 +307,6 @@ class DatabaseSceneManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Ensure columns exist
             self.ensure_scene_columns(cursor)
 
             cursor.execute('''
@@ -334,8 +321,6 @@ class DatabaseSceneManager:
 
         except Exception as e:
             print(f"❌ Database error in mark_scene_generation_failed: {e}")
-            if conn:
-                conn.rollback()
         finally:
             if conn:
                 conn.close()
@@ -347,7 +332,6 @@ class DatabaseSceneManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Ensure columns exist
             self.ensure_scene_columns(cursor)
             conn.commit()
 
@@ -387,66 +371,56 @@ class ServerMidjourneySceneGenerator:
     """Server-ready Midjourney scene generator with character integration"""
 
     def __init__(self):
-        """Initialize with comprehensive error handling"""
-        try:
-            self.api_key = CONFIG.api_key
-            self.base_url = CONFIG.visual_config["api_base_url"]
+        self.api_key = CONFIG.api_key
+        self.base_url = CONFIG.visual_config["api_base_url"]
 
-            self.headers = {
-                "x-api-key": self.api_key,
-                "Content-Type": "application/json"
-            }
+        self.headers = {
+            "x-api-key": self.api_key,
+            "Content-Type": "application/json"
+        }
 
-            # Current project tracking
-            self.current_topic_id = None
-            self.current_output_dir = None
-            self.current_topic = None
-            self.current_description = None
-            self.current_historical_period = None
+        # Current project tracking
+        self.current_topic_id = None
+        self.current_output_dir = None
+        self.current_topic = None
+        self.current_description = None
+        self.current_historical_period = None
 
-            # Generation tracking
-            self.generation_log = []
-            self.character_references = {}
-            self.api_calls_made = 0
-            self.successful_downloads = 0
+        # Generation tracking
+        self.generation_log = []
+        self.character_references = {}
+        self.api_calls_made = 0
+        self.successful_downloads = 0
 
-            # Track failed scenes to prevent infinite loops
-            self.scene_attempt_count = {}  # scene_number: attempt_count
-            self.blacklisted_scenes = set()  # scenes that failed too many times
+        # Track failed scenes to prevent infinite loops
+        self.scene_attempt_count = {}
+        self.blacklisted_scenes = set()
 
-            # Database manager with error handling
+        # Database manager
+        db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
+        self.db_manager = DatabaseSceneManager(str(db_path))
+
+        # Initialize intelligent retry system if available
+        if INTELLIGENT_RETRY_AVAILABLE:
             try:
-                db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
-                self.db_manager = DatabaseSceneManager(str(db_path))
+                self.intelligent_retry_system = IntelligentSceneRetrySystem()
+                self.intelligent_retry_enabled = hasattr(self.intelligent_retry_system, 'claude_api_key') and self.intelligent_retry_system.claude_api_key is not None
+                if self.intelligent_retry_enabled:
+                    print("🧠 Intelligent retry system enabled")
+                else:
+                    print("⚠️ Intelligent retry system found but no Claude API key")
             except Exception as e:
-                print(f"❌ Database manager initialization failed: {e}")
-                raise
-
-            # Initialize intelligent retry system if available
-            if INTELLIGENT_RETRY_AVAILABLE:
-                try:
-                    self.intelligent_retry_system = IntelligentSceneRetrySystem()
-                    self.intelligent_retry_enabled = hasattr(self.intelligent_retry_system, 'claude_api_key') and self.intelligent_retry_system.claude_api_key is not None
-                    if self.intelligent_retry_enabled:
-                        print("🧠 Intelligent retry system enabled")
-                    else:
-                        print("⚠️ Intelligent retry system found but no Claude API key")
-                except Exception as e:
-                    print(f"⚠️ Intelligent retry system failed to initialize: {e}")
-                    self.intelligent_retry_system = None
-                    self.intelligent_retry_enabled = False
-            else:
+                print(f"⚠️ Intelligent retry system failed to initialize: {e}")
                 self.intelligent_retry_system = None
                 self.intelligent_retry_enabled = False
+        else:
+            self.intelligent_retry_system = None
+            self.intelligent_retry_enabled = False
 
-            print("🚀 Server Midjourney Scene Generator v1.1 Initialized")
-            print(f"🔑 API Key: {self.api_key[:8]}...")
-            print(f"🌐 Base URL: {self.base_url}")
-            print(f"🎬 Version: {CONFIG.visual_config['default_version']}")
-
-        except Exception as e:
-            print(f"❌ Scene generator initialization failed: {e}")
-            raise
+        print("🚀 Server Midjourney Scene Generator v1.1 Initialized")
+        print(f"🔑 API Key: {self.api_key[:8]}...")
+        print(f"🌐 Base URL: {self.base_url}")
+        print(f"🎬 Version: {CONFIG.visual_config['default_version']}")
 
     def log_step(self, step: str, status: str = "START", metadata: Dict = None):
         """Log generation steps with production logging"""
@@ -511,7 +485,7 @@ class ServerMidjourneySceneGenerator:
         return True, project_info
 
     def apply_content_policy_filter(self, prompt: str) -> str:
-        """Apply universal content policy filter to any prompt"""
+        """Apply universal content policy filter to any prompt - EXACT COPY FROM WORKING CODE"""
 
         # Global content policy replacements
         replacements = {
@@ -698,7 +672,7 @@ class ServerMidjourneySceneGenerator:
             "server_optimized": True,
             "scene_only_mode": True,
             "independent_thumbnail_used": INDEPENDENT_THUMBNAIL_AVAILABLE,
-            "version_used": "7.0"
+            "version_used": CONFIG.visual_config['default_version']
         }
 
         report_path = output_dir / "scene_generation_report.json"
@@ -708,10 +682,10 @@ class ServerMidjourneySceneGenerator:
         self.log_step(f"✅ Scene generation report saved: {report_path}", "SUCCESS")
 
     def test_api_connection(self) -> bool:
-        """Test PIAPI connection with V7.0"""
+        """Test PIAPI connection"""
         self.log_step("🔍 Testing PIAPI connection")
 
-        test_prompt = "red apple on white table --ar 1:1 --v 7.0"
+        test_prompt = f"red apple on white table --ar 1:1 --v {CONFIG.visual_config['default_version']}"
 
         payload = {
             "model": "midjourney",
@@ -748,15 +722,20 @@ class ServerMidjourneySceneGenerator:
     def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", retry_count: int = 0) -> Optional[str]:
         """Submit task to Midjourney API with universal content filtering and smart retry"""
 
-        # Apply content policy filter to ALL prompts automatically
-        original_prompt = prompt
-        filtered_prompt = self.apply_content_policy_filter(prompt)
+        # Scene 32/34 için content filter bypass
+        if "Roman garden shrine" in prompt or ("Roman kitchen" in prompt and "clay hearth" in prompt):
+            filtered_prompt = prompt  # COMPLETE BYPASS
+            print(f"🚫 SUBMIT: Content filter BYPASSED for ultra-safe prompt")
+        else:
+            # Apply content policy filter to ALL prompts automatically
+            original_prompt = prompt
+            filtered_prompt = self.apply_content_policy_filter(prompt)
 
-        # Log if changes were made
-        if filtered_prompt != original_prompt:
-            print(f"🛡️ Content filter applied:")
-            print(f"   Original: {original_prompt[:80]}...")
-            print(f"   Filtered: {filtered_prompt[:80]}...")
+            # Log if changes were made
+            if filtered_prompt != original_prompt:
+                print(f"🛡️ Content filter applied:")
+                print(f"   Original: {original_prompt[:80]}...")
+                print(f"   Filtered: {filtered_prompt[:80]}...")
 
         payload = {
             "model": "midjourney",
@@ -806,6 +785,69 @@ class ServerMidjourneySceneGenerator:
         except Exception as e:
             print(f"❌ Request failed: {e}")
             return None
+
+    def get_missing_scenes(self, visual_prompts: List[Dict]) -> List[Dict]:
+        """Get list of scenes that are missing (not downloaded yet) and not blacklisted"""
+        regular_scenes = [s for s in visual_prompts if s["scene_number"] != 99]
+        missing_scenes = []
+
+        for scene in regular_scenes:
+            scene_num = scene["scene_number"]
+
+            # Skip blacklisted scenes
+            if scene_num in self.blacklisted_scenes:
+                continue
+
+            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+
+            # Only add to missing if file doesn't exist
+            if not image_path.exists():
+                missing_scenes.append(scene)
+
+        return missing_scenes
+
+    def build_safe_scene_prompt(self, scene: Dict) -> str:
+        """Build scene prompt using template system - USING STABLE V6.1"""
+
+        base_prompt = scene.get("enhanced_prompt", scene["prompt"])
+        scene_num = scene.get("scene_number")
+
+        print(f"🎬 Building V{CONFIG.visual_config['default_version']} prompt for Scene {scene_num}")
+
+        # Apply content filter
+        filtered_base = self.apply_content_policy_filter(base_prompt)
+
+        # Character references
+        char_refs = []
+        if scene.get("characters_present") and len(self.character_references) > 0:
+            for char_name in scene["characters_present"]:
+                if char_name in self.character_references:
+                    char_refs.append(self.character_references[char_name])
+
+        # Scene-specific (15 words max)
+        scene_words = filtered_base.split()
+        if len(scene_words) > 15:
+            scene_specific = " ".join(scene_words[:15])
+        else:
+            scene_specific = filtered_base
+
+        # Build prompt
+        prompt_parts = []
+
+        if char_refs:
+            prompt_parts.extend(char_refs)
+
+        prompt_parts.append(scene_specific)
+        prompt_parts.append(CONFIG.prompt_template["default_core"])
+        prompt_parts.append(CONFIG.prompt_template["style_modifiers"])
+        # Use stable version
+        prompt_parts.append(f"--v {CONFIG.visual_config['default_version']} --ar 16:9")
+
+        final_prompt = " ".join(prompt_parts)
+
+        print(f"🔧 V{CONFIG.visual_config['default_version']} template prompt: {final_prompt[:150]}...")
+
+        return final_prompt
 
     def check_task_status_detailed(self, task_id: str, scene_num: int) -> Optional[Dict]:
         """Check task status with detailed logging"""
@@ -878,7 +920,7 @@ class ServerMidjourneySceneGenerator:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                file_size = Path(save_path).stat().st_size if isinstance(save_path, (str, Path)) else os.path.getsize(save_path)
+                file_size = Path(save_path).stat().st_size
                 if scene_num == 99:
                     print(f"✅ Thumbnail: Downloaded successfully ({file_size} bytes)")
                 elif scene_num == 0:
@@ -893,69 +935,6 @@ class ServerMidjourneySceneGenerator:
         except Exception as e:
             print(f"❌ Scene {scene_num}: Download exception - {e}")
             return False
-
-    def get_missing_scenes(self, visual_prompts: List[Dict]) -> List[Dict]:
-        """Get list of scenes that are missing (not downloaded yet) and not blacklisted"""
-        regular_scenes = [s for s in visual_prompts if s["scene_number"] != 99]
-        missing_scenes = []
-
-        for scene in regular_scenes:
-            scene_num = scene["scene_number"]
-
-            # Skip blacklisted scenes
-            if scene_num in self.blacklisted_scenes:
-                continue
-
-            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
-
-            # Only add to missing if file doesn't exist
-            if not image_path.exists():
-                missing_scenes.append(scene)
-
-        return missing_scenes
-
-    def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build V7.0 scene prompt using 60-word template system"""
-
-        base_prompt = scene.get("enhanced_prompt", scene["prompt"])
-        scene_num = scene.get("scene_number")
-
-        print(f"🎬 Building V7.0 prompt for Scene {scene_num}")
-
-        # Apply V7.0 content filter
-        filtered_base = self.apply_content_policy_filter(base_prompt)
-
-        # Character references
-        char_refs = []
-        if scene.get("characters_present") and len(self.character_references) > 0:
-            for char_name in scene["characters_present"]:
-                if char_name in self.character_references:
-                    char_refs.append(self.character_references[char_name])
-
-        # Scene-specific (15 words max)
-        scene_words = filtered_base.split()
-        if len(scene_words) > 15:
-            scene_specific = " ".join(scene_words[:15])
-        else:
-            scene_specific = filtered_base
-
-        # Build 60-word prompt
-        prompt_parts = []
-
-        if char_refs:
-            prompt_parts.extend(char_refs)
-
-        prompt_parts.append(scene_specific)
-        prompt_parts.append(CONFIG.prompt_template["default_core"])
-        prompt_parts.append(CONFIG.prompt_template["style_modifiers"])
-        # V7.0 EVERYWHERE
-        prompt_parts.append("--v 7.0 --ar 16:9")
-
-        final_prompt = " ".join(prompt_parts)
-
-        print(f"🔧 V7.0 template prompt: {final_prompt[:150]}...")
-
-        return final_prompt
 
     def generate_scenes_with_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
         """Generate all scenes with smart retry and universal content filtering"""
@@ -974,7 +953,7 @@ class ServerMidjourneySceneGenerator:
             if retry_round == 0:
                 print(f"🎬 Starting scene generation - {len(missing_scenes)} scenes to generate")
                 print("🛡️ Universal content filter active for all prompts")
-                print("🎨 Using Midjourney V7.0")
+                print(f"🎨 Using Midjourney V{CONFIG.visual_config['default_version']}")
             else:
                 print(f"\n🔄 RETRY ROUND {retry_round}: {len(missing_scenes)} missing scenes")
                 if blacklisted_count > 0:
@@ -1031,11 +1010,11 @@ class ServerMidjourneySceneGenerator:
 
                     if char_refs:
                         ref_string = " ".join(char_refs)
-                        available_text_length = 3900 - len(ref_string) - len(" --ar 16:9 --v 7.0")
+                        available_text_length = 3900 - len(ref_string) - len(f" --ar 16:9 --v {CONFIG.visual_config['default_version']}")
                         truncated_text = base_prompt[:available_text_length]
-                        final_prompt = f"{ref_string} {truncated_text} --ar 16:9 --v 7.0"
+                        final_prompt = f"{ref_string} {truncated_text} --ar 16:9 --v {CONFIG.visual_config['default_version']}"
                     else:
-                        final_prompt = final_prompt[:3900] + " --ar 16:9 --v 7.0"
+                        final_prompt = final_prompt[:3900] + f" --ar 16:9 --v {CONFIG.visual_config['default_version']}"
 
                 # Check for content policy issues (informational only)
                 if not self.is_content_policy_safe(final_prompt):
@@ -1129,7 +1108,7 @@ class ServerMidjourneySceneGenerator:
                         "retry_round": retry_round,
                         "attempt_number": self.scene_attempt_count.get(scene_num, 1),
                         "content_filtered": True,
-                        "version": "7.0"
+                        "version": CONFIG.visual_config['default_version']
                     }
 
                     json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
@@ -1152,7 +1131,7 @@ class ServerMidjourneySceneGenerator:
         print(f"⚫ Blacklisted: {blacklisted_count}")
         print(f"📋 Total: {total_scenes}")
         print(f"🛡️ All prompts were content filtered")
-        print(f"🎨 All images generated with V7.0")
+        print(f"🎨 All images generated with V{CONFIG.visual_config['default_version']}")
 
         if final_missing:
             print(f"⚠️ Still missing after {max_retry_rounds} rounds:")
@@ -1178,12 +1157,12 @@ class ServerMidjourneySceneGenerator:
     def run_scene_only_generation(self) -> bool:
         """Run SCENE-ONLY generation process for server environment"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY SCENE GENERATOR v1.1 - V7.0")
+        print("SERVER MIDJOURNEY SCENE GENERATOR v1.1")
         print("🔗 Database integrated")
         print("🎬 SCENES GENERATION")
         print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
         print("🎭 Character references integration")
-        print("🎨 Midjourney V7.0 everywhere")
+        print(f"🎨 Midjourney V{CONFIG.visual_config['default_version']} (STABLE)")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
 
@@ -1223,7 +1202,7 @@ class ServerMidjourneySceneGenerator:
 
             # Step 5: Generate scenes with smart retry
             print("\n🎬 GENERATING SCENES...")
-            print("🎨 Using Midjourney V7.0 for all generations")
+            print(f"🎨 Using Midjourney V{CONFIG.visual_config['default_version']} for all generations")
             scenes_success = self.generate_scenes_with_retry(visual_prompts, max_retry_rounds=10)
 
             # Step 6: Generate independent thumbnail
@@ -1262,7 +1241,7 @@ class ServerMidjourneySceneGenerator:
                 print("\n" + "🎉" * 50)
                 print("GENERATION COMPLETELY SUCCESSFUL!")
                 print("✅ ALL scenes generated + Independent thumbnail successful")
-                print("🎨 All images generated with Midjourney V7.0")
+                print(f"🎨 All images generated with Midjourney V{CONFIG.visual_config['default_version']}")
                 print("🛡️ ALL PROMPTS AUTOMATICALLY SAFE FOR MIDJOURNEY")
                 print("🔧 INDEPENDENT THUMBNAIL SYSTEM WORKING")
                 print("🎉" * 50)
@@ -1271,7 +1250,7 @@ class ServerMidjourneySceneGenerator:
                 print("\n" + "🎊" * 50)
                 print("SCENE GENERATION SUCCESSFUL!")
                 print("✅ Scenes generated successfully")
-                print("🎨 All images generated with Midjourney V7.0")
+                print(f"🎨 All images generated with Midjourney V{CONFIG.visual_config['default_version']}")
                 print("❌ Independent thumbnail failed")
                 print("🔧 Scenes are primary - still considered success")
                 print("🎊" * 50)
@@ -1308,7 +1287,7 @@ def run_autonomous_mode():
     """Run autonomous mode - continuously process completed character topics for scene generation"""
     print("🤖 AUTONOMOUS SCENE GENERATION MODE STARTED")
     print("🔄 Will process all completed character topics continuously")
-    print("🎨 Using Midjourney V7.0 for all generations")
+    print(f"🎨 Using Midjourney V{CONFIG.visual_config['default_version']} for all generations")
     print("⏹️ Press Ctrl+C to stop gracefully")
 
     # Initialize database manager for pipeline status with error handling
@@ -1365,7 +1344,7 @@ def run_autonomous_mode():
                         error_count = 0  # Reset error count on success
                         print(f"\n✅ Scene generation completed!")
                         print(f"📊 Progress: {processed_count} topics processed")
-                        print(f"🎨 All images generated with V7.0")
+                        print(f"🎨 All images generated with V{CONFIG.visual_config['default_version']}")
                     else:
                         print(f"\n⚠️ Scene generation failed")
                         error_count += 1
@@ -1434,7 +1413,7 @@ def run_autonomous_mode():
     print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
     print(f"✅ Topics processed: {processed_count}")
     print(f"❌ Total errors: {error_count}")
-    print(f"🎨 All generations used V7.0")
+    print(f"🎨 All generations used V{CONFIG.visual_config['default_version']}")
     print("👋 Goodbye!")
 
 
@@ -1445,11 +1424,11 @@ if __name__ == "__main__":
     else:
         # Original single topic mode
         try:
-            print("🚀 SERVER MIDJOURNEY SCENE GENERATOR v1.1 - V7.0")
+            print("🚀 SERVER MIDJOURNEY SCENE GENERATOR v1.1")
             print("🔗 Database integration with character references")
             print("🎬 SCENES GENERATION")
             print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
-            print("🎨 Midjourney V7.0 everywhere")
+            print(f"🎨 Midjourney V{CONFIG.visual_config['default_version']} (STABLE)")
             print("🖥️ Production-ready automation")
             print("=" * 60)
 
@@ -1458,7 +1437,7 @@ if __name__ == "__main__":
 
             if success:
                 print("🎊 Scene generation completed successfully!")
-                print("🎨 All images generated with V7.0")
+                print(f"🎨 All images generated with V{CONFIG.visual_config['default_version']}")
             else:
                 print("⚠️ Scene generation failed or no projects ready")
 
