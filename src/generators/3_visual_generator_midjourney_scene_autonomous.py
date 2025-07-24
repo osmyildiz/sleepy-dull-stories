@@ -82,7 +82,7 @@ class ServerConfig:
                 "scenes": "16:9",
                 "thumbnail": "16:9"
             },
-            "default_version": "6.1",  # ✅ Back to stable 6.1
+            "default_version": "7.0",  # ✅ V7.0 as original
             "process_mode": "relax",
             "character_generation": False,
             "scene_generation": True,
@@ -685,7 +685,7 @@ class ServerMidjourneySceneGenerator:
         """Test PIAPI connection"""
         self.log_step("🔍 Testing PIAPI connection")
 
-        test_prompt = f"red apple on white table --ar 1:1 --v {CONFIG.visual_config['default_version']}"
+        test_prompt = f"red apple on white table --ar 1:1 --v 7.0"
 
         payload = {
             "model": "midjourney",
@@ -720,7 +720,7 @@ class ServerMidjourneySceneGenerator:
             return False
 
     def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", retry_count: int = 0) -> Optional[str]:
-        """Submit task to Midjourney API with universal content filtering and smart retry"""
+        """Submit task to Midjourney API with IMPROVED retry logic from thumbnail tests"""
 
         # Scene 32/34 için content filter bypass
         if "Roman garden shrine" in prompt or ("Roman kitchen" in prompt and "clay hearth" in prompt):
@@ -736,6 +736,16 @@ class ServerMidjourneySceneGenerator:
                 print(f"🛡️ Content filter applied:")
                 print(f"   Original: {original_prompt[:80]}...")
                 print(f"   Filtered: {filtered_prompt[:80]}...")
+
+        # ✅ IMPROVED: Check prompt length (from thumbnail tests)
+        if len(filtered_prompt) > 280:
+            print(f"⚠️ Prompt too long ({len(filtered_prompt)} chars), truncating...")
+            # Keep essential parts: base + version + aspect ratio
+            base_part = filtered_prompt.split(" --ar")[0]  # Remove parameters
+            if len(base_part) > 240:
+                base_part = base_part[:240] + "..."
+            filtered_prompt = f"{base_part} --ar {aspect_ratio} --v 7.0"
+            print(f"🔧 Truncated to: {len(filtered_prompt)} chars")
 
         payload = {
             "model": "midjourney",
@@ -768,10 +778,10 @@ class ServerMidjourneySceneGenerator:
                     print(f"❌ API Error: {result.get('message', 'Unknown error')}")
                     return None
             elif response.status_code == 500:
-                # Rate limiting detected
+                # ✅ IMPROVED: Exponential backoff (from thumbnail tests)
                 if retry_count < 3:
-                    wait_time = (retry_count + 1) * 10  # 10, 20, 30 seconds
-                    print(f"⚠️ HTTP 500 - Waiting {wait_time}s before retry {retry_count + 1}/3")
+                    wait_time = (retry_count + 1) * 30  # 30, 60, 90 seconds (instead of 10, 20, 30)
+                    print(f"⚠️ HTTP 500 (Rate limit) - Waiting {wait_time}s before retry {retry_count + 1}/3")
                     time.sleep(wait_time)
                     # Use original_prompt for retry (critical fix)
                     return self.submit_midjourney_task(original_prompt, aspect_ratio, retry_count + 1)
@@ -959,9 +969,9 @@ class ServerMidjourneySceneGenerator:
                 if blacklisted_count > 0:
                     print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
 
-                # Longer wait between retry rounds
-                print("⏳ Waiting 60 seconds before retry round...")
-                time.sleep(60)
+                # Longer wait between retry rounds - IMPROVED FROM THUMBNAIL TESTS
+                print("⏳ Waiting 120 seconds before retry round...")  # Increased from 60 to 120
+                time.sleep(120)
 
             # Check and update attempt counts
             for scene in missing_scenes:
@@ -996,25 +1006,36 @@ class ServerMidjourneySceneGenerator:
                 # Build safe scene prompt (content filter applied automatically)
                 final_prompt = self.build_safe_scene_prompt(scene)
 
-                # Check prompt length and truncate if necessary
-                if len(final_prompt) > 4000:
-                    print(f"⚠️ Scene {scene_num}: Truncating long prompt...")
-                    base_prompt = scene.get("enhanced_prompt", scene["prompt"])
+                # Check prompt length and truncate if necessary - IMPROVED LOGIC
+                if len(final_prompt) > 280:  # Changed from 4000 to 280 (thumbnail test finding)
+                    print(f"⚠️ Scene {scene_num}: Prompt too long ({len(final_prompt)} chars), optimizing...")
 
-                    # Get character refs
+                    # Smart truncation: keep character refs + core scene + essentials
                     char_refs = []
                     if scene.get("characters_present") and len(self.character_references) > 0:
                         for char_name in scene["characters_present"]:
                             if char_name in self.character_references:
                                 char_refs.append(self.character_references[char_name])
 
+                    base_prompt = scene.get("enhanced_prompt", scene["prompt"])
+
                     if char_refs:
                         ref_string = " ".join(char_refs)
-                        available_text_length = 3900 - len(ref_string) - len(f" --ar 16:9 --v {CONFIG.visual_config['default_version']}")
-                        truncated_text = base_prompt[:available_text_length]
-                        final_prompt = f"{ref_string} {truncated_text} --ar 16:9 --v {CONFIG.visual_config['default_version']}"
+                        # Leave space for refs + essential ending
+                        available_length = 200 - len(ref_string) - len(" --ar 16:9 --v 7.0")
+                        if available_length > 50:
+                            truncated_base = base_prompt[:available_length] + "..."
+                            final_prompt = f"{ref_string} {truncated_base} --ar 16:9 --v 7.0"
+                        else:
+                            # If refs too long, use minimal prompt
+                            final_prompt = f"{ref_string[:150]} --ar 16:9 --v 7.0"
                     else:
-                        final_prompt = final_prompt[:3900] + f" --ar 16:9 --v {CONFIG.visual_config['default_version']}"
+                        # No character refs, just truncate base
+                        available_length = 240  # Leave room for parameters
+                        truncated_base = base_prompt[:available_length] + "..."
+                        final_prompt = f"{truncated_base} --ar 16:9 --v 7.0"
+
+                    print(f"🔧 Optimized to: {len(final_prompt)} chars")
 
                 # Check for content policy issues (informational only)
                 if not self.is_content_policy_safe(final_prompt):
@@ -1034,9 +1055,9 @@ class ServerMidjourneySceneGenerator:
                 else:
                     print(f"❌ Scene {scene_num}: Submission failed")
 
-                # Progressive rate limiting based on retry round
-                base_wait = 5 if retry_round == 0 else 8
-                wait_time = base_wait + (retry_round * 2)  # Increase wait time each retry round
+                # Progressive rate limiting based on retry round - IMPROVED TIMING
+                base_wait = 8 if retry_round == 0 else 15  # Increased from 5/8 to 8/15
+                wait_time = base_wait + (retry_round * 3)  # More gradual increase
 
                 if i < len(missing_scenes) - 1:
                     print(f"⏳ Waiting {wait_time} seconds...")
