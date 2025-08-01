@@ -28,6 +28,12 @@ class YouTubeAuthChecker:
 
     def setup_paths(self):
         """Setup paths based on project structure"""
+        # Current file: src/generators/youtube_auth_checker.py
+        # Project root: sleepy-dull-stories/
+        # Credentials: sleepy-dull-stories/credentials/ (ROOT LEVEL)
+
+        self.credentials_dir = self.project_root / 'credentials'  # ROOT level credentials
+
         # Create credentials directory if needed
         self.credentials_dir.mkdir(exist_ok=True)
 
@@ -52,16 +58,18 @@ class YouTubeAuthChecker:
             candidate = self.credentials_dir / name
             if candidate.exists():
                 self.oauth_file = candidate
+                print(f"✅ Found OAuth file: {name}")
                 break
 
         if not self.oauth_file:
             # Default to standard name
             self.oauth_file = self.credentials_dir / 'youtube_credentials.json'
+            print(f"⚠️  OAuth file not found, will look for: youtube_credentials.json")
 
         self.token_file = self.credentials_dir / 'youtube_token.json'
 
-        print(f"🔐 OAuth file: {self.oauth_file}")
-        print(f"🔑 Token file: {self.token_file}")
+        print(f"🔐 OAuth file path: {self.oauth_file}")
+        print(f"🔑 Token file path: {self.token_file}")
 
     def check_environment_variables(self):
         """Check environment variables"""
