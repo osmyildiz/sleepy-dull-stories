@@ -32,7 +32,8 @@ def manual_oauth_flow():
 
     try:
         # Setup OAuth flow
-        SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+        SCOPES = ['https://www.googleapis.com/auth/youtube']
+
         flow = InstalledAppFlow.from_client_secrets_file(str(oauth_file), SCOPES)
 
         # MANUAL FLOW - No automatic browser
