@@ -17,7 +17,7 @@ def manual_oauth_flow():
     # Paths
     project_root = Path(__file__).parent.parent.parent
     credentials_dir = project_root / 'credentials'
-    oauth_file = credentials_dir / 'youtube_client_secret.json'
+    oauth_file = credentials_dir / 'youtube_credentials1.json'
     token_file = credentials_dir / 'youtube_token.json'
 
     print("🔐 YouTube OAuth Manual Flow (No Browser)")
