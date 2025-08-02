@@ -54,7 +54,7 @@ class ServerConfig:
             "target_fps": 30,
             "target_resolution": [3840, 2160],
             "quality_profiles": {
-                "youtube": {"codec": "libx264", "preset": "slow", "crf": 15},
+                "youtube": {"codec": "libx264", "preset": "ultrafast", "crf": 23},
                 "balanced": {"codec": "libx264", "preset": "medium", "crf": 23},
                 "fast": {"codec": "libx264", "preset": "ultrafast", "crf": 28}
             },
