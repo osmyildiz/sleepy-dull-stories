@@ -43,7 +43,7 @@ def manual_oauth_flow():
         print("4. Copy the authorization code back here")
 
         # Get authorization URL
-        flow.redirect_uri = 'http://localhost'   # Out-of-band flow
+        flow.redirect_uri = 'http://localhost:8080'   # Out-of-band flow
         auth_url, _ = flow.authorization_url(prompt='consent')
 
         print(f"\n🔗 AUTHORIZATION URL:")
