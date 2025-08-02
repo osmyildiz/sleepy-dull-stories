@@ -18,7 +18,7 @@ def scan_and_organize_youtube_queue():
     print("=" * 50)
 
     # Paths
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent
     output_base = project_root / 'output'
     db_path = project_root / 'data' / 'production.db'
 
