@@ -603,9 +603,15 @@ class ServerYouTubeVideoProducer:
                 audio_file = test_file
                 break
 
-        # Image dosyası
+        # Image dosyası - önce 4K'yı dene
         image_file = None
         for format_str in [f"scene_{scene_id:02d}", f"scene_{scene_id}"]:
+            # Önce 4K versiyonunu dene
+            test_file_4k = scenes_dir / f"{format_str}_4k.png"
+            if test_file_4k.exists():
+                image_file = test_file_4k
+                break
+            # 4K yoksa normal'i dene
             test_file = scenes_dir / f"{format_str}.png"
             if test_file.exists():
                 image_file = test_file
