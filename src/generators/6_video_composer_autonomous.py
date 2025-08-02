@@ -52,9 +52,9 @@ class ServerConfig:
         self.video_config = {
             "max_retry_rounds": 3,
             "target_fps": 30,
-            "target_resolution": [1920, 1080],
+            "target_resolution": [3840, 2160],
             "quality_profiles": {
-                "youtube": {"codec": "libx264", "preset": "fast", "crf": 18},
+                "youtube": {"codec": "libx264", "preset": "slow", "crf": 15},
                 "balanced": {"codec": "libx264", "preset": "medium", "crf": 23},
                 "fast": {"codec": "libx264", "preset": "ultrafast", "crf": 28}
             },
