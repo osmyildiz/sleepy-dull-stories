@@ -743,23 +743,37 @@ class Enhanced4KVideoComposer:
         try:
             # Load story data
             output_dir = Path(self.current_output_dir)
-            story_file = output_dir / "story_structure.json"
+            output_dir = Path(self.current_output_dir)
+            timeline_file = output_dir / "story_audio_youtube_timeline.json"  # ← DOĞRU
 
-            if not story_file.exists():
-                print(f"❌ Story structure not found: {story_file}")
+            if not timeline_file.exists():
+                print(f"❌ Timeline not found: {timeline_file}")
                 return False
 
-            with open(story_file, 'r', encoding='utf-8') as f:
-                story_data = json.load(f)
+            with open(timeline_file, 'r', encoding='utf-8') as f:
+                timeline_data = json.load(f)
 
-            # Extract scene data
-            story_scenes = story_data.get("scenes", [])
-            hook_subscribe_data = (
-                story_data.get("hook_scene"),
-                story_data.get("subscribe_scene")
-            )
+            # Extract scene data from timeline
+            all_scenes = timeline_data.get('scenes', [])
+            story_scenes = []
+            hook_scene = None
+            subscribe_scene = None
 
-            total_duration = sum(scene.get("duration_seconds", 0) for scene in story_scenes)
+            for scene in all_scenes:
+                if scene['type'] == 'story_scene':
+                    story_scenes.append({
+                        'scene_id': scene['scene_number'],
+                        'title': scene['title'],
+                        'audio_file': scene['audio_file'],
+                        'duration_seconds': scene.get('duration_ms', 0) / 1000.0
+                    })
+                elif scene['type'] == 'youtube_hook':
+                    hook_scene = scene
+                elif scene['type'] == 'youtube_subscribe':
+                    subscribe_scene = scene
+
+            hook_subscribe_data = (hook_scene, subscribe_scene)
+            total_duration = sum(scene.get('duration_seconds', 0) for scene in story_scenes)
 
             print(f"📊 Story loaded: {len(story_scenes)} scenes, {total_duration / 60:.1f} minutes")
 
