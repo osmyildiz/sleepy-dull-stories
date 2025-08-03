@@ -489,6 +489,7 @@ class ServerMidjourneySceneGenerator:
             return False
 
         return True
+
     def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None,
                            response: requests.Response = None):
         """Only log debug info when there's an error"""
