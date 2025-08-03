@@ -750,8 +750,7 @@ class ServerMidjourneyVisualGenerator:
             role = self.extract_character_role(character)
             physical = character.get('physical_description', '').split(',')[0].strip()
 
-            prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference --ar 2:3 --v 6.1"
-
+            prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference"
             print(f"🎭 Submitting: {char_name} → {role}")
 
             task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3", char_name=char_name)
