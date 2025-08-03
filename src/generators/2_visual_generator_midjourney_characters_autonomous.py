@@ -601,19 +601,35 @@ class ServerMidjourneyVisualGenerator:
                     return task_id
                 else:
                     # API error - show debug
-                    self.debug_log_on_error("POST", url, self.headers, payload, response)
+                    print(f"\n🔍 API ERROR DEBUG for {char_name}:")
+                    print(f"Response JSON: {json.dumps(result, indent=2)}")
                     self.log_step(f"❌ API Error for {char_name}: {result.get('message', 'Unknown')}", "ERROR")
                     return None
             else:
                 # HTTP error - show debug
-                self.debug_log_on_error("POST", url, self.headers, payload, response)
+                print(f"\n🔍 HTTP ERROR DEBUG for {char_name}:")
+                print(f"Status Code: {response.status_code}")
+                print(f"URL: {url}")
+                print(f"Request Payload: {json.dumps(payload, indent=2)}")
+                print(f"Response Headers: {dict(response.headers)}")
+                print(f"Response Text: {response.text}")
+                try:
+                    error_json = response.json()
+                    print(f"Error JSON: {json.dumps(error_json, indent=2)}")
+                except:
+                    print("Could not parse response as JSON")
+
                 self.log_step(f"❌ HTTP {response.status_code} for {char_name}", "ERROR")
                 return None
 
         except requests.exceptions.Timeout:
+            print(f"❌ TIMEOUT DEBUG for {char_name}: Request took longer than 30 seconds")
             self.log_step(f"❌ Timeout for {char_name}", "ERROR")
             return None
         except Exception as e:
+            print(f"❌ EXCEPTION DEBUG for {char_name}: {e}")
+            import traceback
+            traceback.print_exc()
             self.log_step(f"❌ Request failed for {char_name}: {e}", "ERROR")
             return None
 
