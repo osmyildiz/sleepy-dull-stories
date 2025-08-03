@@ -562,7 +562,7 @@ class ServerYouTubeVideoProducer:
                         'scene_id': scene['scene_number'],
                         'title': scene['title'],
                         'audio_file': scene['audio_file'],
-                        'image_file': scene.get('image_file', f"scene_{scene['scene_number']:02d}.png"),
+                        'image_file': scene.get('image_file', f"scene_{scene['scene_number']:02d}_4k.png"),
                         'duration': scene.get('duration_ms', 0) / 1000.0
                     })
                 elif scene['type'] == 'youtube_hook':

@@ -29,10 +29,7 @@
         "effects": {
           "shadow": true,
           "shadow_color": "#000000",
-          "shadow_offset": [
-            3,
-            3
-          ]
+          "shadow_offset": [3, 3]
         }
       },
       "bottom_text": {
@@ -46,10 +43,7 @@
         "effects": {
           "shadow": true,
           "shadow_color": "#8b4513",
-          "shadow_offset": [
-            2,
-            2
-          ]
+          "shadow_offset": [2, 2]
         }
       },
       "channel": {
@@ -64,7 +58,7 @@
   },
   "topics": [
     {
-      "id": 1,
+      "id": 4,
       "topic": "Pompeii's Final Night",
       "sections": {
         "shocking_word": {
@@ -73,101 +67,15 @@
         },
         "main_title": {
           "lines": [
-            "What Pompeii Citizens",
-            "Did in Their",
-            "FINAL HOURS"
+            "Pompeii's",
+            "FINAL NIGHT"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Will Leave You",
-            "SPEECHLESS! \ud83d\ude31"
-          ],
-          "color": "#ffd700"
-        },
-        "channel": {
-          "text": "Sleepy Dull Stories"
-        }
-      }
-    },
-    {
-      "id": 2,
-      "topic": "The Last Librarian of Alexandria",
-      "sections": {
-        "shocking_word": {
-          "text": "HEARTBREAKING!",
-          "color": "#c71585"
-        },
-        "main_title": {
-          "lines": [
-            "The LAST LIBRARIAN",
-            "of Alexandria Burned",
-            "with Her Books"
-          ],
-          "color": "#ffffff"
-        },
-        "bottom_text": {
-          "lines": [
-            "History\u2019s Saddest",
-            "Goodbye"
-          ],
-          "color": "#ffd700"
-        },
-        "channel": {
-          "text": "Sleepy Dull Stories"
-        }
-      }
-    },
-    {
-      "id": 3,
-      "topic": "Byzantine Emperor's Final Words",
-      "sections": {
-        "shocking_word": {
-          "text": "UNBELIEVABLE!",
-          "color": "#4169e1"
-        },
-        "main_title": {
-          "lines": [
-            "Byzantine Emperor\u2019s",
-            "FINAL WORDS Before",
-            "the Fall"
-          ],
-          "color": "#ffffff"
-        },
-        "bottom_text": {
-          "lines": [
-            "Will STUN",
-            "You!"
-          ],
-          "color": "#ffd700"
-        },
-        "channel": {
-          "text": "Sleepy Dull Stories"
-        }
-      }
-    },
-    {
-      "id": 4,
-      "topic": "Cleopatra's DARKEST SECRET Revealed",
-      "sections": {
-        "shocking_word": {
-          "text": "EXPOSED!",
-          "color": "#8b0000"
-        },
-        "main_title": {
-          "lines": [
-            "Cleopatra\u2019s",
-            "DARKEST SECRET",
-            "Revealed in Her",
-            "Final Letter"
-          ],
-          "color": "#ffffff"
-        },
-        "bottom_text": {
-          "lines": [
-            "The Truth is",
-            "UNTHINKABLE"
+            "Last Hours Before",
+            "VESUVIUS STRUCK"
           ],
           "color": "#ffd700"
         },
@@ -178,25 +86,24 @@
     },
     {
       "id": 5,
-      "topic": "What Third-Class Passengers ACTUALLY Did Aboard the Titanic",
+      "topic": "The Library of Alexandria",
       "sections": {
         "shocking_word": {
-          "text": "TERRIFYING!",
-          "color": "#228b22"
+          "text": "HEARTBREAKING!",
+          "color": "#c71585"
         },
         "main_title": {
           "lines": [
-            "What Third-Class",
-            "Passengers ACTUALLY",
-            "Did Aboard the",
-            "Titanic"
+            "The Library of",
+            "ALEXANDRIA",
+            "Final Night"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "And Why They Were",
-            "Locked Below"
+            "Knowledge BURNED",
+            "Forever Lost"
           ],
           "color": "#ffd700"
         },
@@ -207,25 +114,24 @@
     },
     {
       "id": 6,
-      "topic": "London Baker's ONE MISTAKE That Changed History Forever",
+      "topic": "The Fall of Constantinople",
       "sections": {
         "shocking_word": {
-          "text": "MIND-BLOWING!",
-          "color": "#ff8c00"
+          "text": "DEVASTATING!",
+          "color": "#8b0000"
         },
         "main_title": {
           "lines": [
-            "London Baker\u2019s",
-            "ONE MISTAKE That",
-            "Changed History",
-            "Forever"
+            "The FALL of",
+            "Constantinople",
+            "Final Hours"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "The Fire Started",
-            "with a LOAF of Bread"
+            "Empire's Last",
+            "DESPERATE Stand"
           ],
           "color": "#ffd700"
         },
@@ -236,24 +142,23 @@
     },
     {
       "id": 7,
-      "topic": "What Marie Antoinette Did Her LAST DAY Will Leave You SHOCKED!",
+      "topic": "Cleopatra's Final Night",
       "sections": {
         "shocking_word": {
-          "text": "SCANDALOUS!",
-          "color": "#c71585"
+          "text": "MYSTERIOUS!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "What Marie Antoinette",
-            "Did Her LAST DAY",
-            "Before Execution"
+            "Cleopatra's",
+            "FINAL NIGHT"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Will Leave You",
-            "SHOCKED!"
+            "Queen's Last",
+            "SECRET Decision"
           ],
           "color": "#ffd700"
         },
@@ -264,25 +169,24 @@
     },
     {
       "id": 8,
-      "topic": "Scientists Finally Reveal What ACTUALLY Happened to the Dinosaurs",
+      "topic": "The Titanic: Below Deck",
       "sections": {
         "shocking_word": {
-          "text": "INCREDIBLE!",
+          "text": "TERRIFYING!",
           "color": "#228b22"
         },
         "main_title": {
           "lines": [
-            "Scientists Finally",
-            "Reveal What ACTUALLY",
-            "Happened to the",
-            "Dinosaurs"
+            "The TITANIC:",
+            "Below Deck",
+            "Final Hours"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Not What You\u2019ve",
-            "Been Told!"
+            "What REALLY",
+            "Happened Below"
           ],
           "color": "#ffd700"
         },
@@ -293,25 +197,24 @@
     },
     {
       "id": 9,
-      "topic": "Medieval Doctor's HORRIFYING Diary And the Truth About the Plague",
+      "topic": "The Great Fire of London",
       "sections": {
         "shocking_word": {
-          "text": "CHILLING!",
-          "color": "#8b0000"
+          "text": "INFERNO!",
+          "color": "#ff8c00"
         },
         "main_title": {
           "lines": [
-            "Medieval Doctor\u2019s",
-            "HORRIFYING Diary and",
-            "the Truth About the",
-            "Plague"
+            "The GREAT FIRE",
+            "of London",
+            "Night Before"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Dark Secrets Buried",
-            "with the Dead"
+            "City's Final",
+            "PEACEFUL Moments"
           ],
           "color": "#ffd700"
         },
@@ -322,25 +225,24 @@
     },
     {
       "id": 10,
-      "topic": "The REAL REASON Babylon's Gardens Vanished Forever",
+      "topic": "The Night Before the French Revolution",
       "sections": {
         "shocking_word": {
-          "text": "MYSTERIOUS!",
-          "color": "#4169e1"
+          "text": "SCANDALOUS!",
+          "color": "#c71585"
         },
         "main_title": {
           "lines": [
-            "The REAL REASON",
-            "Babylon\u2019s Gardens",
-            "Vanished",
-            "Forever"
+            "The Night ",
+            "Before the",
+            "FRENCH REVOLUTION"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "It Wasn\u2019t Just",
-            "Time or War"
+            "Aristocracy's LAST",
+            "Lavish Evening"
           ],
           "color": "#ffd700"
         },
@@ -351,25 +253,23 @@
     },
     {
       "id": 11,
-      "topic": "The MYSTERY of Mona Lisa\u2019s MISSING Years Finally SOLVED!",
+      "topic": "The Final Hour of Atlantis",
       "sections": {
         "shocking_word": {
-          "text": "REVEALED!",
-          "color": "#ff8c00"
+          "text": "LEGENDARY!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "The MYSTERY of",
-            "Mona Lisa\u2019s",
-            "MISSING Years",
-            "Finally SOLVED!"
+            "The FINAL HOUR",
+            "of ATLANTIS"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Hidden in Plain",
-            "Sight All Along"
+            "Lost Civilization's",
+            "LAST Moments"
           ],
           "color": "#ffd700"
         },
@@ -380,25 +280,24 @@
     },
     {
       "id": 12,
-      "topic": "Einstein's SHOCKING Confession That Was Hidden for 50 Years!",
+      "topic": "The Night of the Black Death",
       "sections": {
         "shocking_word": {
-          "text": "ASTONISHING!",
-          "color": "#4169e1"
+          "text": "CHILLING!",
+          "color": "#8b0000"
         },
         "main_title": {
           "lines": [
-            "Einstein\u2019s SHOCKING",
-            "Confession That Was",
-            "Hidden for",
-            "50 Years!"
+            "The Night of",
+            "the BLACK",
+            "DEATH"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "This Changes",
-            "Everything We Knew"
+            "Plague's DEADLY",
+            "First Strike"
           ],
           "color": "#ffd700"
         },
@@ -409,25 +308,24 @@
     },
     {
       "id": 13,
-      "topic": "The Plague Ship That REACHED America \u2013 And Nobody Talked About It",
+      "topic": "The Hanging Gardens of Babylon",
       "sections": {
         "shocking_word": {
-          "text": "FORGOTTEN!",
-          "color": "#8b0000"
+          "text": "DEVASTATING!",
+          "color": "#228b22"
         },
         "main_title": {
           "lines": [
-            "The Plague Ship That",
-            "REACHED America \u2013",
-            "And Nobody",
-            "Talked About It"
+            "The HANGING",
+            "GARDENS of",
+            "Babylon"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Buried by",
-            "Silence & Fear"
+            "Final DREADFUL",
+            "Night"
           ],
           "color": "#ffd700"
         },
@@ -438,25 +336,24 @@
     },
     {
       "id": 14,
-      "topic": "The Roman Emperor Who ERASED Himself from History \u2013 But Why?",
+      "topic": "The Night Julius Caesar Was Betrayed",
       "sections": {
         "shocking_word": {
-          "text": "UNTHINKABLE!",
-          "color": "#228b22"
+          "text": "BETRAYAL!",
+          "color": "#8b0000"
         },
         "main_title": {
           "lines": [
-            "The Roman Emperor",
-            "Who ERASED Himself",
-            "from History \u2013",
-            "But Why?"
+            "The Night JULIUS",
+            "CAESAR Was",
+            "BETRAYED"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "The Vanishing of",
-            "His Own Name"
+            "Emperor's FINAL",
+            "Peaceful Evening"
           ],
           "color": "#ffd700"
         },
@@ -467,25 +364,23 @@
     },
     {
       "id": 15,
-      "topic": "The SECRET MAP Crusaders Followed \u2013 And Its Hidden Message",
+      "topic": "The Trial of Socrates",
       "sections": {
         "shocking_word": {
-          "text": "CRYPTIC!",
-          "color": "#c71585"
+          "text": "PROFOUND!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "The SECRET MAP",
-            "Crusaders Followed \u2013",
-            "And Its Hidden",
-            "Message"
+            "The TRIAL of",
+            "SOCRATES"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "An Ancient Code",
-            "Still Unbroken"
+            "Philosopher's LAST",
+            "Night of Wisdom"
           ],
           "color": "#ffd700"
         },
@@ -496,25 +391,24 @@
     },
     {
       "id": 16,
-      "topic": "The Secret Behind the Mona Lisa's Smile Is Not What You Think",
+      "topic": "A Night at the Library of Nineveh",
       "sections": {
         "shocking_word": {
-          "text": "SURPRISING!",
-          "color": "#ff0000"
+          "text": "ANCIENT!",
+          "color": "#c71585"
         },
         "main_title": {
           "lines": [
-            "The Secret Behind the",
-            "Mona Lisa\u2019s Smile",
-            "Is Not What",
-            "You Think"
+            "A Night at the",
+            "LIBRARY of",
+            "NINEVEH"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "A Hidden Detail",
-            "Rewrites Everything"
+            "Scrolls Before",
+            "DESTRUCTION"
           ],
           "color": "#ffd700"
         },
@@ -525,24 +419,23 @@
     },
     {
       "id": 17,
-      "topic": "The Man Who Lived Through Pompeii, 9/11 and Hiroshima (Not a Joke)",
+      "topic": "The Day Before Hiroshima",
       "sections": {
         "shocking_word": {
-          "text": "IMPOSSIBLE!",
-          "color": "#ff8c00"
+          "text": "UNIMAGINABLE!",
+          "color": "#228b22"
         },
         "main_title": {
           "lines": [
-            "The Man Who Lived",
-            "Through Pompeii,",
-            "9/11 and Hiroshima"
+            "The Day Before",
+            "HIROSHIMA"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "This Is Not",
-            "a Joke"
+            "City's FINAL",
+            "Normal Day"
           ],
           "color": "#ffd700"
         },
@@ -553,25 +446,23 @@
     },
     {
       "id": 18,
-      "topic": "Da Vinci's Book of Machines Was Locked Away for Centuries",
+      "topic": "The Sinking of Venice",
       "sections": {
         "shocking_word": {
-          "text": "HIDDEN!",
-          "color": "#8b0000"
+          "text": "SINKING!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "Da Vinci\u2019s Book of",
-            "Machines Was",
-            "Locked Away",
-            "for Centuries"
+            "The SINKING",
+            "of VENICE"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "A Genius 400 Years",
-            "Too Early"
+            "Floating City's",
+            "LAST Stand"
           ],
           "color": "#ffd700"
         },
@@ -582,24 +473,24 @@
     },
     {
       "id": 19,
-      "topic": "The Shortest War in History Lasted Just 38 Minutes",
+      "topic": "The Night the Berlin Wall Fell",
       "sections": {
         "shocking_word": {
-          "text": "RIDICULOUS!",
-          "color": "#4169e1"
+          "text": "HISTORIC!",
+          "color": "#ff8c00"
         },
         "main_title": {
           "lines": [
-            "The Shortest War in",
-            "History Lasted Just",
-            "38 Minutes"
+            "The Night the",
+            "BERLIN WALL",
+            "FELL"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "A War That Ended",
-            "Before Lunch"
+            "Freedom's FIRST",
+            "Triumphant Hour"
           ],
           "color": "#ffd700"
         },
@@ -610,25 +501,24 @@
     },
     {
       "id": 20,
-      "topic": "The Vatican Has a SECRET Astronomer Watching the Skies",
+      "topic": "The Fall of the Aztec Empire",
       "sections": {
         "shocking_word": {
-          "text": "UNSEEN!",
-          "color": "#c71585"
+          "text": "CONQUEST!",
+          "color": "#8b0000"
         },
         "main_title": {
           "lines": [
-            "The Vatican Has a",
-            "SECRET Astronomer",
-            "Watching the",
-            "Skies"
+            "The FALL of",
+            "the AZTEC",
+            "EMPIRE"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "What Is the Church",
-            "Looking For?"
+            "Tenochtitlan's",
+            "FINAL Dawn"
           ],
           "color": "#ffd700"
         },
@@ -639,25 +529,24 @@
     },
     {
       "id": 21,
-      "topic": "The Pharaoh's Architect Who Vanished After Finishing the Tomb",
+      "topic": "The Lost Expedition of the Arctic",
       "sections": {
         "shocking_word": {
-          "text": "VANISHED!",
-          "color": "#8b0000"
+          "text": "FROZEN!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "The Pharaoh\u2019s",
-            "Architect Who",
-            "Vanished After",
-            "Finishing the Tomb"
+            "The LOST",
+            "Expedition of",
+            "the ARCTIC"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Some Say He Was",
-            "Sealed Inside"
+            "Crew's FINAL",
+            "Night in Ice"
           ],
           "color": "#ffd700"
         },
@@ -668,25 +557,24 @@
     },
     {
       "id": 22,
-      "topic": "The Time Capsule That Should Have Remained Buried Forever",
+      "topic": "The Last Day of Anne Frank",
       "sections": {
         "shocking_word": {
-          "text": "UNEARTHED!",
-          "color": "#ff0000"
+          "text": "HAUNTING!",
+          "color": "#c71585"
         },
         "main_title": {
           "lines": [
-            "The Time Capsule",
-            "That Should Have",
-            "Remained Buried",
-            "Forever"
+            "The LAST",
+            "DAY of",
+            "ANNE FRANK"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "What They Found",
-            "Shocked Everyone"
+            "Hidden Sanctuary's",
+            "FINAL Entry"
           ],
           "color": "#ffd700"
         },
@@ -697,25 +585,23 @@
     },
     {
       "id": 23,
-      "topic": "The Medieval Monk Who Predicted Our Future With Alarming Accuracy",
+      "topic": "The Moon Landing (From Earth's POV)",
       "sections": {
         "shocking_word": {
-          "text": "PROPHETIC!",
+          "text": "INCREDIBLE!",
           "color": "#228b22"
         },
         "main_title": {
           "lines": [
-            "The Medieval Monk",
-            "Who Predicted Our",
-            "Future With Alarming",
-            "Accuracy"
+            "The MOON ",
+            "LANDING"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "He Spoke of Things",
-            "We Use Today"
+            "Humanity's GIANT",
+            "Leap Moment"
           ],
           "color": "#ffd700"
         },
@@ -726,24 +612,23 @@
     },
     {
       "id": 24,
-      "topic": "The Queen History Tried to Forget \u2013 and Almost Did",
+      "topic": "The Invention of Writing",
       "sections": {
         "shocking_word": {
-          "text": "ERASED!",
-          "color": "#c71585"
+          "text": "REVOLUTIONARY!",
+          "color": "#ff8c00"
         },
         "main_title": {
           "lines": [
-            "The Queen History",
-            "Tried to Forget \u2013",
-            "and Almost Did"
+            "The INVENTION",
+            "of WRITING"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Only One Statue",
-            "Remains"
+            "Humanity's FIRST",
+            "Recorded Thoughts"
           ],
           "color": "#ffd700"
         },
@@ -754,25 +639,23 @@
     },
     {
       "id": 25,
-      "topic": "The Inventor Who Destroyed His Work Before the World Could Use It",
+      "topic": "A Night at Versailles",
       "sections": {
         "shocking_word": {
-          "text": "SABOTAGED!",
-          "color": "#4169e1"
+          "text": "LAVISH!",
+          "color": "#c71585"
         },
         "main_title": {
           "lines": [
-            "The Inventor Who",
-            "Destroyed His Work",
-            "Before the World",
-            "Could Use It"
+            "A Night at",
+            "VERSAILLES"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "His Machine Could",
-            "Have Changed History"
+            "Court's MOST",
+            "Extravagant Evening"
           ],
           "color": "#ffd700"
         },
@@ -783,25 +666,23 @@
     },
     {
       "id": 26,
-      "topic": "The Forgotten Train Hidden Beneath the Streets of Paris",
+      "topic": "The Fall of Troy",
       "sections": {
         "shocking_word": {
-          "text": "BURIED!",
+          "text": "LEGENDARY!",
           "color": "#8b0000"
         },
         "main_title": {
           "lines": [
-            "The Forgotten Train",
-            "Hidden Beneath the",
-            "Streets of",
-            "Paris"
+            "The FALL",
+            "of TROY"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "No One Knows",
-            "Where It Was Headed"
+            "Wooden Horse's",
+            "DEADLY Secret"
           ],
           "color": "#ffd700"
         },
@@ -812,25 +693,24 @@
     },
     {
       "id": 27,
-      "topic": "The Silent Rebellion of the Candle Makers that Changed the Empire",
+      "topic": "The Temple of Artemis at Night",
       "sections": {
         "shocking_word": {
-          "text": "OVERLOOKED!",
-          "color": "#ff8c00"
+          "text": "APOCALYPTIC!",
+          "color": "#4169e1"
         },
         "main_title": {
           "lines": [
-            "The Silent Rebellion",
-            "of the Candle Makers",
-            "that Changed",
-            "the Empire"
+            "The TEMPLE of",
+            "ARTEMIS",
+            "at Night"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "One Strike Lit",
-            "the Fire of Change"
+            "Sacred Wonder's",
+            "DIVINE Rituals"
           ],
           "color": "#ffd700"
         },
@@ -841,25 +721,23 @@
     },
     {
       "id": 28,
-      "topic": "The Castle That Was Never Finished \u2013 and the Architect Who Disappeared",
+      "topic": "Galileo's Trial",
       "sections": {
         "shocking_word": {
-          "text": "INCOMPLETE!",
-          "color": "#4169e1"
+          "text": "DEFIANT!",
+          "color": "#ff8c00"
         },
         "main_title": {
           "lines": [
-            "The Castle That",
-            "Was Never Finished \u2013",
-            "and the Architect",
-            "Who Disappeared"
+            "GALILEO'S",
+            "TRIAL"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "His Blueprints Were",
-            "Erased from History"
+            "Science vs Faith",
+            "FINAL Judgment"
           ],
           "color": "#ffd700"
         },
@@ -870,25 +748,23 @@
     },
     {
       "id": 29,
-      "topic": "The Bell Built for a Forgotten King That Never Rang",
+      "topic": "The First Olympic Night",
       "sections": {
         "shocking_word": {
-          "text": "SILENCED!",
-          "color": "#c71585"
+          "text": "GLORIOUS!",
+          "color": "#228b22"
         },
         "main_title": {
           "lines": [
-            "The Bell Built for a",
-            "Forgotten King",
-            "That Never",
-            "Rang"
+            "The FIRST",
+            "OLYMPIC Night"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "Legends Say Its Sound",
-            "Would Doom a City"
+            "Athletes' SACRED",
+            "Competition Born"
           ],
           "color": "#ffd700"
         },
@@ -899,7 +775,89 @@
     },
     {
       "id": 30,
-      "topic": "The Unknown Mapmaker Who May Have Known About Atlantis",
+      "topic": "The Birth of the Silk Road",
+      "sections": {
+        "shocking_word": {
+          "text": "PIONEERING!",
+          "color": "#c71585"
+        },
+        "main_title": {
+          "lines": [
+            "The BIRTH of",
+            "the SILK ROAD"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Trade Route That",
+            "CHANGED the World"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "topic": "The Execution of Mary Queen of Scots",
+      "sections": {
+        "shocking_word": {
+          "text": "TRAGIC!",
+          "color": "#8b0000"
+        },
+        "main_title": {
+          "lines": [
+            "MARY’s",
+            "LAST WALK"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Scotland’s Doomed   ",
+            "Queen Meets Her Fate"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "topic": "The Day the Colosseum Closed",
+      "sections": {
+        "shocking_word": {
+          "text": "FAREWELL!",
+          "color": "#ff8c00"
+        },
+        "main_title": {
+          "lines": [
+            "The Day the",
+            "COLOSSEUM",
+            "CLOSED"
+          ],
+          "color": "#ffffff"
+        },
+        "bottom_text": {
+          "lines": [
+            "Arena's FINAL",
+            "Gladiatorial Games"
+          ],
+          "color": "#ffd700"
+        },
+        "channel": {
+          "text": "Sleepy Dull Stories"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "topic": "The Tomb of Tutankhamun (Discovery Night)",
       "sections": {
         "shocking_word": {
           "text": "DISCOVERED!",
@@ -907,16 +865,16 @@
         },
         "main_title": {
           "lines": [
-            "The Unknown Mapmaker",
-            "Who May Have Known",
-            "About Atlantis"
+            "The TOMB of",
+            "TUTANKHAMUN",
+            "(Discovery Night)"
           ],
           "color": "#ffffff"
         },
         "bottom_text": {
           "lines": [
-            "One Map Changed",
-            "Everything We Believed"
+            "Carter's FIRST",
+            "Glimpse Inside"
           ],
           "color": "#ffd700"
         },
