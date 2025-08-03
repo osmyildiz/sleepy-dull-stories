@@ -42,46 +42,32 @@ class EnhancedDebugMidjourneyGenerator:
         print(f"🔑 API Key: {self.api_key[:8] if self.api_key else 'NOT FOUND'}...")
         print(f"🌐 Base URL: {self.base_url}")
 
-    def debug_log_api_call(self, method: str, url: str, headers: dict, payload: dict = None, response: requests.Response = None):
+    def debug_log_api_call(self, method: str, url: str, headers: dict, payload: dict = None,
+                           response: requests.Response = None):
         """Log detailed API call information"""
         timestamp = datetime.now().isoformat()
 
-        debug_entry = {
-            "timestamp": timestamp,
-            "method": method,
-            "url": url,
-            "request_headers": {k: v[:20] + "..." if k == "x-api-key" and len(v) > 20 else v for k, v in headers.items()},
-            "request_payload": payload,
-            "response_status": response.status_code if response else None,
-            "response_headers": dict(response.headers) if response else None,
-            "response_body": None
-        }
-
-        if response:
-            try:
-                debug_entry["response_body"] = response.json()
-            except:
-                debug_entry["response_body"] = response.text[:1000] + "..." if len(response.text) > 1000 else response.text
-
-        self.debug_log.append(debug_entry)
-
-        # Print debug info
         print(f"\n🔍 DEBUG API CALL [{timestamp}]")
         print(f"📡 Method: {method}")
         print(f"🌐 URL: {url}")
-        print(f"📝 Headers: {json.dumps(debug_entry['request_headers'], indent=2)}")
+        print(
+            f"📝 Headers: {json.dumps({k: v[:20] + '...' if k == 'x-api-key' and len(v) > 20 else v for k, v in headers.items()}, indent=2)}")
 
         if payload:
-            print(f"📦 Payload:")
+            print(f"📦 Request Payload:")
             print(json.dumps(payload, indent=2))
 
         if response:
             print(f"📊 Response Status: {response.status_code}")
             print(f"📋 Response Headers: {json.dumps(dict(response.headers), indent=2)}")
             print(f"📄 Response Body:")
-            print(json.dumps(debug_entry["response_body"], indent=2))
+            try:
+                response_json = response.json()
+                print(json.dumps(response_json, indent=2))
+            except:
+                print(f"Raw text: {response.text}")
 
-        print("🔍" + "="*60)
+        print("🔍" + "=" * 80)
 
     def test_api_connection_debug(self) -> bool:
         """Enhanced debug version of API connection test"""
@@ -118,7 +104,7 @@ class EnhancedDebugMidjourneyGenerator:
             )
 
             # Log the full API call
-            self.debug_log_api_call("POST", url, self.headers, payload, response)
+            self.debug_log_api_call("POST", f"{self.base_url}/task", self.headers, payload, response)
 
             print(f"\n📊 RESPONSE ANALYSIS:")
             print(f"Status Code: {response.status_code}")
