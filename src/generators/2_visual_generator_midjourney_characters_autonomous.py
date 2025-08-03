@@ -1,6 +1,7 @@
 """
-Sleepy Dull Stories - ENHANCED DEBUG Midjourney Visual Generator
-🔍 FULL DEBUG MODE: Every request/response logged in detail
+Sleepy Dull Stories - AUTONOMOUS Midjourney Visual Generator
+COMPLETE server integration with database + story generator output integration
+Production-optimized with complete automation and error recovery + AUTONOMOUS MODE
 """
 
 import requests
@@ -21,59 +22,475 @@ import logging
 # Load environment first
 load_dotenv()
 
-class EnhancedDebugMidjourneyGenerator:
-    """Enhanced debug version with full API request/response logging"""
+
+# Server Configuration Class (from story generator)
+class ServerConfig:
+    """Server-friendly configuration management"""
 
     def __init__(self):
-        # ... (keep existing initialization) ...
-        self.debug_log = []
-        self.debug_mode = True
+        self.setup_paths()
+        self.setup_logging()
+        self.setup_visual_config()
+        self.ensure_directories()
 
-        # API setup
-        self.api_key = os.getenv('PIAPI_KEY')
-        self.base_url = "https://api.piapi.ai/api/v1"
+    def setup_paths(self):
+        """Setup server-friendly paths"""
+        # Detect current file location
+        current_file = Path(__file__).resolve()
+
+        # For server: /home/youtube-automation/channels/sleepy-dull-stories/src/generators/
+        # Go up to project root
+        self.project_root = current_file.parent.parent.parent
+
+        self.paths = {
+            'BASE_DIR': str(self.project_root),
+            'SRC_DIR': str(current_file.parent.parent),
+            'DATA_DIR': str(self.project_root / 'data'),
+            'OUTPUT_DIR': str(self.project_root / 'output'),
+            'LOGS_DIR': str(self.project_root / 'logs'),
+            'CONFIG_DIR': str(self.project_root / 'config')
+        }
+
+        print(f"✅ Visual Generator server paths configured:")
+        print(f"   📁 Project root: {self.paths['BASE_DIR']}")
+
+    def setup_visual_config(self):
+        """Setup Midjourney visual generation configuration"""
+        self.visual_config = {
+            "api_base_url": "https://api.piapi.ai/api/v1",
+            "max_concurrent_tasks": 10,
+            "max_wait_cycles": 30,
+            "wait_interval_seconds": 30,
+            "default_aspect_ratios": {
+                "characters": "2:3",
+                "scenes": "16:9",
+                "thumbnail": "16:9"
+            },
+            "default_version": "6.1",
+            "process_mode": "relax",
+            "character_generation": True,
+            "scene_generation": True,
+            "thumbnail_generation": True,
+            "server_mode": True,
+            "production_ready": True
+        }
+
+        # Get API key
+        self.api_key = self.get_midjourney_api_key()
+
+    def get_midjourney_api_key(self):
+        """Get Midjourney API key from multiple sources"""
+        # Try different environment variable names
+        api_key = (
+                os.getenv('PIAPI_KEY') or
+                os.getenv('MIDJOURNEY_API_KEY') or
+                os.getenv('PIAPI_API_KEY') or
+                os.getenv('MIDJOURNEY_KEY')
+        )
+
+        if not api_key:
+            # Check .env file
+            env_files = [
+                Path('.env'),
+                Path('../../.env'),
+                self.project_root / '.env'
+            ]
+
+            for env_file in env_files:
+                if env_file.exists():
+                    load_dotenv(env_file)
+                    api_key = os.getenv('PIAPI_KEY')
+                    if api_key:
+                        print(f"✅ Midjourney API key loaded from: {env_file}")
+                        break
+
+        if not api_key:
+            raise ValueError(
+                "❌ Midjourney API key required!\n"
+                "Set in .env file:\n"
+                "PIAPI_KEY=your_api_key_here\n"
+                "Or environment variable: PIAPI_KEY"
+            )
+
+        print("✅ Midjourney API key loaded successfully")
+        return api_key
+
+    def setup_logging(self):
+        """Setup production logging"""
+        logs_dir = Path(self.project_root) / 'logs' / 'generators'
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        log_file = logs_dir / f"visual_gen_{datetime.now().strftime('%Y%m%d')}.log"
+
+        # Setup logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+
+        self.logger = logging.getLogger("VisualGenerator")
+        self.logger.info(f"✅ Visual generator logging initialized: {log_file}")
+
+    def ensure_directories(self):
+        """Ensure all required directories exist"""
+        dirs_to_create = [
+            'DATA_DIR', 'OUTPUT_DIR', 'LOGS_DIR', 'CONFIG_DIR'
+        ]
+
+        for dir_key in dirs_to_create:
+            dir_path = Path(self.paths[dir_key])
+            dir_path.mkdir(parents=True, exist_ok=True)
+
+        print("✅ All visual generator directories created/verified")
+
+
+# Initialize server config
+try:
+    CONFIG = ServerConfig()
+    print("🚀 Visual Generator server configuration loaded successfully")
+except Exception as e:
+    print(f"❌ Visual Generator server configuration failed: {e}")
+    sys.exit(1)
+
+
+# Database Topic Management Integration (from story generator)
+class DatabaseTopicManager:
+    """Professional topic management using existing production.db"""
+
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def get_completed_topic_ready_for_characters(self) -> Optional[Tuple[int, str, str, str]]:
+        """Get completed story topic that needs CHARACTER generation only"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, topic, description, output_path 
+            FROM topics 
+            WHERE status = 'completed' 
+            AND (character_generation_status IS NULL OR character_generation_status = 'pending')
+            ORDER BY production_completed_at ASC 
+            LIMIT 1
+        ''')
+
+        result = cursor.fetchone()
+        conn.close()
+
+        return result if result else None
+
+    def mark_character_generation_started(self, topic_id: int):
+        """Mark character generation as started"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Add column if it doesn't exist
+        cursor.execute('PRAGMA table_info(topics)')
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'character_generation_status' not in columns:
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_status TEXT DEFAULT "pending"')
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_started_at DATETIME')
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_completed_at DATETIME')
+            cursor.execute('ALTER TABLE topics ADD COLUMN characters_generated INTEGER DEFAULT 0')
+
+        cursor.execute('''
+            UPDATE topics 
+            SET character_generation_status = 'in_progress', 
+                character_generation_started_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (topic_id,))
+
+        conn.commit()
+        conn.close()
+
+    def mark_character_generation_completed(self, topic_id: int, characters_count: int):
+        """Mark character generation as completed"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE topics 
+            SET character_generation_status = 'completed',
+                character_generation_completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP,
+                characters_generated = ?
+            WHERE id = ?
+        ''', (characters_count, topic_id))
+
+        conn.commit()
+        conn.close()
+
+    def mark_character_generation_failed(self, topic_id: int, error_message: str):
+        """Mark character generation as failed"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE topics 
+            SET character_generation_status = 'failed',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (topic_id,))
+
+        conn.commit()
+        conn.close()
+
+    def get_pipeline_status(self) -> Dict:
+        """Get overall pipeline status"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Add columns if they don't exist
+        cursor.execute('PRAGMA table_info(topics)')
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'character_generation_status' not in columns:
+            cursor.execute('ALTER TABLE topics ADD COLUMN character_generation_status TEXT DEFAULT "pending"')
+
+        # Count character generation queue
+        cursor.execute('''
+            SELECT COUNT(*) FROM topics 
+            WHERE status = 'completed' 
+            AND (character_generation_status IS NULL OR character_generation_status = 'pending')
+        ''')
+        character_queue = cursor.fetchone()[0]
+
+        # Count active character generation
+        cursor.execute('''
+            SELECT COUNT(*) FROM topics 
+            WHERE character_generation_status = 'in_progress'
+        ''')
+        character_active = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            'character_generation_queue': character_queue,
+            'character_generation_active': character_active
+        }
+
+
+class ServerMidjourneyVisualGenerator:
+    """Server-ready Midjourney visual generator with database integration"""
+
+    def __init__(self):
+        self.api_key = CONFIG.api_key
+        self.base_url = CONFIG.visual_config["api_base_url"]
 
         self.headers = {
             "x-api-key": self.api_key,
             "Content-Type": "application/json"
         }
 
-        print(f"🔍 DEBUG MODE ENABLED")
-        print(f"🔑 API Key: {self.api_key[:8] if self.api_key else 'NOT FOUND'}...")
+        # Current project tracking
+        self.current_topic_id = None
+        self.current_output_dir = None
+        self.current_topic = None
+        self.current_description = None
+        self.current_historical_period = None
+
+        # Generation tracking
+        self.generation_log = []
+        self.character_references = {}
+        self.api_calls_made = 0
+        self.successful_downloads = 0
+
+        # Database manager
+        db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
+        self.db_manager = DatabaseTopicManager(str(db_path))
+
+        print("🚀 Server Midjourney Visual Generator v1.0 Initialized")
+        print(f"🔑 API Key: {self.api_key[:8]}...")
         print(f"🌐 Base URL: {self.base_url}")
 
-    def debug_log_api_call(self, method: str, url: str, headers: dict, payload: dict = None,
-                           response: requests.Response = None):
-        """Log detailed API call information"""
-        timestamp = datetime.now().isoformat()
+    def log_step(self, step: str, status: str = "START", metadata: Dict = None):
+        """Log generation steps with production logging"""
+        entry = {
+            "step": step,
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "project": self.current_topic_id,
+            "api_calls": self.api_calls_made,
+            "successful_downloads": self.successful_downloads,
+            "metadata": metadata or {}
+        }
+        self.generation_log.append(entry)
 
-        print(f"\n🔍 DEBUG API CALL [{timestamp}]")
-        print(f"📡 Method: {method}")
-        print(f"🌐 URL: {url}")
-        print(
-            f"📝 Headers: {json.dumps({k: v[:20] + '...' if k == 'x-api-key' and len(v) > 20 else v for k, v in headers.items()}, indent=2)}")
+        icon = "🔄" if status == "START" else "✅" if status == "SUCCESS" else "❌" if status == "ERROR" else "ℹ️"
+        print(f"{icon} {step} [Calls: {self.api_calls_made}] [Downloads: {self.successful_downloads}]")
+        CONFIG.logger.info(f"{step} - Status: {status} - Project: {self.current_topic_id}")
 
-        if payload:
-            print(f"📦 Request Payload:")
-            print(json.dumps(payload, indent=2))
+    def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
+        """Get next completed story project that needs CHARACTER generation"""
+        self.log_step("🔍 Finding completed story project for character generation")
 
-        if response:
-            print(f"📊 Response Status: {response.status_code}")
-            print(f"📋 Response Headers: {json.dumps(dict(response.headers), indent=2)}")
-            print(f"📄 Response Body:")
-            try:
-                response_json = response.json()
-                print(json.dumps(response_json, indent=2))
-            except:
-                print(f"Raw text: {response.text}")
+        result = self.db_manager.get_completed_topic_ready_for_characters()
 
-        print("🔍" + "=" * 80)
+        if not result:
+            self.log_step("✅ No completed stories ready for character generation", "INFO")
+            return False, None
 
-    def test_api_connection_debug(self) -> bool:
-        """Enhanced debug version of API connection test"""
-        print(f"\n🔍 TESTING PIAPI CONNECTION - FULL DEBUG")
-        print(f"🔑 API Key: {self.api_key}")
-        print(f"🌐 Base URL: {self.base_url}")
+        topic_id, topic, description, output_path = result
+
+        # Setup project paths
+        self.current_topic_id = topic_id
+        self.current_output_dir = output_path
+        self.current_topic = topic
+        self.current_description = description
+
+        # Try to detect historical period from existing files
+        try:
+            character_path = Path(output_path) / "character_profiles.json"
+            if character_path.exists():
+                with open(character_path, 'r', encoding='utf-8') as f:
+                    character_data = json.load(f)
+                    visual_style = character_data.get('visual_style_notes', {})
+                    self.current_historical_period = visual_style.get('period_accuracy', 'ancient times')
+            else:
+                self.current_historical_period = "ancient times"
+        except:
+            self.current_historical_period = "ancient times"
+
+        project_info = {
+            "topic_id": topic_id,
+            "topic": topic,
+            "description": description,
+            "output_dir": output_path,
+            "historical_period": self.current_historical_period
+        }
+
+        # Mark as started in database
+        self.db_manager.mark_character_generation_started(topic_id)
+
+        self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
+        return True, project_info
+
+    def load_character_profiles_only(self) -> Dict:
+        """Load character profiles only from story generator output"""
+        self.log_step("📂 Loading character profiles only")
+
+        output_dir = Path(self.current_output_dir)
+
+        # Load character profiles
+        char_profiles_path = output_dir / "character_profiles.json"
+        if not char_profiles_path.exists():
+            raise FileNotFoundError(f"Character profiles not found: {char_profiles_path}")
+
+        with open(char_profiles_path, 'r', encoding='utf-8') as f:
+            character_profiles = json.load(f)
+
+        # Validate data
+        main_characters = character_profiles.get("main_characters", [])
+
+        self.log_step("✅ Character profiles loaded", "SUCCESS", {
+            "characters_count": len(main_characters),
+            "marketing_characters": len([c for c in main_characters if c.get("use_in_marketing", False)])
+        })
+
+        return character_profiles
+
+    def setup_character_directories(self):
+        """Create necessary directories for character generation only"""
+        output_dir = Path(self.current_output_dir)
+
+        self.characters_dir = output_dir / "characters"
+        self.characters_dir.mkdir(exist_ok=True)
+
+        self.log_step("📁 Character generation directory created", "SUCCESS")
+
+    def save_character_generation_report(self):
+        """Save character generation report"""
+        output_dir = Path(self.current_output_dir)
+
+        report = {
+            "character_generation_completed": datetime.now().isoformat(),
+            "topic_id": self.current_topic_id,
+            "topic": self.current_topic,
+            "api_calls_made": self.api_calls_made,
+            "successful_downloads": self.successful_downloads,
+            "character_references_created": len(self.character_references),
+            "characters_dir": str(self.characters_dir),
+            "historical_period": self.current_historical_period,
+            "generation_log": self.generation_log,
+            "server_optimized": True,
+            "character_only_mode": True
+        }
+
+        report_path = output_dir / "character_generation_report.json"
+        with open(report_path, 'w', encoding='utf-8') as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+
+        self.log_step(f"✅ Character generation report saved: {report_path}", "SUCCESS")
+
+    def extract_character_role(self, character: Dict) -> str:
+        """Extract character role from description dynamically"""
+        description = character.get('physical_description', '').lower()
+        historical_period = self.current_historical_period
+
+        # Role detection based on description keywords
+        role_keywords = {
+            'librarian': ['librarian', 'scholar', 'scrolls', 'manuscripts', 'books'],
+            'scribe': ['scribe', 'writing', 'copying', 'pen', 'ink'],
+            'astronomer': ['astronomer', 'stars', 'astrolabe', 'celestial', 'observation'],
+            'philosopher': ['philosopher', 'thinking', 'contemplation', 'wisdom'],
+            'priest': ['priest', 'temple', 'religious', 'ceremony', 'sacred'],
+            'physician': ['physician', 'healer', 'medicine', 'herbs', 'healing'],
+            'curator': ['curator', 'manuscripts', 'preservation', 'collection'],
+            'baker': ['flour', 'bread', 'kneading', 'oven', 'dough', 'bakery'],
+            'fisherman': ['fishing', 'nets', 'harbor', 'sea', 'boat', 'maritime'],
+            'gladiator': ['sword', 'arena', 'combat', 'warrior', 'battle', 'muscular'],
+            'senator': ['toga', 'dignified', 'authority', 'noble', 'distinguished'],
+            'woman': ['elegant', 'graceful', 'flowing robes', 'gentle hands'],
+            'merchant': ['trade', 'goods', 'market', 'commerce', 'wealthy'],
+            'soldier': ['armor', 'military', 'guard', 'captain', 'uniform'],
+            'artisan': ['craft', 'tools', 'workshop', 'skilled', 'maker']
+        }
+
+        # Check for role keywords in description
+        detected_roles = []
+        for role, keywords in role_keywords.items():
+            if any(keyword in description for keyword in keywords):
+                detected_roles.append(role)
+
+        # Determine primary role
+        if detected_roles:
+            primary_role = detected_roles[0]  # First match
+
+            # Context-specific role formatting
+            if 'roman' in historical_period.lower() or '79 ad' in historical_period.lower():
+                role_prefix = "ancient Roman"
+            elif 'medieval' in historical_period.lower():
+                role_prefix = "medieval"
+            elif 'egyptian' in historical_period.lower():
+                role_prefix = "ancient Egyptian"
+            elif 'alexandria' in self.current_topic.lower() or 'library' in self.current_topic.lower():
+                role_prefix = "ancient Hellenistic"
+            else:
+                role_prefix = "historical"
+
+            return f"{role_prefix} {primary_role}"
+
+        # Fallback based on historical period or topic
+        if 'alexandria' in self.current_topic.lower() or 'library' in self.current_topic.lower():
+            return "ancient Hellenistic scholar"
+        elif 'roman' in historical_period.lower():
+            return "ancient Roman person"
+        elif 'medieval' in historical_period.lower():
+            return "medieval person"
+        elif 'egyptian' in historical_period.lower():
+            return "ancient Egyptian person"
+        else:
+            return "historical person"
+
+    def test_api_connection(self) -> bool:
+        """Test PIAPI connection"""
+        self.log_step("🔍 Testing PIAPI connection")
 
         test_prompt = "red apple on white table --ar 1:1 --v 6.1"
 
@@ -87,381 +504,462 @@ class EnhancedDebugMidjourneyGenerator:
             }
         }
 
-        url = f"{self.base_url}/task"
-
-        print(f"\n🎯 PREPARING REQUEST:")
-        print(f"URL: {url}")
-        print(f"Headers: {json.dumps(self.headers, indent=2)}")
-        print(f"Payload: {json.dumps(payload, indent=2)}")
-
         try:
-            print(f"\n🚀 SENDING REQUEST...")
             response = requests.post(
-                url,
+                f"{self.base_url}/task",
                 headers=self.headers,
                 json=payload,
                 timeout=10
             )
-            # Log the full API call
-            self.debug_log_api_call("POST", f"{self.base_url}/task", self.headers, payload, response)
-            print(f"\n📊 RESPONSE ANALYSIS:")
-            print(f"Status Code: {response.status_code}")
-            print(f"Content Type: {response.headers.get('content-type', 'unknown')}")
-            print(f"Content Length: {response.headers.get('content-length', 'unknown')}")
+
+            print(f"📡 Test Response: {response.status_code}")
 
             if response.status_code == 200:
-                try:
-                    result = response.json()
-                    print(f"✅ JSON Response Parsed Successfully")
-                    print(f"Response Code: {result.get('code', 'missing')}")
-                    print(f"Response Message: {result.get('message', 'missing')}")
-
-                    if result.get("code") == 200:
-                        print(f"✅ API CONNECTION TEST SUCCESSFUL")
-                        task_data = result.get("data", {})
-                        print(f"Task ID received: {task_data.get('task_id', 'missing')}")
-                        return True
-                    else:
-                        print(f"❌ API returned error code: {result.get('code')}")
-                        print(f"Error details: {result}")
-                        return False
-
-                except json.JSONDecodeError as e:
-                    print(f"❌ JSON DECODE ERROR: {e}")
-                    print(f"Raw response: {response.text}")
-                    return False
+                result = response.json()
+                self.log_step("✅ API Connection OK", "SUCCESS", {"response": result})
+                return True
             else:
-                print(f"❌ HTTP ERROR: {response.status_code}")
-                print(f"Response text: {response.text}")
+                self.log_step(f"❌ API Error: {response.status_code}", "ERROR")
                 return False
 
-        except requests.exceptions.Timeout:
-            print(f"❌ REQUEST TIMEOUT (10 seconds)")
-            return False
-        except requests.exceptions.ConnectionError as e:
-            print(f"❌ CONNECTION ERROR: {e}")
-            return False
-        except requests.exceptions.RequestException as e:
-            print(f"❌ REQUEST EXCEPTION: {e}")
-            return False
         except Exception as e:
-            print(f"❌ UNEXPECTED ERROR: {e}")
-            import traceback
-            traceback.print_exc()
+            self.log_step(f"❌ Connection Test Failed: {e}", "ERROR")
             return False
 
-    def submit_midjourney_task_debug(self, prompt: str, aspect_ratio: str = "16:9") -> Optional[str]:
-        """Enhanced debug version of task submission"""
-        print(f"\n🔍 SUBMITTING MIDJOURNEY TASK - FULL DEBUG")
-        print(f"📝 Prompt: {prompt}")
-        print(f"📐 Aspect Ratio: {aspect_ratio}")
-
+    def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9") -> Optional[str]:
+        """Submit task to Midjourney API"""
         payload = {
             "model": "midjourney",
             "task_type": "imagine",
             "input": {
                 "prompt": prompt,
                 "aspect_ratio": aspect_ratio,
-                "process_mode": "relax",  # Could be "fast", "turbo", "relax"
+                "process_mode": CONFIG.visual_config["process_mode"],
                 "skip_prompt_check": False
             }
         }
 
-        url = f"{self.base_url}/task"
-
-        print(f"\n🎯 REQUEST DETAILS:")
-        print(f"URL: {url}")
-        print(f"Method: POST")
-        print(f"Headers: {json.dumps(self.headers, indent=2)}")
-        print(f"Payload: {json.dumps(payload, indent=2)}")
-
         try:
-            print(f"\n🚀 SENDING REQUEST...")
+            self.api_calls_made += 1
             response = requests.post(
-                url,
+                f"{self.base_url}/task",
                 headers=self.headers,
                 json=payload,
                 timeout=30
             )
 
-            # Log the full API call
-            self.debug_log_api_call("POST", url, self.headers, payload, response)
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("code") == 200:
+                    task_data = result.get("data", {})
+                    task_id = task_data.get("task_id")
+                    self.log_step(f"✅ Task submitted: {task_id}", "SUCCESS")
+                    return task_id
+                else:
+                    self.log_step(f"❌ API Error: {result}", "ERROR")
+                    return None
+            else:
+                self.log_step(f"❌ HTTP Error: {response.status_code}", "ERROR")
+                return None
 
-            print(f"\n📊 RESPONSE ANALYSIS:")
-            print(f"Status Code: {response.status_code}")
-            print(f"Headers: {dict(response.headers)}")
+        except Exception as e:
+            self.log_step(f"❌ Request failed: {e}", "ERROR")
+            return None
+
+    def check_task_status(self, task_id: str) -> Optional[Dict]:
+        """Check single task status"""
+        try:
+            status_url = f"{self.base_url}/task/{task_id}"
+            response = requests.get(status_url, headers=self.headers, timeout=10)
 
             if response.status_code == 200:
-                try:
-                    result = response.json()
-                    print(f"✅ JSON Response Parsed")
-                    print(f"Full Response: {json.dumps(result, indent=2)}")
+                result = response.json()
+                if result.get("code") == 200:
+                    task_data = result.get("data", {})
+                    status = task_data.get("status", "").lower()
+                    output = task_data.get("output", {})
 
-                    response_code = result.get("code")
-                    response_message = result.get("message", "")
+                    if status == "completed":
+                        # Get image URLs with priority: temporary_image_urls > image_url
+                        temp_urls = output.get("temporary_image_urls", [])
+                        image_url = output.get("image_url", "")
 
-                    print(f"Response Code: {response_code}")
-                    print(f"Response Message: {response_message}")
+                        if temp_urls and len(temp_urls) > 0:
+                            selected_url = temp_urls[1] if len(temp_urls) >= 2 else temp_urls[0]
+                            return {"url": selected_url, "source": "temporary_image_urls"}
+                        elif image_url:
+                            return {"url": image_url, "source": "image_url"}
+                        else:
+                            return False  # Completed but no images
 
-                    if response_code == 200:
-                        task_data = result.get("data", {})
-                        task_id = task_data.get("task_id")
-
-                        print(f"✅ TASK SUBMITTED SUCCESSFULLY")
-                        print(f"Task ID: {task_id}")
-                        print(f"Task Status: {task_data.get('status', 'unknown')}")
-                        print(f"Task Type: {task_data.get('task_type', 'unknown')}")
-                        print(f"Model: {task_data.get('model', 'unknown')}")
-
-                        return task_id
+                    elif status == "failed":
+                        return False  # Failed
                     else:
-                        print(f"❌ API ERROR RESPONSE")
-                        print(f"Error Code: {response_code}")
-                        print(f"Error Message: {response_message}")
-                        print(f"Full Error Data: {result}")
-                        return None
+                        return None  # Still processing
 
-                except json.JSONDecodeError as e:
-                    print(f"❌ JSON DECODE ERROR: {e}")
-                    print(f"Raw Response Text: {response.text}")
-                    return None
-
-            elif response.status_code == 400:
-                print(f"❌ BAD REQUEST (400)")
-                print(f"Response: {response.text}")
-                try:
-                    error_data = response.json()
-                    print(f"Error Details: {json.dumps(error_data, indent=2)}")
-                except:
-                    pass
-                return None
-
-            elif response.status_code == 401:
-                print(f"❌ UNAUTHORIZED (401) - Check API Key")
-                print(f"API Key used: {self.api_key[:8]}..." if self.api_key else "NO API KEY")
-                print(f"Response: {response.text}")
-                return None
-
-            elif response.status_code == 500:
-                print(f"❌ SERVER ERROR (500) - PiAPI Internal Error")
-                print(f"Response: {response.text}")
-                try:
-                    error_data = response.json()
-                    print(f"Server Error Details: {json.dumps(error_data, indent=2)}")
-                except:
-                    pass
-                return None
-
-            else:
-                print(f"❌ UNEXPECTED HTTP STATUS: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
-
-        except requests.exceptions.Timeout:
-            print(f"❌ REQUEST TIMEOUT (30 seconds)")
-            return None
-        except requests.exceptions.ConnectionError as e:
-            print(f"❌ CONNECTION ERROR: {e}")
-            return None
-        except requests.exceptions.RequestException as e:
-            print(f"❌ REQUEST EXCEPTION: {e}")
-            return None
         except Exception as e:
-            print(f"❌ UNEXPECTED ERROR: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+            return None  # Error, treat as still processing
 
-    def check_task_status_debug(self, task_id: str) -> Optional[Dict]:
-        """Enhanced debug version of task status checking"""
-        print(f"\n🔍 CHECKING TASK STATUS - FULL DEBUG")
-        print(f"🆔 Task ID: {task_id}")
+        return None
 
-        url = f"{self.base_url}/task/{task_id}"
-
-        print(f"\n🎯 REQUEST DETAILS:")
-        print(f"URL: {url}")
-        print(f"Method: GET")
-        print(f"Headers: {json.dumps(self.headers, indent=2)}")
+    def download_image(self, result_data: Dict, save_path: str) -> bool:
+        """Download image with proper headers"""
+        image_url = result_data["url"]
 
         try:
-            print(f"\n🚀 SENDING STATUS REQUEST...")
-            response = requests.get(url, headers=self.headers, timeout=10)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                'Referer': 'https://discord.com/',
+                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+            }
 
-            # Log the full API call
-            self.debug_log_api_call("GET", url, self.headers, None, response)
-
-            print(f"\n📊 STATUS RESPONSE ANALYSIS:")
-            print(f"Status Code: {response.status_code}")
+            response = requests.get(image_url, headers=headers, timeout=30, stream=True)
 
             if response.status_code == 200:
-                try:
-                    result = response.json()
-                    print(f"✅ JSON Response Parsed")
-                    print(f"Full Response: {json.dumps(result, indent=2)}")
+                with open(save_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
 
-                    if result.get("code") == 200:
-                        task_data = result.get("data", {})
-                        status = task_data.get("status", "").lower()
-                        output = task_data.get("output", {})
-
-                        print(f"📊 TASK STATUS DETAILS:")
-                        print(f"Status: {status}")
-                        print(f"Progress: {output.get('progress', 'unknown')}%")
-                        print(f"Model: {task_data.get('model', 'unknown')}")
-                        print(f"Task Type: {task_data.get('task_type', 'unknown')}")
-
-                        if status == "completed":
-                            print(f"\n✅ TASK COMPLETED - ANALYZING OUTPUT")
-
-                            # Analyze all available image URLs
-                            temp_urls = output.get("temporary_image_urls", [])
-                            image_url = output.get("image_url", "")
-                            image_urls = output.get("image_urls", [])
-                            discord_url = output.get("discord_image_url", "")
-
-                            print(f"🖼️ IMAGE URLS ANALYSIS:")
-                            print(f"temporary_image_urls: {len(temp_urls)} URLs")
-                            for i, url in enumerate(temp_urls):
-                                print(f"  [{i}]: {url}")
-
-                            print(f"image_url: {image_url}")
-                            print(f"image_urls: {len(image_urls)} URLs")
-                            for i, url in enumerate(image_urls):
-                                print(f"  [{i}]: {url}")
-                            print(f"discord_image_url: {discord_url}")
-
-                            # Select best URL
-                            if temp_urls and len(temp_urls) > 0:
-                                selected_url = temp_urls[1] if len(temp_urls) >= 2 else temp_urls[0]
-                                print(f"✅ SELECTED URL: {selected_url} (from temporary_image_urls)")
-                                return {"url": selected_url, "source": "temporary_image_urls"}
-                            elif image_url:
-                                print(f"✅ SELECTED URL: {image_url} (from image_url)")
-                                return {"url": image_url, "source": "image_url"}
-                            elif image_urls and len(image_urls) > 0:
-                                selected_url = image_urls[0]
-                                print(f"✅ SELECTED URL: {selected_url} (from image_urls)")
-                                return {"url": selected_url, "source": "image_urls"}
-                            else:
-                                print(f"❌ NO VALID IMAGE URLS FOUND")
-                                return False
-
-                        elif status == "failed":
-                            print(f"❌ TASK FAILED")
-                            error_info = task_data.get("error", {})
-                            print(f"Error Info: {json.dumps(error_info, indent=2)}")
-                            return False
-
-                        elif status in ["pending", "processing"]:
-                            print(f"⏳ TASK STILL {status.upper()}")
-                            return None
-
-                        else:
-                            print(f"❓ UNKNOWN STATUS: {status}")
-                            return None
-
-                    else:
-                        print(f"❌ API ERROR RESPONSE")
-                        print(f"Error Code: {result.get('code')}")
-                        print(f"Error Message: {result.get('message', '')}")
-                        return False
-
-                except json.JSONDecodeError as e:
-                    print(f"❌ JSON DECODE ERROR: {e}")
-                    print(f"Raw Response: {response.text}")
-                    return None
-
+                file_size = os.path.getsize(save_path)
+                self.successful_downloads += 1
+                self.log_step(f"✅ Downloaded: {os.path.basename(save_path)} ({file_size} bytes)", "SUCCESS")
+                return True
             else:
-                print(f"❌ HTTP ERROR: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
+                self.log_step(f"❌ HTTP {response.status_code}", "ERROR")
+                return False
 
         except Exception as e:
-            print(f"❌ STATUS CHECK ERROR: {e}")
+            self.log_step(f"❌ Download failed: {e}", "ERROR")
+            return False
+
+    def generate_all_characters_parallel(self, character_profiles: Dict):
+        """Generate all marketing characters in parallel"""
+        self.log_step("🎭 Starting parallel character generation")
+
+        main_characters = character_profiles.get("main_characters", [])
+        marketing_characters = [char for char in main_characters if char.get("use_in_marketing", False)]
+
+        if not marketing_characters:
+            self.log_step("❌ No marketing characters found", "ERROR")
+            return False
+
+        # Submit all character tasks
+        character_tasks = {}
+
+        for character in marketing_characters:
+            char_name = character["name"]
+            role = self.extract_character_role(character)
+            physical = character.get('physical_description', '').split(',')[0].strip()
+
+            prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference --ar 2:3 --v 6.1"
+
+            print(f"🎭 Submitting: {char_name} → {role}")
+
+            task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3")
+            if task_id:
+                character_tasks[char_name] = {
+                    "task_id": task_id,
+                    "prompt": prompt,
+                    "character_data": character
+                }
+
+            time.sleep(1)  # Brief rate limiting
+
+        if not character_tasks:
+            self.log_step("❌ No character tasks submitted", "ERROR")
+            return False
+
+        self.log_step(f"✅ Submitted {len(character_tasks)} character tasks", "SUCCESS")
+
+        # Monitor all tasks
+        completed_characters = {}
+        max_cycles = CONFIG.visual_config["max_wait_cycles"]
+
+        for cycle in range(max_cycles):
+            if not character_tasks:
+                break
+
+            completed_count = len(completed_characters)
+            total_count = completed_count + len(character_tasks)
+            self.log_step(f"📊 Character Cycle {cycle + 1}: {completed_count}/{total_count} completed")
+
+            # Check each pending task
+            chars_to_remove = []
+
+            for char_name, task_data in character_tasks.items():
+                task_id = task_data["task_id"]
+
+                result_data = self.check_task_status(task_id)
+
+                if result_data and isinstance(result_data, dict):
+                    # Character completed!
+                    self.log_step(f"✅ {char_name} completed!", "SUCCESS")
+                    completed_characters[char_name] = {
+                        "result_data": result_data,
+                        "task_data": task_data
+                    }
+                    chars_to_remove.append(char_name)
+                elif result_data is False:
+                    # Character failed
+                    self.log_step(f"❌ {char_name} failed", "ERROR")
+                    chars_to_remove.append(char_name)
+
+            # Remove completed/failed characters
+            for char_name in chars_to_remove:
+                del character_tasks[char_name]
+
+            if not character_tasks:
+                break
+
+            # Wait before next cycle
+            time.sleep(CONFIG.visual_config["wait_interval_seconds"])
+
+        # Download all completed characters
+        successful_downloads = 0
+
+        for char_name, char_data in completed_characters.items():
+            result_data = char_data["result_data"]
+
+            safe_name = char_name.lower().replace(" ", "_").replace(".", "")
+            image_path = self.characters_dir / f"{safe_name}.png"
+
+            if self.download_image(result_data, str(image_path)):
+                # Save character reference for scenes
+                self.character_references[char_name] = result_data["url"]
+                successful_downloads += 1
+
+                # Save metadata
+                metadata = {
+                    "name": char_name,
+                    "role": self.extract_character_role(char_data["task_data"]["character_data"]),
+                    "prompt": char_data["task_data"]["prompt"],
+                    "image_url": result_data["url"],
+                    "url_source": result_data["source"],
+                    "local_path": str(image_path),
+                    "generated_at": datetime.now().isoformat()
+                }
+
+                json_path = self.characters_dir / f"{safe_name}.json"
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+        self.log_step(f"✅ Character generation complete: {successful_downloads}/{len(marketing_characters)}",
+                      "SUCCESS")
+
+        return successful_downloads > 0
+
+    def run_character_only_generation(self) -> bool:
+        """Run CHARACTER-ONLY generation process for server environment"""
+        print("🚀" * 50)
+        print("SERVER MIDJOURNEY CHARACTER GENERATOR v1.0")
+        print("🔗 Database integrated")
+        print("🎭 CHARACTER REFERENCES ONLY")
+        print("🖥️ Production-ready automation")
+        print("🚀" * 50)
+
+        # Step 0: Test API connection
+        if not self.test_api_connection():
+            self.log_step("❌ API connection failed - aborting", "ERROR")
+            return False
+
+        # Step 1: Get next project from database
+        found, project_info = self.get_next_project_from_database()
+        if not found:
+            return False
+
+        print(f"✅ Project found: {project_info['topic']}")
+        print(f"📁 Output directory: {project_info['output_dir']}")
+        print(f"🏛️ Historical period: {project_info['historical_period']}")
+
+        try:
+            # Step 2: Setup directories (characters only)
+            self.setup_character_directories()
+
+            # Step 3: Load story generator outputs (characters only)
+            character_profiles = self.load_character_profiles_only()
+
+            # Step 4: Generate characters in parallel
+            characters_success = self.generate_all_characters_parallel(character_profiles)
+
+            # Step 5: Save generation report
+            self.save_character_generation_report()
+
+            # Step 6: Update database
+            characters_count = len(self.character_references)
+
+            if characters_success:
+                self.db_manager.mark_character_generation_completed(
+                    self.current_topic_id, characters_count
+                )
+            else:
+                self.db_manager.mark_character_generation_failed(
+                    self.current_topic_id, "Character generation failed"
+                )
+
+            # Final success assessment
+            if characters_success:
+                print("\n" + "🎉" * 50)
+                print("CHARACTER GENERATION SUCCESSFUL!")
+                print(f"✅ Characters Generated: {characters_count}")
+                print(f"✅ API Calls: {self.api_calls_made}")
+                print(f"✅ Downloads: {self.successful_downloads}")
+                print(f"📁 Saved to: {self.characters_dir}")
+                print("🎉" * 50)
+            else:
+                print("\n" + "❌" * 50)
+                print("CHARACTER GENERATION FAILED!")
+                print("Check logs for details")
+                print("❌" * 50)
+
+            return characters_success
+
+        except Exception as e:
+            self.log_step(f"❌ Character generation failed: {e}", "ERROR")
+            self.db_manager.mark_character_generation_failed(
+                self.current_topic_id, str(e)
+            )
             import traceback
             traceback.print_exc()
-            return None
-
-    def save_debug_log(self, output_dir: str):
-        """Save all debug information to file"""
-        debug_file = Path(output_dir) / "api_debug_log.json"
-
-        debug_report = {
-            "debug_session_start": datetime.now().isoformat(),
-            "total_api_calls": len(self.debug_log),
-            "api_calls": self.debug_log
-        }
-
-        with open(debug_file, 'w', encoding='utf-8') as f:
-            json.dump(debug_report, f, indent=2, ensure_ascii=False)
-
-        print(f"🔍 Debug log saved: {debug_file}")
-
-    def run_debug_test(self):
-        """Run a simple debug test"""
-        print("🔍" * 60)
-        print("ENHANCED DEBUG TEST MODE")
-        print("🔍" * 60)
-
-        # Test 1: API Connection
-        print(f"\n🧪 TEST 1: API CONNECTION")
-        connection_ok = self.test_api_connection_debug()
-
-        if not connection_ok:
-            print(f"❌ API connection failed - stopping debug test")
             return False
 
-        # Test 2: Simple Task Submission
-        print(f"\n🧪 TEST 2: SIMPLE TASK SUBMISSION")
-        simple_prompt = "a cute cat sitting on a table --ar 1:1 --v 6.1"
-        task_id = self.submit_midjourney_task_debug(simple_prompt, "1:1")
 
-        if not task_id:
-            print(f"❌ Task submission failed")
-            return False
+def run_autonomous_mode():
+    """Run autonomous mode - continuously process completed story topics for character generation"""
+    print("🤖 AUTONOMOUS CHARACTER GENERATION MODE STARTED")
+    print("🔄 Will process all completed story topics continuously")
+    print("⏹️ Press Ctrl+C to stop gracefully")
 
-        # Test 3: Status Monitoring
-        print(f"\n🧪 TEST 3: STATUS MONITORING (5 cycles)")
-        for cycle in range(5):
-            print(f"\n📊 Status Check Cycle {cycle + 1}/5")
-            result = self.check_task_status_debug(task_id)
+    # Setup graceful shutdown
+    running = True
+    processed_count = 0
+    cycles_count = 0
+    start_time = time.time()
+    last_activity_time = time.time()
 
-            if result and isinstance(result, dict):
-                print(f"✅ Task completed! URL: {result['url']}")
-                break
-            elif result is False:
-                print(f"❌ Task failed")
-                break
+    def signal_handler(signum, frame):
+        nonlocal running
+        print(f"\n⏹️ Received shutdown signal ({signum})")
+        print("🔄 Finishing current character generation and shutting down...")
+        running = False
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    while running:
+        try:
+            # Initialize character generator to check for work
+            character_generator = ServerMidjourneyVisualGenerator()
+            found, project_info = character_generator.get_next_project_from_database()
+
+            if found:
+                cycle_had_work = False
+                cycle_start_time = time.time()
+
+                print(f"\n🔄 CYCLE {cycles_count + 1}: Found completed story topics ready for character generation")
+
+                # Process ALL available topics in this cycle
+                while running and found:
+                    # Process one topic (generator already has the project loaded)
+                    success = character_generator.run_character_generation()
+
+                    if success:
+                        processed_count += 1
+                        cycle_had_work = True
+                        last_activity_time = time.time()
+                        print(f"✅ Character generation completed! (Topic {processed_count})")
+                    else:
+                        print(f"⚠️ Character generation failed")
+                        break
+
+                    # Short pause between topics in same cycle
+                    if running:
+                        time.sleep(2)
+
+                    # Check for more work with fresh generator instance
+                    character_generator = ServerMidjourneyVisualGenerator()
+                    found, project_info = character_generator.get_next_project_from_database()
+
+                # Cycle completed
+                cycles_count += 1
+                cycle_time = time.time() - cycle_start_time
+
+                if cycle_had_work:
+                    print(f"\n📊 CYCLE {cycles_count} COMPLETED:")
+                    print(f"   ✅ Topics processed this cycle: {processed_count}")
+                    print(f"   ⏱️ Cycle time: {cycle_time:.1f} seconds")
+                    print(f"   📈 Total topics processed: {processed_count}")
+
+                # Short pause between cycles
+                if running:
+                    print("⏳ Pausing 10 seconds before next cycle...")
+                    time.sleep(10)
+
             else:
-                print(f"⏳ Still processing... waiting 30 seconds")
-                time.sleep(30)
+                # No topics ready - smart waiting
+                time_since_activity = time.time() - last_activity_time
 
-        # Save debug log
-        debug_dir = Path("debug_output")
-        debug_dir.mkdir(exist_ok=True)
-        self.save_debug_log(str(debug_dir))
+                if time_since_activity < 300:  # Less than 5 minutes since last activity
+                    wait_time = 60  # Wait 1 minute
+                    print("😴 No topics ready. Recent activity detected - waiting 60s...")
+                else:
+                    wait_time = 3600  # Wait 1 hour
+                    print("😴 No topics ready for extended period - waiting 1 hour...")
+                    print(f"⏰ Last activity: {time_since_activity / 60:.1f} minutes ago")
 
-        print(f"\n🔍 DEBUG TEST COMPLETED")
-        return True
+                # Wait with interrupt capability
+                for i in range(wait_time):
+                    if not running:
+                        break
+                    if i > 0 and i % 300 == 0:  # Show progress every 5 minutes
+                        remaining = (wait_time - i) / 60
+                        print(f"⏳ Still waiting... {remaining:.1f} minutes remaining")
+                    time.sleep(1)
 
+        except KeyboardInterrupt:
+            print("\n⏹️ Keyboard interrupt received")
+            break
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            print("⏳ Waiting 30 seconds before retry...")
+            time.sleep(30)
 
-# Quick test function
-def run_debug_test():
-    """Run debug test"""
-    try:
-        generator = EnhancedDebugMidjourneyGenerator()
-        generator.run_debug_test()
-    except Exception as e:
-        print(f"❌ Debug test failed: {e}")
-        import traceback
-        traceback.print_exc()
+    # Shutdown summary
+    runtime = time.time() - start_time
+    print(f"\n🏁 AUTONOMOUS CHARACTER GENERATION SHUTDOWN")
+    print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
+    print(f"🔄 Total cycles: {cycles_count}")
+    print(f"✅ Topics processed: {processed_count}")
+    if processed_count > 0:
+        print(f"📈 Average topics per cycle: {processed_count / cycles_count:.1f}")
+    print("👋 Goodbye!")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
-        run_debug_test()
+    # Check for autonomous mode
+    if len(sys.argv) > 1 and sys.argv[1] == '--autonomous':
+        run_autonomous_mode()
     else:
-        print("🔍 Enhanced Debug Visual Generator")
-        print("Usage: python script.py --debug")
-        print("This will run comprehensive API debugging")
+        # Original single topic mode
+        try:
+            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
+            print("🔗 Database integration with story generator")
+            print("🎭 CHARACTER REFERENCES ONLY")
+            print("🖥️ Production-ready automation")
+            print("=" * 60)
+
+            generator = ServerMidjourneyVisualGenerator()
+            success = generator.run_character_only_generation()
+
+            if success:
+                print("🎊 Character generation completed successfully!")
+            else:
+                print("⚠️ Character generation failed or no projects ready")
+
+        except KeyboardInterrupt:
+            print("\n⏹️ Character generation stopped by user")
+        except Exception as e:
+            print(f"💥 Character generation failed: {e}")
+            CONFIG.logger.error(f"Character generation failed: {e}")
+            import traceback
+
+            traceback.print_exc()
