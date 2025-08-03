@@ -104,7 +104,6 @@ class EnhancedDebugMidjourneyGenerator:
             )
             # Log the full API call
             self.debug_log_api_call("POST", f"{self.base_url}/task", self.headers, payload, response)
-
             print(f"\n📊 RESPONSE ANALYSIS:")
             print(f"Status Code: {response.status_code}")
             print(f"Content Type: {response.headers.get('content-type', 'unknown')}")
