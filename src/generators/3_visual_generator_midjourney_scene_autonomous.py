@@ -107,6 +107,50 @@ class ServerConfig:
         # Get API key
         self.api_key = self.get_midjourney_api_key()
 
+    def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None,
+                           response: requests.Response = None):
+        """Only log debug info when there's an error"""
+        if response and response.status_code != 200:
+            timestamp = datetime.now().isoformat()
+            print(f"\n🔍 ERROR DEBUG [{timestamp}]")
+            print(f"📡 Method: {method} | Status: {response.status_code}")
+            print(f"🌐 URL: {url}")
+
+            if payload:
+                print(f"📦 Request Payload:")
+                print(json.dumps(payload, indent=2))
+
+            print(f"📄 Error Response:")
+            try:
+                error_json = response.json()
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"Raw error: {response.text}")
+            print("🔍" + "=" * 60)
+
+    def clean_prompt_for_piapi(self, prompt: str) -> str:
+        """Remove all characters that might confuse PiAPI's prompt parser"""
+        import re
+
+        # Remove all --ar parameters
+        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
+
+        # Remove all --v parameters
+        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
+
+        # Remove any other -- parameters
+        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
+
+        # KRITIK: Tüm tire karakterlerini çıkar veya değiştir
+        prompt = prompt.replace(' - ', ' ')  # " - " -> " "
+        prompt = prompt.replace('-', ' ')  # Tüm tireleri boşlukla değiştir
+
+        # Extra spaces ve temizlik
+        prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
+        prompt = prompt.strip()
+
+        return prompt
+
     def get_midjourney_api_key(self):
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
@@ -683,47 +727,47 @@ class ServerMidjourneySceneGenerator:
             return False
 
     def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", retry_count: int = 0) -> Optional[str]:
-        """Submit task to Midjourney API with universal content filtering and smart retry - FIXED FROM LOCAL"""
+        """Submit task to Midjourney API with universal content filtering and smart retry - UPDATED WITH DEBUG"""
 
-        # Scene 32/34 için content filter bypass
-        if "Roman garden shrine" in prompt or ("Roman kitchen" in prompt and "clay hearth" in prompt):
-            filtered_prompt = prompt  # COMPLETE BYPASS
-            print(f"🚫 SUBMIT: Content filter BYPASSED for ultra-safe prompt")
-        else:
-            # Apply content policy filter to ALL prompts automatically
-            original_prompt = prompt
-            filtered_prompt = self.apply_content_policy_filter(prompt)
+        # Apply content policy filter to ALL prompts automatically
+        original_prompt = prompt
+        filtered_prompt = self.apply_content_policy_filter(prompt)
 
-            # Log if changes were made
-            if filtered_prompt != original_prompt:
-                print(f"🛡️ Content filter applied:")
-                print(f"   Original: {original_prompt[:80]}...")
-                print(f"   Filtered: {filtered_prompt[:80]}...")
+        # Log if changes were made
+        if filtered_prompt != original_prompt:
+            print(f"🛡️ Content filter applied:")
+            print(f"   Original: {original_prompt[:80]}...")
+            print(f"   Filtered: {filtered_prompt[:80]}...")
+
+        # Clean prompt for PiAPI (remove problematic characters)
+        cleaned_prompt = self.clean_prompt_for_piapi(filtered_prompt)
+
+        if cleaned_prompt != filtered_prompt:
+            print(f"🔧 Prompt cleaned for PiAPI:")
+            print(f"   Before: {filtered_prompt[:80]}...")
+            print(f"   After: {cleaned_prompt[:80]}...")
 
         payload = {
             "model": "midjourney",
             "task_type": "imagine",
             "input": {
-                "prompt": filtered_prompt,
+                "prompt": cleaned_prompt,
                 "aspect_ratio": aspect_ratio,
                 "process_mode": "relax"
             }
         }
 
-        # FIXED: Add debug prints from local version
+        url = f"{self.base_url}/task"
+
+        # Debug info
         print(f"🔍 Exact payload: {payload}")
         print(f"🔍 Headers: {self.headers}")
-        print(f"🔍 URL: {self.base_url}/task")
+        print(f"🔍 URL: {url}")
         print(f"🔍 Retry count: {retry_count}")
 
         try:
             self.api_calls_made += 1
-            response = requests.post(
-                f"{self.base_url}/task",
-                headers=self.headers,
-                json=payload,
-                timeout=30
-            )
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
 
             if response.status_code == 200:
                 result = response.json()
@@ -735,24 +779,30 @@ class ServerMidjourneySceneGenerator:
                     return task_id
                 else:
                     print(f"❌ API Error: {result.get('message', 'Unknown error')}")
+                    self.debug_log_on_error("POST", url, self.headers, payload, response)
                     return None
             elif response.status_code == 500:
-                # Rate limiting detected
+                # Rate limiting detected - show debug info
+                self.debug_log_on_error("POST", url, self.headers, payload, response)
+
                 if retry_count < 3:
                     wait_time = (retry_count + 1) * 10  # 10, 20, 30 seconds
                     print(f"⚠️ HTTP 500 - Waiting {wait_time}s before retry {retry_count + 1}/3")
                     time.sleep(wait_time)
-                    # FIXED: Use original_prompt for retry (critical fix from local version)
+                    # Use original_prompt for retry
                     return self.submit_midjourney_task(original_prompt, aspect_ratio, retry_count + 1)
                 else:
                     print(f"❌ HTTP 500 - Max retries reached")
                     return None
             else:
                 print(f"❌ HTTP Error: {response.status_code}")
+                self.debug_log_on_error("POST", url, self.headers, payload, response)
                 return None
 
         except Exception as e:
             print(f"❌ Request failed: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def check_task_status(self, task_id: str) -> Optional[Dict]:
@@ -842,15 +892,12 @@ class ServerMidjourneySceneGenerator:
         return missing_scenes
 
     def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build V7 scene prompt using 60-word template system"""
+        """Build V7 scene prompt using clean template system"""
 
         base_prompt = scene.get("enhanced_prompt", scene["prompt"])
         scene_num = scene.get("scene_number")
 
         print(f"🎬 Building V7 prompt for Scene {scene_num}")
-
-        # Apply V7 content filter
-        filtered_base = self.apply_content_policy_filter(base_prompt)
 
         # Character references
         char_refs = []
@@ -859,27 +906,27 @@ class ServerMidjourneySceneGenerator:
                 if char_name in self.character_references:
                     char_refs.append(self.character_references[char_name])
 
-        # Scene-specific (15 words max)
-        scene_words = filtered_base.split()
-        if len(scene_words) > 15:
-            scene_specific = " ".join(scene_words[:15])
+        # Scene-specific (keep it simple - 20 words max)
+        scene_words = base_prompt.split()
+        if len(scene_words) > 20:
+            scene_specific = " ".join(scene_words[:20])
         else:
-            scene_specific = filtered_base
+            scene_specific = base_prompt
 
-        # ✅ USE TEMPLATE - Build 60-word prompt
+        # Build clean prompt
         prompt_parts = []
 
         if char_refs:
             prompt_parts.extend(char_refs)
 
         prompt_parts.append(scene_specific)
-        prompt_parts.append(CONFIG.prompt_template["default_core"])  # ✅ TEMPLATE ACTIVE
-        prompt_parts.append(CONFIG.prompt_template["style_modifiers"])  # ✅ TEMPLATE ACTIVE
+        prompt_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
+        prompt_parts.append("warm golden light deep shadows atmospheric")
         prompt_parts.append("--v 7.0 --ar 16:9")
 
         final_prompt = " ".join(prompt_parts)
 
-        print(f"🔧 V7 template prompt: {final_prompt[:150]}...")
+        print(f"🔧 Clean scene prompt: {final_prompt[:150]}...")
 
         return final_prompt
 
