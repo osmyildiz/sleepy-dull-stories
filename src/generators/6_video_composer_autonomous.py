@@ -91,33 +91,32 @@ class DatabaseVideoManager:
 
 class Enhanced4KVideoComposer:
     def __init__(self):
-        def __init__(self):
-            # Setup paths
-            current_file = Path(__file__).resolve()
-            self.project_root = current_file.parent.parent.parent
+        # Setup paths
+        current_file = Path(__file__).resolve()
+        self.project_root = current_file.parent.parent.parent
 
-            self.paths = {
-                'BASE_DIR': str(self.project_root),
-                'DATA_DIR': str(self.project_root / 'data'),
-                'OUTPUT_DIR': str(self.project_root / 'output'),
-                'OVERLAY_DIR': str(self.project_root / 'overlays')
-            }
+        self.paths = {
+            'BASE_DIR': str(self.project_root),
+            'DATA_DIR': str(self.project_root / 'data'),
+            'OUTPUT_DIR': str(self.project_root / 'output'),
+            'OVERLAY_DIR': str(self.project_root / 'overlays')
+        }
 
-            # Current project tracking
-            self.current_topic_id = None
-            self.current_output_dir = None
-            self.current_topic = None
+        # Current project tracking
+        self.current_topic_id = None
+        self.current_output_dir = None
+        self.current_topic = None
 
-            # Database manager
-            db_path = Path(self.paths['DATA_DIR']) / 'production.db'
-            self.db_manager = DatabaseVideoManager(str(db_path))
+        # Database manager
+        db_path = Path(self.paths['DATA_DIR']) / 'production.db'
+        self.db_manager = DatabaseVideoManager(str(db_path))
 
-            # Overlay path
-            self.overlay_path = Path(self.paths['OVERLAY_DIR'])
+        # Overlay path
+        self.overlay_path = Path(self.paths['OVERLAY_DIR'])
 
-            # Setup logging
-            logging.basicConfig(level=logging.INFO)
-            self.logger = logging.getLogger("VideoComposer")
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger("VideoComposer")
 
         # 4K Configuration
         self.video_4k_config = {
