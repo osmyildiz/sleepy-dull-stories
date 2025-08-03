@@ -464,7 +464,7 @@ class ServerMidjourneySceneGenerator:
         sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
         if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
             if "no explicit content" not in filtered_prompt.lower():
-                filtered_prompt += ", appropriate content, no explicit material"
+                filtered_prompt += ", appropriate content"
 
         return filtered_prompt
 
