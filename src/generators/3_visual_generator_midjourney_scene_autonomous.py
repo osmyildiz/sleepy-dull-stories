@@ -786,6 +786,14 @@ class ServerMidjourneySceneGenerator:
                     return None
             elif response.status_code == 500:
                 # Rate limiting detected - show debug info
+                print(f"🔍 HTTP 500 DEBUG:")
+                print(f"Response text: {response.text}")
+                try:
+                    error_json = response.json()
+                    print(f"Error JSON: {json.dumps(error_json, indent=2)}")
+                except:
+                    print("Could not parse as JSON")
+
                 self.debug_log_on_error("POST", url, self.headers, payload, response)
 
                 if retry_count < 3:
@@ -916,22 +924,30 @@ class ServerMidjourneySceneGenerator:
         else:
             scene_specific = base_prompt
 
-        # Build clean prompt
-        prompt_parts = []
+        # Build raw prompt first
+        raw_prompt_parts = []
 
         if char_refs:
-            prompt_parts.extend(char_refs)
+            raw_prompt_parts.extend(char_refs)
 
-        prompt_parts.append(scene_specific)
-        prompt_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
-        prompt_parts.append("warm golden light deep shadows atmospheric")
-        prompt_parts.append("--v 7.0 --ar 16:9")
+        raw_prompt_parts.append(scene_specific)
+        raw_prompt_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
+        raw_prompt_parts.append("warm golden light deep shadows atmospheric")
+        raw_prompt_parts.append("--v 7.0 --ar 16:9")
 
-        final_prompt = " ".join(prompt_parts)
+        raw_prompt = " ".join(raw_prompt_parts)
 
-        print(f"🔧 Clean scene prompt: {final_prompt[:150]}...")
+        # Clean prompt for PiAPI (remove problematic characters)
+        cleaned_prompt = self.clean_prompt_for_piapi(raw_prompt)
 
-        return final_prompt
+        if cleaned_prompt != raw_prompt:
+            print(f"🔧 Scene prompt cleaned for PiAPI:")
+            print(f"   Before: {raw_prompt[:80]}...")
+            print(f"   After: {cleaned_prompt[:80]}...")
+
+        print(f"🔧 Final clean scene prompt: {cleaned_prompt[:150]}...")
+
+        return cleaned_prompt
 
     def check_task_status_detailed(self, task_id: str, scene_num: int) -> Optional[Dict]:
         """Check task status with detailed logging - EXACT COPY FROM LOCAL"""
