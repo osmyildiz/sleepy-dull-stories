@@ -107,27 +107,6 @@ class ServerConfig:
         # Get API key
         self.api_key = self.get_midjourney_api_key()
 
-    def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None,
-                           response: requests.Response = None):
-        """Only log debug info when there's an error"""
-        if response and response.status_code != 200:
-            timestamp = datetime.now().isoformat()
-            print(f"\n🔍 ERROR DEBUG [{timestamp}]")
-            print(f"📡 Method: {method} | Status: {response.status_code}")
-            print(f"🌐 URL: {url}")
-
-            if payload:
-                print(f"📦 Request Payload:")
-                print(json.dumps(payload, indent=2))
-
-            print(f"📄 Error Response:")
-            try:
-                error_json = response.json()
-                print(json.dumps(error_json, indent=2))
-            except:
-                print(f"Raw error: {response.text}")
-            print("🔍" + "=" * 60)
-
 
     def get_midjourney_api_key(self):
         """Get Midjourney API key from multiple sources"""
@@ -165,28 +144,6 @@ class ServerConfig:
 
         print("✅ Midjourney API key loaded successfully")
         return api_key
-    def clean_prompt_for_piapi(self, prompt: str) -> str:
-        """Remove all characters that might confuse PiAPI's prompt parser"""
-        import re
-
-        # Remove all --ar parameters
-        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
-
-        # Remove all --v parameters
-        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
-
-        # Remove any other -- parameters
-        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
-
-        # KRITIK: Tüm tire karakterlerini çıkar veya değiştir
-        prompt = prompt.replace(' - ', ' ')  # " - " -> " "
-        prompt = prompt.replace('-', ' ')  # Tüm tireleri boşlukla değiştir
-
-        # Extra spaces ve temizlik
-        prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
-        prompt = prompt.strip()
-
-        return prompt
 
 
     def setup_logging(self):
@@ -532,6 +489,50 @@ class ServerMidjourneySceneGenerator:
             return False
 
         return True
+    def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None,
+                           response: requests.Response = None):
+        """Only log debug info when there's an error"""
+        if response and response.status_code != 200:
+            timestamp = datetime.now().isoformat()
+            print(f"\n🔍 ERROR DEBUG [{timestamp}]")
+            print(f"📡 Method: {method} | Status: {response.status_code}")
+            print(f"🌐 URL: {url}")
+
+            if payload:
+                print(f"📦 Request Payload:")
+                print(json.dumps(payload, indent=2))
+
+            print(f"📄 Error Response:")
+            try:
+                error_json = response.json()
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"Raw error: {response.text}")
+            print("🔍" + "=" * 60)
+
+    def clean_prompt_for_piapi(self, prompt: str) -> str:
+        """Remove all characters that might confuse PiAPI's prompt parser"""
+        import re
+
+        # Remove all --ar parameters
+        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
+
+        # Remove all --v parameters
+        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
+
+        # Remove any other -- parameters
+        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
+
+        # KRITIK: Tüm tire karakterlerini çıkar veya değiştir
+        prompt = prompt.replace(' - ', ' ')  # " - " -> " "
+        prompt = prompt.replace('-', ' ')  # Tüm tireleri boşlukla değiştir
+
+        # Extra spaces ve temizlik
+        prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
+        prompt = prompt.strip()
+
+        return prompt
+
 
     def extract_character_role(self, character: Dict) -> str:
         """Extract character role from description dynamically - EXACT COPY FROM LOCAL"""
