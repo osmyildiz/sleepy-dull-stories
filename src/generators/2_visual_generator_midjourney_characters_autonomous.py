@@ -1,7 +1,9 @@
 """
-Sleepy Dull Stories - AUTONOMOUS Midjourney Visual Generator
-COMPLETE server integration with database + story generator output integration
-Production-optimized with complete automation and error recovery + AUTONOMOUS MODE
+Sleepy Dull Stories - ROBUST Midjourney Visual Generator
+✅ Smart debug (only on errors)
+✅ Skip existing characters
+✅ Individual character error handling
+✅ Partial success acceptance
 """
 
 import requests
@@ -277,7 +279,7 @@ class DatabaseTopicManager:
 
 
 class ServerMidjourneyVisualGenerator:
-    """Server-ready Midjourney visual generator with database integration"""
+    """Server-ready Midjourney visual generator with robust error handling"""
 
     def __init__(self):
         self.api_key = CONFIG.api_key
@@ -305,9 +307,52 @@ class ServerMidjourneyVisualGenerator:
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
         self.db_manager = DatabaseTopicManager(str(db_path))
 
-        print("🚀 Server Midjourney Visual Generator v1.0 Initialized")
+        print("🚀 Server Midjourney Visual Generator v2.0 Initialized")
         print(f"🔑 API Key: {self.api_key[:8]}...")
         print(f"🌐 Base URL: {self.base_url}")
+
+    def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None, response: requests.Response = None):
+        """Only log debug info when there's an error"""
+        if response and response.status_code != 200:
+            timestamp = datetime.now().isoformat()
+            print(f"\n🔍 ERROR DEBUG [{timestamp}]")
+            print(f"📡 Method: {method} | Status: {response.status_code}")
+            print(f"🌐 URL: {url}")
+
+            if payload:
+                print(f"📦 Request Payload:")
+                print(json.dumps(payload, indent=2))
+
+            print(f"📄 Error Response:")
+            try:
+                error_json = response.json()
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"Raw error: {response.text}")
+            print("🔍" + "="*60)
+
+    def check_existing_character(self, char_name: str) -> bool:
+        """Check if character already exists to avoid regeneration"""
+        if not hasattr(self, 'characters_dir'):
+            return False
+
+        safe_name = char_name.lower().replace(" ", "_").replace(".", "")
+        image_path = self.characters_dir / f"{safe_name}.png"
+        json_path = self.characters_dir / f"{safe_name}.json"
+
+        if image_path.exists() and json_path.exists():
+            # Verify file is not empty and valid
+            try:
+                if os.path.getsize(image_path) > 1000:  # At least 1KB
+                    with open(json_path, 'r') as f:
+                        json.load(f)  # Test if JSON is valid
+                    print(f"   ✅ {char_name} already exists, skipping")
+                    return True
+            except:
+                # File corrupted, will regenerate
+                pass
+
+        return False
 
     def log_step(self, step: str, status: str = "START", metadata: Dict = None):
         """Log generation steps with production logging"""
@@ -419,7 +464,8 @@ class ServerMidjourneyVisualGenerator:
             "historical_period": self.current_historical_period,
             "generation_log": self.generation_log,
             "server_optimized": True,
-            "character_only_mode": True
+            "character_only_mode": True,
+            "robust_error_handling": True
         }
 
         report_path = output_dir / "character_generation_report.json"
@@ -519,6 +565,7 @@ class ServerMidjourneyVisualGenerator:
                 self.log_step("✅ API Connection OK", "SUCCESS", {"response": result})
                 return True
             else:
+                self.debug_log_on_error("POST", f"{self.base_url}/task", self.headers, payload, response)
                 self.log_step(f"❌ API Error: {response.status_code}", "ERROR")
                 return False
 
@@ -526,8 +573,8 @@ class ServerMidjourneyVisualGenerator:
             self.log_step(f"❌ Connection Test Failed: {e}", "ERROR")
             return False
 
-    def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9") -> Optional[str]:
-        """Submit task to Midjourney API"""
+    def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", char_name: str = "") -> Optional[str]:
+        """Robust task submission with error handling and debug on error"""
         payload = {
             "model": "midjourney",
             "task_type": "imagine",
@@ -539,31 +586,35 @@ class ServerMidjourneyVisualGenerator:
             }
         }
 
+        url = f"{self.base_url}/task"
+
         try:
             self.api_calls_made += 1
-            response = requests.post(
-                f"{self.base_url}/task",
-                headers=self.headers,
-                json=payload,
-                timeout=30
-            )
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
 
             if response.status_code == 200:
                 result = response.json()
                 if result.get("code") == 200:
                     task_data = result.get("data", {})
                     task_id = task_data.get("task_id")
-                    self.log_step(f"✅ Task submitted: {task_id}", "SUCCESS")
+                    self.log_step(f"✅ Task submitted: {task_id} ({char_name})", "SUCCESS")
                     return task_id
                 else:
-                    self.log_step(f"❌ API Error: {result}", "ERROR")
+                    # API error - show debug
+                    self.debug_log_on_error("POST", url, self.headers, payload, response)
+                    self.log_step(f"❌ API Error for {char_name}: {result.get('message', 'Unknown')}", "ERROR")
                     return None
             else:
-                self.log_step(f"❌ HTTP Error: {response.status_code}", "ERROR")
+                # HTTP error - show debug
+                self.debug_log_on_error("POST", url, self.headers, payload, response)
+                self.log_step(f"❌ HTTP {response.status_code} for {char_name}", "ERROR")
                 return None
 
+        except requests.exceptions.Timeout:
+            self.log_step(f"❌ Timeout for {char_name}", "ERROR")
+            return None
         except Exception as e:
-            self.log_step(f"❌ Request failed: {e}", "ERROR")
+            self.log_step(f"❌ Request failed for {char_name}: {e}", "ERROR")
             return None
 
     def check_task_status(self, task_id: str) -> Optional[Dict]:
@@ -633,8 +684,8 @@ class ServerMidjourneyVisualGenerator:
             return False
 
     def generate_all_characters_parallel(self, character_profiles: Dict):
-        """Generate all marketing characters in parallel"""
-        self.log_step("🎭 Starting parallel character generation")
+        """Generate all marketing characters with robust error handling"""
+        self.log_step("🎭 Starting robust parallel character generation")
 
         main_characters = character_profiles.get("main_characters", [])
         marketing_characters = [char for char in main_characters if char.get("use_in_marketing", False)]
@@ -643,10 +694,42 @@ class ServerMidjourneyVisualGenerator:
             self.log_step("❌ No marketing characters found", "ERROR")
             return False
 
-        # Submit all character tasks
-        character_tasks = {}
+        print(f"📊 Total characters to process: {len(marketing_characters)}")
+
+        # Check existing characters first
+        characters_to_generate = []
+        existing_characters = {}
 
         for character in marketing_characters:
+            char_name = character["name"]
+
+            if self.check_existing_character(char_name):
+                # Load existing character reference
+                safe_name = char_name.lower().replace(" ", "_").replace(".", "")
+                json_path = self.characters_dir / f"{safe_name}.json"
+                try:
+                    with open(json_path, 'r') as f:
+                        char_data = json.load(f)
+                        self.character_references[char_name] = char_data.get("image_url", "")
+                        existing_characters[char_name] = char_data
+                except:
+                    # Corrupted, will regenerate
+                    characters_to_generate.append(character)
+            else:
+                characters_to_generate.append(character)
+
+        print(f"   ✅ Existing characters: {len(existing_characters)}")
+        print(f"   🔄 Characters to generate: {len(characters_to_generate)}")
+
+        if not characters_to_generate:
+            print("   🎉 All characters already exist!")
+            return len(existing_characters) > 0
+
+        # Submit tasks for new characters only
+        character_tasks = {}
+        failed_submissions = []
+
+        for character in characters_to_generate:
             char_name = character["name"]
             role = self.extract_character_role(character)
             physical = character.get('physical_description', '').split(',')[0].strip()
@@ -655,23 +738,30 @@ class ServerMidjourneyVisualGenerator:
 
             print(f"🎭 Submitting: {char_name} → {role}")
 
-            task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3")
+            task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3", char_name=char_name)
+
             if task_id:
                 character_tasks[char_name] = {
                     "task_id": task_id,
                     "prompt": prompt,
                     "character_data": character
                 }
+            else:
+                failed_submissions.append(char_name)
+                print(f"   ❌ Failed to submit: {char_name}")
 
             time.sleep(1)  # Brief rate limiting
 
-        if not character_tasks:
-            self.log_step("❌ No character tasks submitted", "ERROR")
+        print(f"📊 SUBMISSION SUMMARY:")
+        print(f"   ✅ Successfully submitted: {len(character_tasks)}")
+        print(f"   ❌ Failed submissions: {len(failed_submissions)}")
+        print(f"   📦 Existing characters: {len(existing_characters)}")
+
+        if not character_tasks and not existing_characters:
+            self.log_step("❌ No character tasks submitted and no existing characters", "ERROR")
             return False
 
-        self.log_step(f"✅ Submitted {len(character_tasks)} character tasks", "SUCCESS")
-
-        # Monitor all tasks
+        # Monitor submitted tasks
         completed_characters = {}
         max_cycles = CONFIG.visual_config["max_wait_cycles"]
 
@@ -679,16 +769,15 @@ class ServerMidjourneyVisualGenerator:
             if not character_tasks:
                 break
 
-            completed_count = len(completed_characters)
-            total_count = completed_count + len(character_tasks)
-            self.log_step(f"📊 Character Cycle {cycle + 1}: {completed_count}/{total_count} completed")
+            completed_count = len(completed_characters) + len(existing_characters)
+            total_count = len(marketing_characters)
+            self.log_step(f"📊 Cycle {cycle + 1}: {completed_count}/{total_count} total completed")
 
             # Check each pending task
             chars_to_remove = []
 
             for char_name, task_data in character_tasks.items():
                 task_id = task_data["task_id"]
-
                 result_data = self.check_task_status(task_id)
 
                 if result_data and isinstance(result_data, dict):
@@ -715,11 +804,10 @@ class ServerMidjourneyVisualGenerator:
             time.sleep(CONFIG.visual_config["wait_interval_seconds"])
 
         # Download all completed characters
-        successful_downloads = 0
+        successful_downloads = len(existing_characters)  # Count existing ones
 
         for char_name, char_data in completed_characters.items():
             result_data = char_data["result_data"]
-
             safe_name = char_name.lower().replace(" ", "_").replace(".", "")
             image_path = self.characters_dir / f"{safe_name}.png"
 
@@ -743,17 +831,30 @@ class ServerMidjourneyVisualGenerator:
                 with open(json_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-        self.log_step(f"✅ Character generation complete: {successful_downloads}/{len(marketing_characters)}",
-                      "SUCCESS")
+        print(f"\n📊 FINAL CHARACTER GENERATION SUMMARY:")
+        print(f"   📦 Total characters needed: {len(marketing_characters)}")
+        print(f"   ✅ Successfully available: {successful_downloads}")
+        print(f"   🔄 Newly generated: {len(completed_characters)}")
+        print(f"   📁 Previously existing: {len(existing_characters)}")
+        print(f"   ❌ Failed submissions: {len(failed_submissions)}")
+        print(f"   ⏳ Timed out: {len(character_tasks)}")  # Remaining tasks that timed out
 
-        return successful_downloads > 0
+        # Success if we have at least 50% of characters
+        success_threshold = len(marketing_characters) * 0.5
+        is_successful = successful_downloads >= success_threshold
+
+        self.log_step(f"✅ Character generation {'SUCCESS' if is_successful else 'PARTIAL'}: {successful_downloads}/{len(marketing_characters)}",
+                     "SUCCESS" if is_successful else "ERROR")
+
+        return is_successful
 
     def run_character_only_generation(self) -> bool:
         """Run CHARACTER-ONLY generation process for server environment"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY CHARACTER GENERATOR v1.0")
+        print("SERVER MIDJOURNEY CHARACTER GENERATOR v2.0")
         print("🔗 Database integrated")
-        print("🎭 CHARACTER REFERENCES ONLY")
+        print("🎭 ROBUST CHARACTER GENERATION")
+        print("✅ Skip existing | ✅ Individual error handling | ✅ Smart debug")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
 
@@ -778,7 +879,7 @@ class ServerMidjourneyVisualGenerator:
             # Step 3: Load story generator outputs (characters only)
             character_profiles = self.load_character_profiles_only()
 
-            # Step 4: Generate characters in parallel
+            # Step 4: Generate characters in robust parallel mode
             characters_success = self.generate_all_characters_parallel(character_profiles)
 
             # Step 5: Save generation report
@@ -799,7 +900,7 @@ class ServerMidjourneyVisualGenerator:
             # Final success assessment
             if characters_success:
                 print("\n" + "🎉" * 50)
-                print("CHARACTER GENERATION SUCCESSFUL!")
+                print("ROBUST CHARACTER GENERATION SUCCESSFUL!")
                 print(f"✅ Characters Generated: {characters_count}")
                 print(f"✅ API Calls: {self.api_calls_made}")
                 print(f"✅ Downloads: {self.successful_downloads}")
@@ -825,7 +926,7 @@ class ServerMidjourneyVisualGenerator:
 
 def run_autonomous_mode():
     """Run autonomous mode - continuously process completed story topics for character generation"""
-    print("🤖 AUTONOMOUS CHARACTER GENERATION MODE STARTED")
+    print("🤖 AUTONOMOUS ROBUST CHARACTER GENERATION MODE STARTED")
     print("🔄 Will process all completed story topics continuously")
     print("⏹️ Press Ctrl+C to stop gracefully")
 
@@ -860,7 +961,7 @@ def run_autonomous_mode():
                 # Process ALL available topics in this cycle
                 while running and found:
                     # Process one topic (generator already has the project loaded)
-                    success = character_generator.run_character_generation()
+                    success = character_generator.run_character_only_generation()
 
                     if success:
                         processed_count += 1
@@ -941,9 +1042,10 @@ if __name__ == "__main__":
     else:
         # Original single topic mode
         try:
-            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR")
+            print("🚀 SERVER MIDJOURNEY CHARACTER GENERATOR v2.0")
             print("🔗 Database integration with story generator")
-            print("🎭 CHARACTER REFERENCES ONLY")
+            print("🎭 ROBUST CHARACTER GENERATION")
+            print("✅ Skip existing | ✅ Individual error handling | ✅ Smart debug")
             print("🖥️ Production-ready automation")
             print("=" * 60)
 
@@ -951,7 +1053,7 @@ if __name__ == "__main__":
             success = generator.run_character_only_generation()
 
             if success:
-                print("🎊 Character generation completed successfully!")
+                print("🎊 Robust character generation completed successfully!")
             else:
                 print("⚠️ Character generation failed or no projects ready")
 
@@ -961,5 +1063,4 @@ if __name__ == "__main__":
             print(f"💥 Character generation failed: {e}")
             CONFIG.logger.error(f"Character generation failed: {e}")
             import traceback
-
             traceback.print_exc()
