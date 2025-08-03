@@ -102,7 +102,6 @@ class EnhancedDebugMidjourneyGenerator:
                 json=payload,
                 timeout=10
             )
-
             # Log the full API call
             self.debug_log_api_call("POST", f"{self.base_url}/task", self.headers, payload, response)
 
