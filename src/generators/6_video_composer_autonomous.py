@@ -687,7 +687,7 @@ class Enhanced4KVideoComposer:
             traceback.print_exc()
             return None
 
-        def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
+    def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
             """Get next completed project that needs VIDEO generation"""
             print("🔍 Finding completed project for video generation")
 
