@@ -717,104 +717,104 @@ class Enhanced4KVideoComposer:
             print(f"✅ Found project: {topic}")
             return True, project_info
 
-        def get_audio_duration(self, audio_file: Path) -> float:
-            """Get audio file duration in seconds"""
-            try:
-                probe = ffmpeg.probe(str(audio_file))
-                duration = float(probe['format']['duration'])
-                return duration
-            except Exception as e:
-                print(f"⚠️ Could not get duration for {audio_file}: {e}")
-                return 0.0
-
-        def run_video_generation(self) -> bool:
-            """Main video generation process"""
-            print("🎬" * 50)
-            print("ENHANCED 4K VIDEO COMPOSER")
-            print("🎬" * 50)
-
-            # Get next project from database
-            found, project_info = self.get_next_project_from_database()
-            if not found:
-                return False
-
-            print(f"✅ Project found: {project_info['topic']}")
-            print(f"📁 Output directory: {project_info['output_dir']}")
-
-            try:
-                # Load story data
-                output_dir = Path(self.current_output_dir)
-                story_file = output_dir / "story_structure.json"
-
-                if not story_file.exists():
-                    print(f"❌ Story structure not found: {story_file}")
-                    return False
-
-                with open(story_file, 'r', encoding='utf-8') as f:
-                    story_data = json.load(f)
-
-                # Extract scene data
-                story_scenes = story_data.get("scenes", [])
-                hook_subscribe_data = (
-                    story_data.get("hook_scene"),
-                    story_data.get("subscribe_scene")
-                )
-
-                total_duration = sum(scene.get("duration_seconds", 0) for scene in story_scenes)
-
-                print(f"📊 Story loaded: {len(story_scenes)} scenes, {total_duration / 60:.1f} minutes")
-
-                # Create 4K video
-                start_time = time.time()
-                final_video = self.create_4k_video_scene_by_scene_style(
-                    story_scenes, hook_subscribe_data, 0, total_duration
-                )
-                processing_time = (time.time() - start_time) / 60  # minutes
-
-                if final_video and final_video.exists():
-                    # Get video stats
-                    file_size_mb = os.path.getsize(final_video) / (1024 * 1024)
-                    video_duration = self.get_audio_duration(final_video)
-
-                    # Update database
-                    self.db_manager.mark_video_generation_completed(
-                        self.current_topic_id, video_duration, file_size_mb, processing_time
-                    )
-
-                    print(f"\n🎉 VIDEO GENERATION COMPLETED!")
-                    print(f"📁 File: {final_video}")
-                    print(f"📦 Size: {file_size_mb:.1f} MB")
-                    print(f"⏱️ Processing time: {processing_time:.1f} minutes")
-                    return True
-                else:
-                    print("❌ Video generation failed")
-                    return False
-
-            except Exception as e:
-                print(f"❌ Video generation failed: {e}")
-                import traceback
-                traceback.print_exc()
-                return False
-
-    if __name__ == "__main__":
+    def get_audio_duration(self, audio_file: Path) -> float:
+        """Get audio file duration in seconds"""
         try:
-            print("🚀 ENHANCED 4K VIDEO COMPOSER")
-            print("🔗 Database integration")
-            print("📺 4K Video Generation")
-            print("♻️ Scene video caching")
-            print("=" * 60)
-
-            composer = Enhanced4KVideoComposer()
-            success = composer.run_video_generation()
-
-            if success:
-                print("🎊 4K Video generation completed successfully!")
-            else:
-                print("⚠️ Video generation failed or no projects ready")
-
-        except KeyboardInterrupt:
-            print("\n⏹️ Video generation stopped by user")
+            probe = ffmpeg.probe(str(audio_file))
+            duration = float(probe['format']['duration'])
+            return duration
         except Exception as e:
-            print(f"💥 Video generation failed: {e}")
+            print(f"⚠️ Could not get duration for {audio_file}: {e}")
+            return 0.0
+
+    def run_video_generation(self) -> bool:
+        """Main video generation process"""
+        print("🎬" * 50)
+        print("ENHANCED 4K VIDEO COMPOSER")
+        print("🎬" * 50)
+
+        # Get next project from database
+        found, project_info = self.get_next_project_from_database()
+        if not found:
+            return False
+
+        print(f"✅ Project found: {project_info['topic']}")
+        print(f"📁 Output directory: {project_info['output_dir']}")
+
+        try:
+            # Load story data
+            output_dir = Path(self.current_output_dir)
+            story_file = output_dir / "story_structure.json"
+
+            if not story_file.exists():
+                print(f"❌ Story structure not found: {story_file}")
+                return False
+
+            with open(story_file, 'r', encoding='utf-8') as f:
+                story_data = json.load(f)
+
+            # Extract scene data
+            story_scenes = story_data.get("scenes", [])
+            hook_subscribe_data = (
+                story_data.get("hook_scene"),
+                story_data.get("subscribe_scene")
+            )
+
+            total_duration = sum(scene.get("duration_seconds", 0) for scene in story_scenes)
+
+            print(f"📊 Story loaded: {len(story_scenes)} scenes, {total_duration / 60:.1f} minutes")
+
+            # Create 4K video
+            start_time = time.time()
+            final_video = self.create_4k_video_scene_by_scene_style(
+                story_scenes, hook_subscribe_data, 0, total_duration
+            )
+            processing_time = (time.time() - start_time) / 60  # minutes
+
+            if final_video and final_video.exists():
+                # Get video stats
+                file_size_mb = os.path.getsize(final_video) / (1024 * 1024)
+                video_duration = self.get_audio_duration(final_video)
+
+                # Update database
+                self.db_manager.mark_video_generation_completed(
+                    self.current_topic_id, video_duration, file_size_mb, processing_time
+                )
+
+                print(f"\n🎉 VIDEO GENERATION COMPLETED!")
+                print(f"📁 File: {final_video}")
+                print(f"📦 Size: {file_size_mb:.1f} MB")
+                print(f"⏱️ Processing time: {processing_time:.1f} minutes")
+                return True
+            else:
+                print("❌ Video generation failed")
+                return False
+
+        except Exception as e:
+            print(f"❌ Video generation failed: {e}")
             import traceback
             traceback.print_exc()
+            return False
+
+if __name__ == "__main__":
+    try:
+        print("🚀 ENHANCED 4K VIDEO COMPOSER")
+        print("🔗 Database integration")
+        print("📺 4K Video Generation")
+        print("♻️ Scene video caching")
+        print("=" * 60)
+
+        composer = Enhanced4KVideoComposer()
+        success = composer.run_video_generation()
+
+        if success:
+            print("🎊 4K Video generation completed successfully!")
+        else:
+            print("⚠️ Video generation failed or no projects ready")
+
+    except KeyboardInterrupt:
+        print("\n⏹️ Video generation stopped by user")
+    except Exception as e:
+        print(f"💥 Video generation failed: {e}")
+        import traceback
+        traceback.print_exc()
