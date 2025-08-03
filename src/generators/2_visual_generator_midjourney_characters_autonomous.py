@@ -870,19 +870,23 @@ class ServerMidjourneyVisualGenerator:
         return is_successful
 
     def clean_prompt_for_piapi(self, prompt: str) -> str:
-        """Remove all Midjourney parameters that conflict with API parameters"""
+        """Remove all characters that might confuse PiAPI's prompt parser"""
         import re
 
-        # Remove all --ar parameters (handled by aspect_ratio)
+        # Remove all --ar parameters
         prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
 
-        # Remove all --v parameters (API handles version automatically)
+        # Remove all --v parameters
         prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
 
-        # Remove any other -- parameters that might cause issues
+        # Remove any other -- parameters
         prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
 
-        # Remove extra spaces and clean up
+        # KRITIK: Tüm tire karakterlerini çıkar veya değiştir
+        prompt = prompt.replace(' - ', ' ')  # " - " -> " "
+        prompt = prompt.replace('-', ' ')  # Tüm tireleri boşlukla değiştir
+
+        # Extra spaces ve temizlik
         prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
         prompt = prompt.strip()
 
