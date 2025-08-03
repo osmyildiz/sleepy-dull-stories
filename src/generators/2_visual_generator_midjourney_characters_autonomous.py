@@ -371,6 +371,7 @@ class ServerMidjourneyVisualGenerator:
         print(f"{icon} {step} [Calls: {self.api_calls_made}] [Downloads: {self.successful_downloads}]")
         CONFIG.logger.info(f"{step} - Status: {status} - Project: {self.current_topic_id}")
 
+
     def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
         """Get next completed story project that needs CHARACTER generation"""
         self.log_step("🔍 Finding completed story project for character generation")
@@ -750,7 +751,12 @@ class ServerMidjourneyVisualGenerator:
             role = self.extract_character_role(character)
             physical = character.get('physical_description', '').split(',')[0].strip()
 
-            prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference"
+            raw_prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference"
+
+            # Prompt'u API için temizle
+            prompt = self.clean_prompt_for_piapi(raw_prompt)
+
+            print(f"   📝 Clean prompt: {prompt}")
             print(f"🎭 Submitting: {char_name} → {role}")
 
             task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3", char_name=char_name)
@@ -862,6 +868,25 @@ class ServerMidjourneyVisualGenerator:
                      "SUCCESS" if is_successful else "ERROR")
 
         return is_successful
+
+    def clean_prompt_for_piapi(self, prompt: str) -> str:
+        """Remove all Midjourney parameters that conflict with API parameters"""
+        import re
+
+        # Remove all --ar parameters (handled by aspect_ratio)
+        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
+
+        # Remove all --v parameters (API handles version automatically)
+        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
+
+        # Remove any other -- parameters that might cause issues
+        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
+
+        # Remove extra spaces and clean up
+        prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
+        prompt = prompt.strip()
+
+        return prompt
 
     def run_character_only_generation(self) -> bool:
         """Run CHARACTER-ONLY generation process for server environment"""
