@@ -603,8 +603,271 @@ class ServerMidjourneyVisualGenerator:
 
         return f"{role_prefix} {base_role}"
 
+    # Kodunuzda bu fonksiyonları generate_character_prompt()'dan ÖNCE ekleyin:
+
+    def clean_prompt_for_midjourney(self, prompt: str) -> str:
+        """Midjourney yasaklı kelimelerini kapsamlı temizleme"""
+
+        banned_words_replacements = {
+            # Şiddet ve savaş
+            "violence": "conflict",
+            "violent": "intense",
+            "war": "service",
+            "battle": "duty",
+            "fight": "struggle",
+            "fighting": "working",
+            "blood": "heritage",
+            "bloody": "intense",
+            "death": "loss",
+            "dead": "still",
+            "kill": "overcome",
+            "killing": "overcoming",
+            "murder": "mystery",
+            "weapon": "tool",
+            "weapons": "tools",
+            "sword": "blade",
+            "gun": "implement",
+            "knife": "blade",
+            "arrow": "dart",
+            "spear": "staff",
+            "memories of violence": "memories of past struggles",
+            "shadowed by memories of violence": "marked by experiences of duty and service",
+            "haunted by": "shaped by",
+            "trauma": "experience",
+            "traumatic": "challenging",
+            "brutal": "harsh",
+            "savage": "wild",
+            "destruction": "change",
+            "destroy": "transform",
+            "attack": "approach",
+            "attacking": "approaching",
+            "enemy": "opponent",
+            "enemies": "opponents",
+
+            # Cinsellik ve vücut
+            "nude": "unclothed",
+            "naked": "bare",
+            "breast": "chest",
+            "breasts": "chest area",
+            "nipple": "chest",
+            "nipples": "chest",
+            "intimate": "close",
+            "explicit": "detailed",
+            "sexual": "romantic",
+            "sexy": "attractive",
+            "erotic": "artistic",
+            "seductive": "charming",
+            "sensual": "graceful",
+            "provocative": "striking",
+            "suggestive": "expressive",
+            "arousing": "inspiring",
+            "lust": "desire",
+            "passion": "enthusiasm",
+            "orgasm": "climax",
+            "genitals": "anatomy",
+            "penis": "anatomy",
+            "vagina": "anatomy",
+            "ass": "posterior",
+            "butt": "posterior",
+            "thong": "underwear",
+            "lingerie": "undergarments",
+            "bikini": "swimwear",
+            "cleavage": "neckline",
+            "revealing": "open",
+            "tight": "fitted",
+            "skin-tight": "form-fitting",
+            "see-through": "translucent",
+            "transparent": "clear",
+            "sheer": "light",
+
+            # Uyuşturucu ve alkol
+            "drug": "medicine",
+            "drugs": "medicines",
+            "cocaine": "powder",
+            "heroin": "substance",
+            "marijuana": "herb",
+            "cannabis": "plant",
+            "weed": "plant",
+            "smoking": "breathing",
+            "drunk": "dizzy",
+            "alcohol": "beverage",
+            "beer": "drink",
+            "wine": "grape juice",
+            "intoxicated": "relaxed",
+            "overdose": "excess",
+
+            # Yaş ve çocuk içeriği
+            "child": "young person",
+            "children": "young people",
+            "kid": "youth",
+            "kids": "youths",
+            "baby": "infant",
+            "infant": "small child",
+            "toddler": "small child",
+            "minor": "young person",
+            "underage": "young",
+            "teenage": "young adult",
+            "teen": "young adult",
+            "young girl": "young woman",
+            "young boy": "young man",
+            "little girl": "small person",
+            "little boy": "small person",
+
+            # Irkçılık ve nefret
+            "nazi": "authoritarian",
+            "hitler": "dictator",
+            "slave": "worker",
+            "slavery": "forced labor",
+            "racist": "prejudiced",
+            "racism": "prejudice",
+            "hate": "dislike",
+            "hatred": "dislike",
+
+            # Dinî ve kutsal
+            "god": "deity",
+            "jesus": "religious figure",
+            "christ": "religious figure",
+            "buddha": "spiritual figure",
+            "prophet": "spiritual teacher",
+            "sacred": "special",
+            "holy": "blessed",
+
+            # Siyasi figürler
+            "trump": "leader",
+            "biden": "official",
+            "putin": "leader",
+            "politician": "official",
+
+            # Korku ve dehşet
+            "horror": "mystery",
+            "scary": "mysterious",
+            "terrifying": "impressive",
+            "nightmare": "dream",
+            "demon": "spirit",
+            "devil": "dark figure",
+            "hell": "underworld",
+            "torture": "hardship",
+            "pain": "discomfort",
+            "suffering": "difficulty",
+            "agony": "struggle",
+
+            # Hastalık ve yaralanma
+            "sick": "unwell",
+            "disease": "condition",
+            "cancer": "illness",
+            "virus": "infection",
+            "wound": "mark",
+            "injury": "mark",
+            "scar": "mark",
+            "bruise": "mark",
+            "cut": "line",
+
+            # Suç ve illegal
+            "crime": "incident",
+            "criminal": "person",
+            "illegal": "forbidden",
+            "steal": "take",
+            "theft": "taking",
+            "rob": "take from",
+            "robbery": "taking",
+            "fraud": "deception",
+
+            # Teknoloji markaları (bazen sorun olabiliyor)
+            "iphone": "phone",
+            "android": "device",
+            "samsung": "device",
+            "apple": "fruit",
+            "google": "search",
+            "facebook": "social media",
+            "instagram": "social platform",
+            "twitter": "social platform",
+
+            # Diğer hassas konular
+            "suicide": "ending",
+            "depression": "sadness",
+            "mental illness": "mental state",
+            "crazy": "unusual",
+            "insane": "unusual",
+            "mad": "unusual",
+            "stupid": "simple",
+            "idiot": "person",
+            "ugly": "plain",
+            "fat": "large",
+            "skinny": "thin",
+            "anorexia": "thinness",
+            "bulimia": "eating issue"
+        }
+
+        cleaned_prompt = prompt.lower()  # Küçük harfe çevir
+
+        # Kelime değiştirme
+        for banned, replacement in banned_words_replacements.items():
+            cleaned_prompt = cleaned_prompt.replace(banned.lower(), replacement)
+
+        # İlk harfi büyük yap
+        cleaned_prompt = cleaned_prompt[0].upper() + cleaned_prompt[1:] if cleaned_prompt else ""
+
+        return cleaned_prompt
+
+    def generate_safe_emotional_expression(self, psychology: Dict) -> str:
+        """Güvenli emotional expression oluştur"""
+
+        emotional_complexity = psychology.get("emotional_complexity", "peaceful contemplative expression")
+
+        # Yasaklı ifadeleri temizle
+        safe_expressions = {
+            "shadowed by memories of violence": "marked by years of dedicated service",
+            "memories of violence": "memories of duty and honor",
+            "haunted by war": "shaped by military experience",
+            "traumatic memories": "challenging experiences",
+            "painful past": "difficult history",
+            "dark thoughts": "deep thoughts",
+            "inner demons": "inner struggles",
+            "emotional scars": "emotional depth",
+            "wounded soul": "experienced spirit",
+            "broken heart": "tender heart",
+            "tortured by": "shaped by",
+            "consumed by": "influenced by",
+            "obsessed with": "focused on",
+            "addicted to": "devoted to"
+        }
+
+        safe_expression = emotional_complexity
+        for risky, safe in safe_expressions.items():
+            safe_expression = safe_expression.replace(risky, safe)
+
+        # Final temizlik
+        safe_expression = self.clean_prompt_for_midjourney(safe_expression)
+
+        # Uzunsa kısalt
+        if len(safe_expression) > 100:
+            safe_expression = safe_expression[:97] + "..."
+
+        return safe_expression
+    def generate_safe_emotional_expression(self, psychology: Dict) -> str:
+        """Güvenli emotional expression oluştur"""
+
+        emotional_complexity = psychology.get("emotional_complexity", "peaceful contemplative expression")
+
+        # Yasaklı ifadeleri temizle
+        safe_expressions = {
+            "shadowed by memories of violence": "marked by years of dedicated service",
+            "memories of violence": "memories of duty and honor",
+            "haunted by war": "shaped by military experience"
+        }
+
+        safe_expression = emotional_complexity
+        for risky, safe in safe_expressions.items():
+            safe_expression = safe_expression.replace(risky, safe)
+
+        # Uzunsa kısalt
+        if len(safe_expression) > 100:
+            safe_expression = safe_expression[:97] + "..."
+
+        return safe_expression
+
     def generate_character_prompt(self, character: Dict) -> str:
-        """JSON verilerinden basit ve etkili Midjourney prompt"""
+        """JSON verilerinden güvenli Midjourney prompt - UPDATED"""
 
         # Temel bilgiler
         name = character.get("name", "Unknown")
@@ -614,33 +877,30 @@ class ServerMidjourneyVisualGenerator:
         importance_score = character.get("importance_score", 5)
         use_in_marketing = character.get("use_in_marketing", False)
 
-        # Emotional core (psychology'den)
+        # Emotional core - GÜVENLİ versiyon
         psychology = character.get("tóibín_psychology", {})
-        emotional_core = psychology.get("emotional_complexity", "peaceful contemplative expression")
+        emotional_core = self.generate_safe_emotional_expression(psychology)
 
-        # Context bilgileri (kodun sahip olduğu)
-        topic = self.current_topic  # örn: "Pompeii"
-        period = self.current_historical_period  # örn: "ancient times"
+        # Context bilgileri
+        topic = self.current_topic
+        period = self.current_historical_period
 
-        # Pose seçimi - önem derecesine göre
+        # Pose seçimi
         if use_in_marketing or importance_score >= 8:
-            # Ana karakterler - thumbnail ve pazarlama için düz
             pose = "front facing portrait"
         elif importance_score >= 7:
-            # Önemli yan karakterler - üç çeyrek
             pose = "three-quarter view portrait"
         else:
-            # Yan karakterler - profil
             pose = "profile portrait"
 
-        # Basit template
+        # Prompt oluştur
         prompt = f"{topic} {period} character named {name}, {gender} {role}, {physical}, emotional expression: {emotional_core}, {pose}, portrait photography style, highly detailed, soft golden hour lighting, 2:3 aspect ratio"
 
-        return prompt
+        # Final güvenlik temizliği
+        clean_prompt = self.clean_prompt_for_midjourney(prompt)
 
-    # Test ile örnek:
-    # Input: Livia karakteri + "Pompeii" + "79 AD Roman period"
-    # Output: "Pompeii 79 AD Roman period character named Livia (Baker's Wife), female protagonist, 34 years old, calloused hands from years of kneading dough, patient brown eyes, dark hair pulled back practically, flour-dusted apron, movements precise and economical, emotional expression: profound contentment mixed with inexplicable melancholy about the passage of time, portrait photography style, highly detailed, 2:3 aspect ratio"
+        print(f"   🎭 Generated safe prompt for {name}: {clean_prompt}")
+        return clean_prompt
 
     def clean_prompt_for_piapi_v7(self, prompt: str) -> str:
         """V7 parametrelerini koruyarak temizleme - ESKİ clean_prompt_for_piapi'nin YENİ VERSİYONU"""
