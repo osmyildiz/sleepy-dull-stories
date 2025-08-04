@@ -1648,6 +1648,7 @@ def complete_topic_in_database(topic_id: int, scene_count: int, total_duration: 
         topic_id, scene_count, total_duration, api_calls, total_cost, output_path
     )
 
+
     print(f"✅ Topic {topic_id} marked as completed")
 
 def print_production_summary(result: Dict, story_topic: str, output_path: str, generation_time: float):
