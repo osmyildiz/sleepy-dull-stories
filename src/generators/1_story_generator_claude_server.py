@@ -1486,39 +1486,25 @@ class AutomatedStoryGenerator:
 
     def _extract_characters(self, topic: str, description: str, stage1_result: Dict, validation_result: Dict) -> Dict[
         str, Any]:
-        """
-        STAGE 3: COLM TÓIBÍN CHARACTER EXTRACTION + DRAMATIC THUMBNAIL OPTIMIZATION
+        """STAGE 3: Extract main characters + YouTube optimization + REGENERATE VISUAL PROMPTS (using validated stories)"""
 
-        TÓIBÍN CHARACTER MASTERY:
-        - "Characters led by desires they don't understand"
-        - "Mixed motives and tacit exchanges"
-        - "Vulnerabilities and strengths virtually the same"
-        - Complex psychology beneath quiet surfaces
+        self.character_system.log_extraction_step("Character Extraction and Production Optimization")
 
-        MARKETING STRATEGY:
-        - Extract characters for DRAMATIC THUMBNAILS (click optimization)
-        - Maintain TÓIBÍN LITERARY QUALITY in character analysis
-        - Balance VISUAL APPEAL with psychological authenticity
-        """
-
-        self.character_system.log_extraction_step("TÓIBÍN Character Extraction + Dramatic Thumbnail Optimization")
-
-        # Use validated stories from validation system
+        # Use validated stories instead of raw stage results
         all_stories = validation_result.get('validated_stories', {})
         scene_plan = stage1_result.get('scene_plan', [])
 
-        # Create character extraction prompt with Tóibín focus
+        # Create character extraction prompt
         story_content = ""
         for scene_id, story in all_stories.items():
             story_content += f"Scene {scene_id}:\n{story}\n\n"
-
 
         # Add scene plan for context
         scene_context = ""
         for scene in scene_plan:
             scene_context += f"Scene {scene['scene_id']}: {scene.get('title', '')} - {scene.get('description', '')}\n"
 
-        character_prompt = f"""Analyze the complete COLM TÓIBÍN-style sleep story and extract characters for DRAMATIC THUMBNAIL optimization while maintaining literary authenticity.
+        character_prompt = f"""Analyze the complete sleep story and create character extraction + YouTube optimization package.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
@@ -1529,65 +1515,26 @@ class AutomatedStoryGenerator:
     SCENE PLAN CONTEXT (First 4000 chars):
     {scene_context[:4000]}
 
-    🎭 TÓIBÍN CHARACTER ANALYSIS + DRAMATIC MARKETING OPTIMIZATION:
+    REQUIREMENTS:
 
-    ## PART 1: TÓIBÍN-STYLE DEEP CHARACTER EXTRACTION
+    ## PART 1: DEEP CHARACTER EXTRACTION
+    - Identify maximum {CONFIG.claude_config['max_characters']} main characters
+    - Focus on characters that appear in multiple scenes
+    - Provide comprehensive character analysis for each including:
+      * Physical description (for visual consistency)
+      * Personality traits and voice style
+      * Character arc (beginning, conflict, resolution)
+      * Symbolic meaning and core function in story
+      * Visual contrast and lighting preferences
+      * Marketing utility for thumbnails/promotion
+    - Map which scenes each character appears in
+    - Analyze character relationships and dynamics
 
-    Extract maximum {CONFIG.claude_config['max_characters']} characters using TÓIBÍN'S PSYCHOLOGICAL MASTERY:
+    ## PART 2: YOUTUBE OPTIMIZATION
+    Create complete YouTube upload package
 
-    ### TÓIBÍN CHARACTER ANALYSIS REQUIREMENTS:
-    - **"Characters led by desires they don't understand"** - identify internal conflicts
-    - **"Mixed motives and tacit exchanges"** - complex relationship dynamics  
-    - **"Vulnerabilities and strengths virtually the same"** - character paradoxes
-    - **Quiet dignity** - characters who maintain composure despite internal struggle
-    - **Understated emotion** - feelings expressed through gesture, silence, observation
-    - **"Fascination of commonplaces"** - how ordinary moments reveal character depth
-
-    ### CHARACTER PSYCHOLOGY DEPTH (TÓIBÍN SPECIALITY):
-    For each character, analyze:
-    - **Internal contradiction** - what they want vs what they understand about wanting it
-    - **Emotional archaeology** - layers of feeling beneath polite surface
-    - **Relationship patterns** - how they connect/disconnect with others
-    - **Quiet recognition moments** - when they understand something unspoken
-    - **Dignified struggle** - how they handle internal/external pressures
-    - **"Hush you hear"** quality - their particular silence/contemplation style
-
-    ## PART 2: DRAMATIC THUMBNAIL OPTIMIZATION
-
-    **CRITICAL BALANCE:**
-    - Extract characters with **STRONG VISUAL APPEAL** for dramatic thumbnails
-    - Maintain **TÓIBÍN'S LITERARY AUTHENTICITY** in character analysis
-    - Characters must work for **"BETRAYAL!" "MYSTERIOUS!" "SCANDALOUS!"** thumbnails
-    - But psychological analysis stays TRUE to Tóibín's subtle mastery
-
-    ### THUMBNAIL CHARACTER REQUIREMENTS:
-    - **Expressive faces** - capable of dramatic emotion for thumbnails
-    - **Visual contrast** - distinct appearance for thumbnail recognition
-    - **Emotional range** - can show concern, determination, contemplation for clicks
-    - **Historical authenticity** - period-accurate appearance
-    - **Marketing utility** - faces that draw clicks while maintaining story integrity
-
-    ### DRAMATIC THUMBNAIL STRATEGY:
-    **YOUR PROVEN FORMULA:**
-    - Thumbnail: "BETRAYAL! Character's Final Evening" 
-    - Content: Tóibín-style quiet contemplation and daily life
-    - Result: Click satisfaction + literary quality + sleep optimization
-
-    ## PART 3: YOUTUBE OPTIMIZATION (DRAMATIC + LITERARY)
-
-    Create YouTube package that bridges DRAMATIC MARKETING with TÓIBÍN QUALITY:
-
-    ### TITLE OPTIMIZATION:
-    Combine **DRAMATIC HOOKS** with **LITERARY SENSIBILITY**:
-    - "MYSTERIOUS! [Character]'s Final Peaceful Evening"
-    - "BETRAYAL! The Night Before [Historical Event] - [Character]'s Last Quiet Hours"  
-    - "SCANDALOUS! [Character]'s Secret Final Decision - Most Peaceful Sleep Story"
-    - "TERRIFYING! What [Character] Never Knew - Beautiful Historical Sleep Story"
-
-    ### CONTENT PROMISE BALANCE:
-    - **Thumbnail/Title:** Drama, mystery, emotional intensity
-    - **Description:** Literary quality, peaceful content, sleep optimization
-    - **Delivery:** Tóibín-style quiet contemplation with character depth
+    ## PART 3: PRODUCTION SPECIFICATIONS
+    Generate all technical requirements for full automation
 
     OUTPUT FORMAT (Complete JSON):
     {{
@@ -1597,35 +1544,23 @@ class AutomatedStoryGenerator:
           "role": "protagonist|supporting|background|minor",
           "importance_score": 0,
           "scene_appearances": [1, 3, 7, 12],
-          "personality_traits": ["quiet_dignity", "internal_conflict", "understated_emotion"],
-          "physical_description": "[Detailed visual description - THUMBNAIL OPTIMIZED]",
-          "visual_notes": "[Special notes for DRAMATIC image generation and lighting]",
-          "voice_style": "[Tóibín character speech - understated, gesture-heavy, pause-filled]",
-          "core_function": "[Character's purpose - psychological/relational in Tóibín style]",
+          "personality_traits": ["trait1", "trait2", "trait3"],
+          "physical_description": "[Detailed visual description for consistency]",
+          "visual_notes": "[Special notes for image generation and lighting]",
+          "voice_style": "[How character speaks - pace, tone, emotional style]",
+          "core_function": "[Character's purpose in the story - symbolic or narrative role]",
           "character_arc": {{
-            "beginning": "[Character's initial internal state - Tóibín psychological focus]",
-            "conflict": "[Internal struggle they don't fully understand - Tóibín specialty]", 
-            "ending": "[Quiet recognition/acceptance - Tóibín resolution style]"
+            "beginning": "[Character's initial state/motivation]",
+            "conflict": "[Main challenge or tension character faces]",
+            "ending": "[Character's resolution or transformation]"
           }},
-          "symbolism": "[What character represents - Tóibín thematic depth]",
-          "visual_contrast": "[Lighting, shadow preferences for DRAMATIC THUMBNAILS]",
-          "emotional_journey": "[How internal emotions evolve - Tóibín psychological progression]",
+          "symbolism": "[What this character represents thematically]",
+          "visual_contrast": "[Lighting, shadow, color preferences for visual distinction]",
+          "emotional_journey": "[How character's emotions evolve through scenes]",
           "use_in_marketing": true/false,
-          "thumbnail_potential": "[Why this character works for DRAMATIC thumbnails while maintaining literary authenticity]",
-          "toibin_elements": {{
-            "internal_contradiction": "[What they want vs what they understand about wanting]",
-            "emotional_archaeology": "[Layers of feeling beneath surface politeness]",
-            "quiet_dignity": "[How they maintain composure despite struggle]",
-            "relationship_complexity": "[Mixed motives in interactions with others]",
-            "recognition_moments": "[Instances of unspoken understanding]"
-          }},
-          "dramatic_potential": {{
-            "thumbnail_emotion": "[Best emotional expression for dramatic thumbnails]",
-            "visual_drama": "[How to show intensity while maintaining Tóibín authenticity]",
-            "marketing_appeal": "[Why viewers will click while getting quality content]"
-          }},
+          "thumbnail_potential": "[Why this character works well in thumbnails]",
           "relationships": [
-            {{"character": "other_character_name", "relationship": "[Tóibín-style complex dynamic]", "visual_dynamic": "[how they appear in dramatic scenes]"}}
+            {{"character": "other_character_name", "relationship": "detailed description", "visual_dynamic": "how they appear together"}}
           ]
         }}
       ],
@@ -1633,173 +1568,150 @@ class AutomatedStoryGenerator:
         {{
           "char1": "Character1", 
           "char2": "Character2", 
-          "relationship": "[Tóibín-style relationship - mixed motives, tacit exchanges]",
-          "emotional_dynamic": "[complex Tóibín emotion - not simple categories]",
-          "visual_dynamic": "[how they appear together in DRAMATIC THUMBNAILS]",
-          "story_function": "[what this relationship represents in Tóibín narrative]",
-          "evolution": "[how relationship deepens through quiet recognition]",
-          "symbolic_meaning": "[deeper Tóibín thematic significance]",
-          "dramatic_tension": "[how relationship creates visual interest for thumbnails]"
+          "relationship": "detailed relationship description",
+          "emotional_dynamic": "loving|respectful|complex|protective|conflicted",
+          "visual_dynamic": "how they appear together in scenes",
+          "story_function": "what this relationship represents in the narrative",
+          "evolution": "how relationship changes throughout story",
+          "symbolic_meaning": "deeper thematic significance"
         }}
       ],
       "scene_character_mapping": {{
         "1": ["Character1"],
-        "2": ["Character1", "Character2"]
+        "2": ["Character1", "Character2"]  
       }},
       "visual_style_notes": {{
-        "art_style": "[Style supporting both DRAMATIC THUMBNAILS and Tóibín literary quality]",
-        "color_palette": "[Colors that work for dramatic marketing AND peaceful content]", 
-        "mood": "[Visual mood balancing click appeal with contemplative atmosphere]",
-        "period_accuracy": "[Historical authenticity Tóibín demands]",
-        "dramatic_lighting": "[Lighting that creates thumbnail drama while supporting peaceful mood]"
+        "art_style": "[Preferred illustration style]",
+        "color_palette": "[Dominant colors]",
+        "mood": "[Overall visual mood]",
+        "period_accuracy": "[Historical period details]"
       }},
       "youtube_optimization": {{
         "clickbait_titles": [
-          "MYSTERIOUS! [Character]'s Final Secret Decision (2 Hour Sleep Story)",
-          "BETRAYAL! The Night [Character] Never Saw Coming - Most Peaceful Historical Story", 
-          "SCANDALOUS! What Really Happened in [Character]'s Last Quiet Evening",
-          "TERRIFYING! [Character]'s Hidden Truth - Beautiful Sleep Story That Actually Works",
-          "INCREDIBLE! [Character]'s Most Peaceful Final Hours - You Won't Believe What Happened"
+          "This Ancient Queen's Final Secret Will Put You to Sleep Instantly",
+          "I Spent 2 Hours in Ancient Palace (Sleep Story)",
+          "What Really Happened in History's Most Peaceful Night?",
+          "Ancient Sleep Ritual That Actually Works",
+          "The Most Relaxing Historical Story Ever Told"
         ],
         "thumbnail_concept": {{
-          "main_character": "[Character with best dramatic potential]",
-          "dramatic_scene": "[Most visually striking scene balancing drama with peace]",
-          "text_overlay": "[DRAMATIC words: MYSTERIOUS! BETRAYAL! etc.]",
-          "color_scheme": "[Eye-catching colors that work for both drama and peace]",
-          "emotion": "[Character emotion - dramatic enough for clicks, peaceful enough for sleep]",
-          "background": "[Atmospheric background supporting both marketing and content]",
-          "style_notes": "[Thumbnail design balancing DRAMATIC APPEAL with LITERARY QUALITY]",
-          "positioning": "[RIGHT side character placement, LEFT side text space]"
+          "main_character": "[Main character name]",
+          "dramatic_scene": "[Most visually striking scene]",
+          "text_overlay": "[Large, bold text for thumbnail]",
+          "color_scheme": "[Eye-catching colors]",
+          "emotion": "[Character emotion for maximum impact]",
+          "background": "[Atmospheric background]",
+          "style_notes": "[Thumbnail design specifications]"
         }},
         "video_description": {{
-          "hook": "[First 125 characters - balancing drama hook with peaceful promise]",
-          "main_description": "[Full description - dramatic opening transitioning to peaceful literary content promise]",
+          "hook": "[First 125 characters - crucial for SEO]",
+          "main_description": "[Full description with story overview]",
           "chapters": [
-            {{"time": "0:00", "title": "Golden Hook - [Dramatic Character Introduction]"}},
-            {{"time": "0:30", "title": "Subscribe for More Literary Sleep Stories"}},
-            {{"time": "1:00", "title": "Scene 1: [Tóibín-style scene title]"}}
+            {{"time": "0:00", "title": "Golden Hook - Enter the Palace"}},
+            {{"time": "0:30", "title": "Subscribe for More Sleep Stories"}},
+            {{"time": "1:00", "title": "Scene 1: The Golden Antechamber"}}
           ],
-          "subscribe_cta": "[Literary community invitation - book club feeling]",
-          "social_links": "[Links maintaining literary/educational brand]",
-          "disclaimer": "[Sleep story disclaimer emphasizing literary quality + peaceful content]"
+          "subscribe_cta": "[Subscribe call-to-action text]",
+          "social_links": "[Links to other platforms]",
+          "disclaimer": "[Sleep story disclaimer text]"
         }},
         "seo_strategy": {{
-          "primary_keywords": ["sleep story", "[topic] history", "literary bedtime story", "peaceful sleep"],
-          "long_tail_keywords": ["2 hour [topic] sleep story", "literary historical bedtime story", "Tóibín style sleep content"],
-          "trending_keywords": ["historical sleep podcast", "literary asmr", "peaceful history stories"],
-          "niche_keywords": ["[topic] literary sleep", "contemplative bedtime stories", "psychological sleep stories"],
-          "location_keywords": ["{topic.lower()}", "historical", "literary"],
-          "competitor_keywords": ["premium sleep stories", "literary sleep content", "sophisticated bedtime stories"]
+          "primary_keywords": ["sleep story", "relaxation", "insomnia help"],
+          "long_tail_keywords": ["2 hour sleep story ancient", "historical bedtime story"],
+          "trending_keywords": ["sleep podcast", "asmr sleep"],
+          "niche_keywords": ["ancient history sleep", "palace meditation"],
+          "location_keywords": ["ancient", "historical"],
+          "competitor_keywords": ["jason stephenson", "michelle sanctuary"]
         }},
         "tags": [
-          "sleep story", "literary bedtime story", "historical fiction sleep", "[topic.lower()]", 
-          "contemplative stories", "peaceful sleep", "literary sleep content", "sophisticated bedtime stories",
-          "character-driven sleep", "psychological sleep stories", "2 hours", "deep sleep", "insomnia help"
+          "sleep story", "bedtime story", "relaxation", "insomnia", "meditation",
+          "history", "ancient", "palace", "asmr", "calm", "peaceful", "2 hours"
         ],
         "hashtags": [
-          "#sleepstory", "#literarysleep", "#historicalfiction", "#contemplativestories", 
-          "#{topic.lower().replace(' ', '')}", "#peacefulsleep", "#literarybedtime", "#sophisticatedstories"
+          "#sleepstory", "#bedtimestory", "#relaxation", "#meditation", "#insomnia",
+          "#history", "#ancient", "#asmr", "#deepsleep", "#calm", "#stressrelief"
         ],
         "youtube_metadata": {{
           "category": "Education",
-          "default_language": "en", 
+          "default_language": "en",
           "privacy_status": "public",
           "license": "youtube",
           "embeddable": true,
           "made_for_kids": false,
-          "target_audience": "adults 25-65 interested in literary content and quality sleep stories"
+          "target_audience": "adults 25-65"
         }}
       }},
       "production_specifications": {{
         "audio_production": {{
           "tts_settings": {{
-            "optimal_voice": "[Voice that conveys Tóibín literary sensibility - contemplative, intelligent]",
-            "speed_multiplier": 0.8,
-            "pitch_adjustment": -1,
-            "volume_level": 75,
+            "optimal_voice": "[Best TTS voice for sleep content]",
+            "speed_multiplier": 0.85,
+            "pitch_adjustment": -2,
+            "volume_level": 80,
             "pause_durations": {{
-              "[PAUSE]": 2.5,
-              "paragraph_break": 2.0,
-              "scene_transition": 3.5,
-              "character_recognition_moment": 3.0
+              "[PAUSE]": 2.0,
+              "paragraph_break": 1.5,
+              "scene_transition": 3.0
             }}
           }},
           "background_music": {{
-            "primary_track": "[Genre supporting both literary quality and historical period]",
-            "volume_level": 12,
-            "fade_in_duration": 3.0,
-            "fade_out_duration": 4.0,
-            "literary_sensibility": "Subtle, sophisticated, supporting contemplative mood"
+            "primary_track": "[Genre appropriate for story period]",
+            "volume_level": 15,
+            "fade_in_duration": 2.0,
+            "fade_out_duration": 3.0
           }},
           "audio_export": {{
             "format": "MP3",
-            "bitrate": "320kbps",
-            "sample_rate": "44.1kHz",
-            "quality": "Premium for literary content audience"
+            "bitrate": "192kbps", 
+            "sample_rate": "44.1kHz"
           }}
         }},
         "video_assembly": {{
-          "scene_timing_precision": "[Calculated based on Tóibín contemplative pacing]",
+          "scene_timing_precision": [
+            {{
+              "scene_number": 1,
+              "start_time": "00:01:00",
+              "end_time": "00:05:03", 
+              "duration_seconds": 243,
+              "word_count": 580
+            }}
+          ],
           "video_specifications": {{
             "resolution": "1920x1080",
-            "frame_rate": 24,
-            "transition_type": "contemplative_fade",
-            "export_format": "MP4_H264",
-            "quality_setting": "High for literary audience"
-          }},
-          "thumbnail_strategy": {{
-            "dramatic_elements": "Strong visual drama for clicks",
-            "literary_quality": "Sophisticated, not cheap clickbait",
-            "character_focus": "Best character for thumbnail appeal",
-            "text_placement": "LEFT side clear, RIGHT side character"
+            "frame_rate": 30,
+            "transition_type": "slow_fade",
+            "export_format": "MP4_H264"
           }}
         }},
         "quality_control": {{
           "content_validation": {{
-            "toibin_authenticity_score": "[1-10 rating for literary authenticity]",
-            "sleep_optimization_score": "[1-10 rating for peaceful content]",
-            "dramatic_appeal_score": "[1-10 rating for click potential]",
-            "character_consistency_score": "[1-10 rating for psychological authenticity]",
+            "sleep_optimization_score": "[1-10 rating]",
             "historical_accuracy_verified": true,
-            "content_appropriateness": "Sophisticated literary content for adults"
+            "content_appropriateness": "family_friendly"
           }},
-          "marketing_validation": {{
-            "thumbnail_drama_level": "[Appropriate drama level for clicks without being misleading]",
-            "title_accuracy": "[Dramatic titles accurately reflect peaceful content]",
-            "brand_consistency": "[Maintains literary quality brand]"
+          "technical_validation": {{
+            "total_word_count": "[exact count]",
+            "target_duration_met": true,
+            "character_consistency_score": "[1-10]"
           }}
         }}
       }},
       "character_stats": {{
         "total_characters_found": 0,
         "main_characters_extracted": 0,
-        "toibin_psychological_depth": "All characters analyzed for internal contradiction and quiet dignity",
-        "dramatic_potential": "Characters selected for thumbnail appeal while maintaining authenticity",
-        "character_coverage": "percentage of scenes with character psychological depth"
+        "character_coverage": "percentage of scenes with characters"
       }}
     }}
 
-    ## TÓIBÍN + DRAMATIC MARKETING MASTERY CHALLENGE:
+    Analyze thoroughly and create complete package with DEEP CHARACTER ANALYSIS including:
+    - Character arcs (beginning → conflict → resolution)
+    - Symbolic meaning and thematic representation  
+    - Visual contrast and lighting preferences
+    - Voice style and emotional journey
+    - Marketing and thumbnail potential
+    - Complex relationship dynamics
 
-    Extract characters that serve BOTH purposes perfectly:
-
-    ### REQUIRED EXCELLENCE:
-    - ✅ **TÓIBÍN PSYCHOLOGICAL AUTHENTICITY** - complex internal lives, mixed motives, quiet dignity
-    - ✅ **DRAMATIC VISUAL APPEAL** - faces and personalities that work for "BETRAYAL!" thumbnails  
-    - ✅ **CHARACTER CONSISTENCY** - match the contemplative, internally complex characters from stories
-    - ✅ **MARKETING UTILITY** - characters viewers want to click on and learn about
-    - ✅ **LITERARY DEPTH** - character analysis that honors Tóibín's sophisticated approach
-    - ✅ **SLEEP CONTENT OPTIMIZATION** - characters whose stories promote peaceful rest
-
-    ### PERFECT BALANCE ACHIEVEMENT:
-    Create character extraction that enables:
-    - **DRAMATIC THUMBNAILS** → High click-through rates
-    - **TÓIBÍN LITERARY QUALITY** → Satisfied, returning audience  
-    - **PEACEFUL CONTENT** → Effective sleep stories
-    - **EDUCATIONAL VALUE** → Historical and psychological depth
-    - **BRAND AUTHENTICITY** → Sophisticated content reputation
-
-    This is the PERFECT FORMULA for 1 million subscribers: dramatic marketing appeal combined with genuine literary quality and effective sleep content."""
+    Plus full YouTube optimization and production specifications."""
 
         try:
             self.api_call_count += 1
@@ -1810,18 +1722,18 @@ class AutomatedStoryGenerator:
                 temperature=0.3,
                 stream=True,
                 timeout=900,
-                system="You are COLM TÓIBÍN analyzing your own literary characters while also being a YouTube optimization expert. Extract characters with your signature psychological depth - 'characters led by desires they don't understand,' 'mixed motives and tacit exchanges,' 'quiet dignity' - while ensuring they have dramatic visual appeal for thumbnails. Balance literary authenticity with marketing effectiveness. These characters must work for both 'BETRAYAL!' thumbnails AND contemplative literary content.",
+                system="You are analyzing stories written in KRISTIN HANNAH's style. Focus on Hannah's signature female characters - resilient women who discover strength through crisis. Look for characters with Hannah's trademark emotional depth, authentic historical context, and the kind of compelling personal journeys that made The Nightingale and The Four Winds bestsellers. Extract characters who embody Hannah's themes of survival, sacrifice, and the untold stories of women in history.",
                 messages=[{"role": "user", "content": character_prompt}]
             )
 
             # Collect streaming response
             content = ""
-            print("📡 Stage 3: TÓIBÍN Character Analysis + Dramatic Thumbnail Optimization...")
+            print("📡 Stage 3: Analyzing characters and creating optimization...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
 
-            print(f"✅ TÓIBÍN Character + Marketing analysis complete: {len(content):,} characters")
+            print(f"✅ Character analysis complete: {len(content):,} characters")
 
             # Calculate cost
             input_tokens = len(character_prompt) // 4
@@ -1848,30 +1760,26 @@ class AutomatedStoryGenerator:
                 )
                 parsed_result['scene_character_mapping'] = scene_character_map
 
-                # REGENERATE VISUAL PROMPTS with Tóibín + Dramatic balance
-                regenerated_visual_prompts = self._regenerate_visual_prompts_with_toibin_drama(
+                # REGENERATE VISUAL PROMPTS with correct character integration
+                regenerated_visual_prompts = self._regenerate_visual_prompts_with_characters(
                     stage1_result.get('scene_plan', []),
                     top_characters,
                     scene_character_map,
                     parsed_result.get('visual_style_notes', {})
                 )
 
-                # Replace the old visual prompts with the new ones
+                # Replace the old visual prompts with the regenerated ones
                 parsed_result['regenerated_visual_prompts'] = regenerated_visual_prompts
 
-                self.character_system.log_extraction_step("TÓIBÍN + Dramatic Visual Prompts Regenerated", "SUCCESS", {
+                self.character_system.log_extraction_step("Visual Prompts Regenerated", "SUCCESS", {
                     "prompts_created": len(regenerated_visual_prompts),
                     "character_integrated_scenes": len(
-                        [p for p in regenerated_visual_prompts if p.get('character_reference_needed')]),
-                    "dramatic_thumbnail_optimized": True,
-                    "literary_authenticity_maintained": True
+                        [p for p in regenerated_visual_prompts if p.get('character_reference_needed')])
                 })
 
-            self.character_system.log_extraction_step("TÓIBÍN Character + Marketing Extraction", "SUCCESS", {
+            self.character_system.log_extraction_step("Character Extraction", "SUCCESS", {
                 "characters_extracted": len(parsed_result.get('main_characters', [])),
                 "character_names": [c.get('name', 'Unknown') for c in parsed_result.get('main_characters', [])],
-                "toibin_psychological_depth": True,
-                "dramatic_marketing_optimized": True,
                 "visual_prompts_regenerated": 'regenerated_visual_prompts' in parsed_result,
                 "stage_cost": stage_cost
             })
@@ -1879,8 +1787,8 @@ class AutomatedStoryGenerator:
             return parsed_result
 
         except Exception as e:
-            self.character_system.log_extraction_step("TÓIBÍN Character + Marketing Extraction Failed", "ERROR")
-            print(f"❌ Tóibín character + marketing extraction error: {e}")
+            self.character_system.log_extraction_step("Character Extraction Failed", "ERROR")
+            print(f"❌ Character extraction error: {e}")
             return {"main_characters": [], "character_stats": {"error": str(e)}}
 
     def _regenerate_visual_prompts_with_toibin_drama(self, scene_plan: List[Dict], characters: List[Dict],

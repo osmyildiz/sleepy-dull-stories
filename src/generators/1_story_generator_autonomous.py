@@ -1543,6 +1543,8 @@ class AutomatedStoryGenerator:
 
     USE THE EXACT DURATIONS FROM THE PLAN ABOVE."""
 
+        stage1_prompt = self._add_word_count_optimization(stage1_prompt, scene_durations)
+
         try:
             self.api_call_count += 1
 
@@ -1592,12 +1594,8 @@ class AutomatedStoryGenerator:
     def _generate_stage2(self, topic: str, description: str, stage1_result: Dict) -> Dict[str, Any]:
         """
         STAGE 2: COLM TÓIBÍN MASTER STYLE - Remaining stories with LITERARY CONTINUITY
-
-        TÓIBÍN'S CONSISTENCY:
-        - Maintain character psychology established in Stage 1
-        - Continue "quiet recognition" emotional progression
-        - Deepen "fascination of commonplaces" approach
-        - Evolve "hush you hear" atmosphere throughout
+        FIX 1: Reduced prompt length to prevent API errors
+        FIX 2: Better word count targeting with precise calculations
         """
 
         scene_plan = stage1_result.get('scene_plan', [])
@@ -1609,201 +1607,104 @@ class AutomatedStoryGenerator:
             self.log_step("Stage 2: No remaining stories needed", "SUCCESS")
             return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
-        self.log_step(f"Stage 2: TÓIBÍN MASTER CONTINUITY - {remaining_scenes} Stories")
+        self.log_step(f"Stage 2: TÓIBÍN CONTINUITY - {remaining_scenes} Stories")
 
+        # Get remaining scenes with precise word count targets
         remaining_scene_plan = []
         for scene in scene_plan:
             if str(scene['scene_id']) not in stage1_result.get('stories', {}):
+                # Calculate precise word count target (140 words per minute)
+                duration_minutes = scene.get('duration_minutes', 4)
+                target_words = int(duration_minutes * 140)
+                scene['target_words'] = target_words
                 remaining_scene_plan.append(scene)
 
         if len(remaining_scene_plan) == 0:
-            self.log_step("Stage 2: All stories already written", "SUCCESS")
             return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
-        scenes_text = "\n\n".join([
-            f"""SCENE {scene['scene_id']}: {scene['title']}
-    Location: {scene['location']}
-    Duration: {scene.get('duration_minutes', 4)} minutes
-    Template: {scene['template']} | Style: {scene['narrative_style']}
-    Emotion: {scene['emotion']} | Sensory Focus: {scene['sensory_focus']}
-    Description: {scene['description']}
-    Key Elements: {', '.join(scene.get('key_elements', []))}
-    Characters: {', '.join(scene.get('characters_mentioned', []))}
-    Tóibín Elements: {', '.join(scene.get('toibin_elements', []))}"""
-            for scene in remaining_scene_plan
-        ])
-
-        stage2_prompt = f"""Complete the sleep story for "{topic}" by writing the remaining {remaining_scenes} stories in COLM TÓIBÍN'S MASTERFUL STYLE.
+        # SHORTER, FOCUSED PROMPT to prevent API overload
+        stage2_prompt = f"""Complete sleep story "{topic}" with remaining {remaining_scenes} stories in COLM TÓIBÍN'S STYLE.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
 
-    SCENES TO COMPLETE:
-    {scenes_text}
+    SCENES TO COMPLETE ({remaining_scenes} scenes):
+    {self._format_remaining_scenes(remaining_scene_plan)}
 
-    🎭 COLM TÓIBÍN MASTER CONTINUITY - STAGE 2 REQUIREMENTS:
+    🎭 TÓIBÍN STYLE REQUIREMENTS:
 
-    ## MAINTAIN STAGE 1 TÓIBÍN EXCELLENCE:
-    Continue the literary mastery established in Stage 1:
-    - **Same "hush you hear" atmospheric quality**
-    - **Character consistency** - same personalities, relationships, internal patterns
-    - **"Sparseness with superabundance"** - restrained language with deep suggestion
-    - **"Fascination of commonplaces"** - ordinary moments made profound
-    - **Emotional progression** - deepen the quiet recognition from Stage 1
+    ## WORD COUNT PRECISION (CRITICAL):
+    - Calculate EXACTLY: Duration × 140 words/minute
+    - 2min = 280 words | 3min = 420 words | 4min = 560 words | 5min = 700 words
+    - 6min = 840 words | 7min = 980 words | 8min = 1120 words
 
-    ## TÓIBÍN'S ADVANCED OPENING MASTERY (STAGE 2 VARIETY):
+    ## TÓIBÍN MASTERY CONTINUATION:
+    - Same character voices/psychology from Stage 1
+    - "Hush you hear" - quiet, contemplative atmosphere
+    - "Fascination of commonplaces" - ordinary moments profound
+    - Present tense, second person for sleep optimization
+    - Historical authenticity through small details
 
-    Since Stage 1 used 8 opening approaches, Stage 2 must demonstrate NEW variations:
+    ## OPENING VARIATIONS (Use different for each):
+    - "The evening settles differently now..."
+    - "She notices something has changed..."
+    - "The garden holds new shadows..."
+    - "This moment echoes earlier ones..."
+    - "A familiar weight returns..."
 
-    ### 9. **Temporal Shift Recognition:** "The afternoon feels different now, heavier somehow."
-    ### 10. **Character Relationship Moment:** "She watches him from across the courtyard, understanding."
-    ### 11. **Environmental Psychology:** "The garden seems to hold their secrets in its shadows."
-    ### 12. **Internal Weather:** "Something has shifted in the house's rhythm."
-    ### 13. **Collective Awareness:** "They all sense it, though none speaks of it."
-    ### 14. **Memory Confluence:** "This moment echoes others, from before."
-    ### 15. **Seasonal Recognition:** "Autumn arrives early in small signs."
-    ### 16. **Emotional Geography:** "The dining room carries the weight of unspoken words."
+    ## CHARACTER CONSISTENCY:
+    Maintain exact personalities/relationships from Stage 1:
+    - Same internal thought patterns
+    - Same dialogue styles
+    - Same relationship dynamics
+    - Emotional progression: observation → recognition → acceptance
 
-    ## TÓIBÍN'S CHARACTER CONTINUITY MASTERY:
+    ## CONTENT PATTERN:
+    1. Quiet observation (50-80 words)
+    2. Character activity (100-150 words) 
+    3. Internal reflection (80-120 words)
+    4. Environmental detail (60-100 words)
+    5. Human connection (80-120 words)
+    6. Peaceful resolution (60-100 words)
 
-    ### CHARACTER CONSISTENCY RULES:
-    - **Same internal voices** - characters think in same patterns as Stage 1
-    - **Relationship evolution** - deepen connections established earlier
-    - **"Mixed motives and tacit exchanges"** - continue complex character dynamics
-    - **Emotional memory** - characters carry forward Stage 1 experiences
-    - **Speech patterns** - maintain same dialogue styles and rhythms
+    OUTPUT: Complete JSON with stories matching EXACT word counts.
 
-    ### CHARACTER DEVELOPMENT PROGRESSION:
-    ```
-    STAGE 1: Introduction + establishment of internal patterns
-    STAGE 2: Deepening + evolution + quiet recognitions
-    EMOTIONAL ARC: Peaceful observation → Growing awareness → Gentle acceptance
-    ```
-
-    ## TÓIBÍN'S SLEEP STORY REQUIREMENTS (ADVANCED):
-
-    ### 📝 WORD COUNT PRECISION:
-    - 2-3 minute scenes: 280-420 words (2-3 × 140)
-    - 4-5 minute scenes: 560-700 words (4-5 × 140)  
-    - 6-7 minute scenes: 840-980 words (6-7 × 140)
-    - 8+ minute scenes: 1120+ words (8+ × 140)
-    - Base rate: ~140 words per minute for sleep content
-
-    ### 🎭 TÓIBÍN'S CHARACTER INTEGRATION (ADVANCED):
-    - **"Characters led by desires they don't understand"** - show internal conflicts
-    - **Understated dialogue** - more gesture than words
-    - **Shared silences** - comfortable quiet between people
-    - **Observational moments** - characters watching each other with kindness
-    - **Emotional archaeology** - characters understanding through small signs
-
-    ### 🌙 TÓIBÍN'S SLEEP OPTIMIZATION:
-    - **Present tense, second person** (but filtered through literary consciousness)
-    - **"Quiet, vivid epiphanies"** - moments of gentle recognition
-    - **Natural breathing rhythm** - sentences that flow like thought
-    - **Peaceful resolution** - each scene ends with acceptance/understanding
-    - **"Hush you hear"** quality - that distinctive Tóibín silence
-
-    ### 🏛️ TÓIBÍN'S HISTORICAL AUTHENTICITY:
-    - **Small, telling details** - period accuracy through commonplace objects
-    - **Social customs** shown through character behavior, not explanation
-    - **Daily rhythms** - how people actually lived their ordinary days
-    - **Environmental storytelling** - let setting reveal historical context
-    - **"Lived-in" feeling** - history as background to human experience
-
-    ### 🎵 TÓIBÍN'S NARRATIVE MASTERY:
-    - **Sentence rhythm variation** - short observations, longer contemplative flows
-    - **Emotional undertow** - feelings flowing beneath surface politeness
-    - **"Sighing of disappearance"** - that sense of time passing, things changing
-    - **Contemplative pace** - allow characters time to think, observe, recognize
-    - **Literary density** - every sentence carrying weight beyond its words
-
-    ## FORBIDDEN ELEMENTS (ANTI-TÓIBÍN):
-    ❌ **Dramatic external action** - keep focus on internal/relational
-    ❌ **Overwrought emotion** - Tóibín is always understated
-    ❌ **Generic openings** - especially "You find yourself" (completely banned)
-    ❌ **Surface-level interaction** - all relationships must have depth
-    ❌ **Rushed pacing** - allow contemplative time for recognition
-    ❌ **Obvious exposition** - let readers discover through observation
-
-    ## TÓIBÍN MASTERY EXAMPLES FOR STAGE 2:
-
-    **CHARACTER CONTINUITY EXAMPLE:**
-    *Stage 1 established Marcus as quietly observational*
-    *Stage 2 continues:* "Marcus moves through the evening ritual as he always does, but tonight he notices how Julia's hands pause over the wine cups, the way she listens to sounds beyond the courtyard walls."
-
-    **EMOTIONAL PROGRESSION EXAMPLE:**
-    *Stage 1 introduced gentle melancholy*
-    *Stage 2 deepens:* "The familiar sadness is there, but softer now, like an old friend who no longer needs introduction."
-
-    OUTPUT FORMAT:
     {{
       "stories": {{
-        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[COMPLETE Tóibín-style story maintaining Stage 1 character consistency with advanced opening mastery]",
-        "{remaining_scene_plan[1]['scene_id'] if len(remaining_scene_plan) > 1 else 'Y'}": "[COMPLETE Tóibín-style story with unique opening from advanced variety list]"
+        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[EXACT {remaining_scene_plan[0].get('target_words', 560)} WORDS - Tóibín style story]"
       }},
       "stage2_stats": {{
         "stories_written": {remaining_scenes},
-        "scenes_covered": "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}-{remaining_scene_plan[-1]['scene_id'] if remaining_scene_plan else 'Y'}",
-        "toibin_continuity_maintained": true,
-        "character_consistency_achieved": true,
-        "advanced_opening_mastery": true,
-        "literary_depth_sustained": true,
-        "quiet_recognition_progression": true,
-        "total_word_count": "[calculated]",
-        "emotional_arc_completion": "deepened_understanding"
+        "word_count_precision": true,
+        "toibin_continuity": true
       }}
     }}
 
-    ## COLM TÓIBÍN STAGE 2 MASTERY CHALLENGE:
-
-    Write {remaining_scenes} stories that demonstrate TÓIBÍN'S ADVANCED LITERARY CRAFT:
-
-    ### REQUIRED EXCELLENCE FOR EACH STORY:
-    - ✅ **ADVANCED UNIQUE OPENING** (9-16 from new variety list above)
-    - ✅ **CHARACTER CONSISTENCY** - same internal voices/patterns from Stage 1
-    - ✅ **EMOTIONAL PROGRESSION** - deepen the quiet recognition established earlier
-    - ✅ **"Fascination of commonplaces"** - continue finding profound in ordinary
-    - ✅ **Perfect word count** matched to contemplative scene duration
-    - ✅ **Historical authenticity** through small, lived-in details
-    - ✅ **Sleep-optimized literary pacing** - gentle rhythm for peaceful rest
-
-    ### TÓIBÍN'S SIGNATURE ELEMENTS TO CONTINUE:
-    - **"Hush you hear"** - maintain that distinctive peaceful silence
-    - **"Mixed motives and tacit exchanges"** - keep character relationships complex
-    - **"Sparseness with superabundance"** - restrained language, rich suggestion
-    - **"Quiet, vivid epiphanies"** - moments of gentle recognition and acceptance
-    - **"Characters led by desires they don't understand"** - internal psychology depth
-
-    ### STAGE 2 EMOTIONAL PROGRESSION:
-    **STAGE 1:** Peaceful observation + character introduction
-    **STAGE 2:** Growing awareness + relationship deepening + gentle acceptance
-
-    Continue channeling COLM TÓIBÍN'S celebrated literary mastery. These remaining stories should feel seamlessly connected to Stage 1 while demonstrating advanced opening variety and deeper character development. Maintain the contemplative, psychologically rich, quietly profound qualities that make Tóibín's work so distinctive and perfect for sleep content.
-
-    REMEMBER: Character consistency is crucial - these people must feel like the same individuals from Stage 1, just revealed more deeply through continued observation."""
+    Write each story to EXACT target word count. Count carefully."""
 
         try:
             self.api_call_count += 1
 
+            # SHORTER timeout to prevent hanging
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
                 max_tokens=CONFIG.claude_config["max_tokens"],
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
-                timeout=1800,
-                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier. Use your advanced opening mastery (approaches 9-16) while deepening the 'quiet recognition' emotional progression. Continue the 'hush you hear' atmospheric quality and 'fascination of commonplaces' approach. These stories must feel seamlessly connected to Stage 1 while demonstrating your full range of literary craft.",
+                timeout=900,  # Reduced from 1800
+                system="Continue COLM TÓIBÍN style from Stage 1. CRITICAL: Match exact word counts (duration × 140). Maintain character consistency. Use contemplative, understated style.",
                 messages=[{"role": "user", "content": stage2_prompt}]
             )
 
             content = ""
-            print("📡 Stage 2: Streaming with TÓIBÍN LITERARY CONTINUITY...")
+            print("📡 Stage 2: Streaming OPTIMIZED...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
-                    if len(content) % 5000 == 0:
-                        print(f"   📚 TÓIBÍN CONTINUITY: {len(content):,} characters...")
+                    if len(content) % 3000 == 0:  # Less frequent logging
+                        print(f"   📚 Progress: {len(content):,} chars...")
 
-            print(f"✅ Stage 2 TÓIBÍN LITERARY MASTERY complete: {len(content):,} characters")
+            print(f"✅ Stage 2 OPTIMIZED complete: {len(content):,} characters")
 
             input_tokens = len(stage2_prompt) // 4
             output_tokens = len(content) // 4
@@ -1812,19 +1713,203 @@ class AutomatedStoryGenerator:
 
             parsed_result = self._parse_claude_response(content, "stage2")
 
-            self.log_step("Stage 2 TÓIBÍN LITERARY CONTINUITY Parsing", "SUCCESS", {
+            self.log_step("Stage 2 OPTIMIZED Parsing", "SUCCESS", {
                 "stories_written": len(parsed_result.get('stories', {})),
-                "toibin_continuity_maintained": True,
-                "character_consistency_achieved": True,
+                "word_count_targeted": True,
                 "stage_cost": stage_cost
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 2 TÓIBÍN LITERARY CONTINUITY Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 2 Tóibín continuity error: {e}")
+            self.log_step("Stage 2 OPTIMIZED Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 2 optimized error: {e}")
             return {"stories": {}, "stage2_stats": {"error": str(e)}}
+
+    def _format_remaining_scenes(self, scenes_list):
+        """Format remaining scenes concisely to reduce prompt size"""
+        formatted = []
+        for scene in scenes_list:
+            formatted.append(
+                f"Scene {scene['scene_id']}: {scene['title']} ({scene.get('duration_minutes', 4)}min = {scene.get('target_words', 560)} words)")
+        return '\n'.join(formatted)
+
+    def _enhanced_word_count_correction(self, scene_id: str, current_story: str, target_words: int,
+                                        scene_info: Dict) -> str:
+        """
+        Enhanced word count correction with precise targeting
+        FIX: Better calculation and validation
+        """
+        current_words = len(current_story.split())
+        deviation = abs(current_words - target_words) / target_words
+
+        # Only correct if significantly off (>20% deviation)
+        if deviation < 0.20:
+            return current_story
+
+        if current_words < target_words:
+            # EXPAND with precise targeting
+            words_needed = target_words - current_words
+
+            correction_prompt = f"""EXPAND this Tóibín-style story from {current_words} to EXACTLY {target_words} words (+{words_needed} words).
+
+    CURRENT STORY:
+    {current_story}
+
+    SCENE INFO: {scene_info.get('title', '')} - {scene_info.get('duration_minutes', 4)} minutes
+
+    EXPANSION STRATEGY:
+    - Add {words_needed // 4} words to character psychology
+    - Add {words_needed // 4} words to environmental details  
+    - Add {words_needed // 4} words to sensory descriptions
+    - Add {words_needed // 4} words to contemplative moments
+
+    MAINTAIN:
+    - Tóibín's understated style
+    - Character consistency
+    - Sleep-optimized pacing
+    - Present tense, second person
+
+    OUTPUT: Expanded story with EXACTLY {target_words} words. Count carefully."""
+
+        else:
+            # TRIM with precision
+            words_to_remove = current_words - target_words
+
+            correction_prompt = f"""TRIM this Tóibín-style story from {current_words} to EXACTLY {target_words} words (-{words_to_remove} words).
+
+    CURRENT STORY:
+    {current_story}
+
+    TRIMMING STRATEGY:
+    - Remove redundant descriptions
+    - Condense verbose passages
+    - Keep essential Tóibín elements
+    - Maintain narrative flow
+
+    OUTPUT: Trimmed story with EXACTLY {target_words} words."""
+
+        try:
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=CONFIG.claude_config["max_tokens"] // 2,  # Smaller response
+                temperature=0.3,  # More deterministic
+                timeout=300,  # Shorter timeout
+                system=f"Precise word count editor. Target: EXACTLY {target_words} words. Maintain Tóibín style.",
+                messages=[{"role": "user", "content": correction_prompt}]
+            )
+
+            corrected_story = response.content[0].text.strip()
+
+            # Validate correction
+            corrected_words = len(corrected_story.split())
+            final_deviation = abs(corrected_words - target_words) / target_words
+
+            if final_deviation < 0.15:  # Within 15% tolerance
+                return corrected_story
+            else:
+                print(f"⚠️ Correction still off: {corrected_words} vs {target_words} words")
+                return current_story  # Return original if correction failed
+
+        except Exception as e:
+            print(f"❌ Correction failed: {e}")
+            return current_story
+
+    def _validate_word_counts_enhanced(self, stories: Dict, scene_plan: List) -> Dict:
+        """
+        Enhanced validation with better tolerance and reporting
+        """
+        validation_results = {
+            "valid_scenes": [],
+            "needs_correction": [],
+            "missing_scenes": [],
+            "total_scenes": len(scene_plan),
+            "validation_summary": {}
+        }
+
+        for scene in scene_plan:
+            scene_id = str(scene['scene_id'])
+            target_duration = scene.get('duration_minutes', 4)
+            target_words = int(target_duration * 140)  # 140 words per minute
+
+            # Allow ±20% tolerance (was too strict before)
+            tolerance = 0.20
+            min_words = int(target_words * (1 - tolerance))
+            max_words = int(target_words * (1 + tolerance))
+
+            if scene_id not in stories:
+                validation_results["missing_scenes"].append({
+                    "scene_id": scene_id,
+                    "title": scene.get('title', 'Untitled'),
+                    "target_words": target_words,
+                    "status": "MISSING"
+                })
+            else:
+                story = stories[scene_id]
+                actual_words = len(story.split())
+                deviation = abs(actual_words - target_words) / target_words
+
+                if min_words <= actual_words <= max_words:
+                    validation_results["valid_scenes"].append({
+                        "scene_id": scene_id,
+                        "actual_words": actual_words,
+                        "target_words": target_words,
+                        "status": "VALID"
+                    })
+                else:
+                    validation_results["needs_correction"].append({
+                        "scene_id": scene_id,
+                        "actual_words": actual_words,
+                        "target_words": target_words,
+                        "deviation": deviation,
+                        "action": "EXPAND" if actual_words < target_words else "TRIM",
+                        "status": "NEEDS_CORRECTION"
+                    })
+
+        # Summary statistics
+        validation_results["validation_summary"] = {
+            "total_scenes": len(scene_plan),
+            "valid_count": len(validation_results["valid_scenes"]),
+            "correction_needed": len(validation_results["needs_correction"]),
+            "missing_count": len(validation_results["missing_scenes"]),
+            "success_rate": len(validation_results["valid_scenes"]) / len(scene_plan) * 100
+        }
+
+        return validation_results
+
+    # Additional helper for Stage 1 word count improvement
+    def _optimize_stage1_word_counts(self, stage1_prompt: str, scene_durations: List) -> str:
+        """
+        Add precise word count instructions to Stage 1 prompt
+        """
+        word_count_section = """
+    ## CRITICAL: PRECISE WORD COUNT TARGETING
+
+    Calculate EXACTLY for each scene:
+    - Duration × 140 words/minute = Target words
+    - 2.0min = 280 words | 3.0min = 420 words | 4.0min = 560 words
+    - 5.0min = 700 words | 6.0min = 840 words | 7.0min = 980 words
+    - 8.0min = 1120 words | 9.0min = 1260 words | 10.0min = 1400 words
+
+    WORD COUNT VERIFICATION:
+    - Count words in each story before finalizing
+    - Adjust length to match target ±10%
+    - Use content structure to reach exact counts
+
+    EXPANSION TECHNIQUES (if short):
+    - Character internal thoughts (+50-100 words)
+    - Environmental sensory details (+40-80 words)
+    - Historical period details (+30-60 words)
+    - Contemplative pauses and reflections (+40-80 words)
+
+    """
+
+        # Insert word count section after the main instructions
+        insertion_point = stage1_prompt.find("## 4. FIRST")
+        if insertion_point > 0:
+            return stage1_prompt[:insertion_point] + word_count_section + stage1_prompt[insertion_point:]
+        else:
+            return stage1_prompt + word_count_section
 
     def generate_hook_subscribe_scenes(self, scene_plan: List[Dict], hook_content: str, subscribe_content: str) -> Dict:
         """Generate background scenes for hook and subscribe with precise timing"""
