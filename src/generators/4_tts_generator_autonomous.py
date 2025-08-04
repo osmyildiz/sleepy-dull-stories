@@ -855,7 +855,7 @@ class ServerTTSGenerator:
                 "scene_number": -1,
                 "title": "Subscribe Request - Community Building",
                 "direction": "Energetic but warming transition. MrBeast-style genuine excitement. Create FOMO for the community. Passionate but welcoming.",
-                "speaking_rate": 0.9,  # ✅ Hâlâ canlı ama yavaşlıyor
+                "speaking_rate": 1.0,  # ✅ Hâlâ canlı ama yavaşlıyor
                 "pitch": 0.1  # ✅ Orta enerji
             }
         }
@@ -963,7 +963,7 @@ class ServerTTSGenerator:
 
             # Voice settings
             direction_text = voice_direction.get('direction', '')
-            speaking_rate = voice_direction.get('speaking_rate', 0.9)
+            speaking_rate = voice_direction.get('speaking_rate', 0.95)
 
             voice = texttospeech.VoiceSelectionParams(
                 language_code=language_code,
@@ -1171,18 +1171,18 @@ class ServerTTSGenerator:
 
                 # Direction'dan ses özelliklerini belirle
                 direction_text = voice_direction.get('direction', '')
-                speaking_rate = voice_direction.get('speaking_rate', 0.9)
+                speaking_rate = voice_direction.get('speaking_rate', 0.95)
 
                 # Direction'a göre speaking rate ayarla
                 if 'speaking_rate' not in voice_direction:
                     if 'slow' in direction_text.lower() or 'meditative' in direction_text.lower():
-                        speaking_rate = 0.83
-                    elif 'rhythmic' in direction_text.lower() or 'flowing' in direction_text.lower():
                         speaking_rate = 0.95
-                    elif 'gentle' in direction_text.lower() or 'tender' in direction_text.lower():
-                        speaking_rate = 0.9
-                    elif 'alert' in direction_text.lower() or 'business' in direction_text.lower():
+                    elif 'rhythmic' in direction_text.lower() or 'flowing' in direction_text.lower():
                         speaking_rate = 1.0
+                    elif 'gentle' in direction_text.lower() or 'tender' in direction_text.lower():
+                        speaking_rate = 0.95
+                    elif 'alert' in direction_text.lower() or 'business' in direction_text.lower():
+                        speaking_rate = 1.1
 
                 voice = texttospeech.VoiceSelectionParams(
                     language_code=language_code,
