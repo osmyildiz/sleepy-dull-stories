@@ -1010,12 +1010,33 @@ class ServerMidjourneySceneGenerator:
         # Build final prompt
         final_parts = []
 
+        # Add character references if available
         if char_refs:
             final_parts.extend(char_refs)
+        else:
+            # If no character references, add style anchor to maintain consistency
+            # Use any available character reference as style anchor
+            if self.character_references:
+                # Pick first available character as style reference
+                first_char_url = list(self.character_references.values())[0]
+                final_parts.append(first_char_url)
+                print(f"📌 Scene {scene_num}: Using style anchor from {list(self.character_references.keys())[0]}")
+
+        # Enhance historical period context for scenes without characters
+        if not scene.get("characters_present"):
+            # Add historical period context
+            historical_context = f"ancient {self.current_historical_period.lower()}"
+            if "roman" in self.current_historical_period.lower():
+                historical_context = "ancient Roman empire 1st century CE"
+            elif "egyptian" in self.current_historical_period.lower():
+                historical_context = "ancient Egyptian Ptolemaic period"
+
+            filtered_prompt = f"{historical_context} setting, {filtered_prompt}"
 
         final_parts.append(filtered_prompt)
         final_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
-        final_parts.append("warm golden light deep shadows atmospheric")
+        final_parts.append("warm golden light deep shadows atmospheric weathered materials")
+        final_parts.append("photorealistic historical scene detailed textures")
         final_parts.append("--v 7.0 --ar 16:9")
 
         final_prompt = " ".join(final_parts)
