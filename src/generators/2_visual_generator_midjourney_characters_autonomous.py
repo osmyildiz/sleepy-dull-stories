@@ -481,119 +481,166 @@ class ServerMidjourneyVisualGenerator:
 
         self.log_step(f"✅ Character generation report saved: {report_path}", "SUCCESS")
 
-    def extract_character_role(self, character: Dict) -> str:
-        """Extract character role from description dynamically"""
+    def extract_character_gender_and_age(self, character: Dict) -> Tuple[str, str]:
+        """Karakterin cinsiyeti ve yaş grubunu tespit et"""
+        name = character.get('name', '').lower()
         description = character.get('physical_description', '').lower()
+
+        # Cinsiyet tespiti
+        gender = "unknown"
+
+        # İsimden cinsiyet tespiti
+        female_names = ['livia', 'claudia', 'helena', 'julia', 'antonia']
+        male_names = ['marcus', 'gaius', 'quintus', 'lucius', 'titus', 'brutus', 'cassius']
+
+        for fname in female_names:
+            if fname in name:
+                gender = "female"
+                break
+
+        for mname in male_names:
+            if mname in name:
+                gender = "male"
+                break
+
+        # İsimden anahtar kelimelerle cinsiyet tespiti
+        if any(word in name for word in ['wife', 'mother', 'woman']):
+            gender = "female"
+        elif any(word in name for word in ['husband', 'father', 'man']):
+            gender = "male"
+
+        # Fiziksel tanımlamadan cinsiyet tespiti
+        if 'mother' in description or 'maternal' in description or 'she ' in description:
+            gender = "female"
+        elif 'father' in description or 'paternal' in description or 'he ' in description:
+            gender = "male"
+
+        # Yaş grubu tespiti
+        age_group = "adult"
+        if any(word in description for word in ['child', 'young boy', 'young girl', '6 years old']):
+            age_group = "child"
+        elif any(word in description for word in ['old', 'aged', 'elderly', 'gray hair', 'grey hair']):
+            age_group = "elderly"
+        elif any(word in description for word in ['young', 'youthful', 'late twenties']):
+            age_group = "young_adult"
+
+        return gender, age_group
+
+    def extract_character_role(self, character: Dict) -> str:
+        """Cinsiyet ve yaş dikkate alınarak karakter rolü çıkarma - İYİLEŞTİRİLMİŞ"""
+        description = character.get('physical_description', '').lower()
+        name = character.get('name', '').lower()
         historical_period = self.current_historical_period
 
-        # Role detection based on description keywords
+        # Cinsiyet ve yaş tespiti
+        gender, age_group = self.extract_character_gender_and_age(character)
+
+        # Meslek/rol tespiti
         role_keywords = {
-            'librarian': ['librarian', 'scholar', 'scrolls', 'manuscripts', 'books'],
-            'scribe': ['scribe', 'writing', 'copying', 'pen', 'ink'],
-            'astronomer': ['astronomer', 'stars', 'astrolabe', 'celestial', 'observation'],
-            'philosopher': ['philosopher', 'thinking', 'contemplation', 'wisdom'],
-            'priest': ['priest', 'temple', 'religious', 'ceremony', 'sacred'],
-            'physician': ['physician', 'healer', 'medicine', 'herbs', 'healing'],
-            'curator': ['curator', 'manuscripts', 'preservation', 'collection'],
-            'baker': ['flour', 'bread', 'kneading', 'oven', 'dough', 'bakery'],
-            'fisherman': ['fishing', 'nets', 'harbor', 'sea', 'boat', 'maritime'],
-            'gladiator': ['sword', 'arena', 'combat', 'warrior', 'battle', 'muscular'],
-            'senator': ['toga', 'dignified', 'authority', 'noble', 'distinguished'],
-            'woman': ['elegant', 'graceful', 'flowing robes', 'gentle hands'],
-            'merchant': ['trade', 'goods', 'market', 'commerce', 'wealthy'],
-            'soldier': ['armor', 'military', 'guard', 'captain', 'uniform'],
-            'artisan': ['craft', 'tools', 'workshop', 'skilled', 'maker']
+            'baker': ['flour', 'bread', 'kneading', 'oven', 'dough', 'bakery', 'baker'],
+            'weaver': ['weaver', 'needle', 'thread', 'fabric', 'sewing', 'dress'],
+            'soldier': ['soldier', 'military', 'armor', 'sword', 'warrior', 'battle'],
+            'merchant': ['merchant', 'trade', 'business', 'wealthy', 'scrolls', 'commerce'],
+            'gardener': ['garden', 'plants', 'cultivation', 'growing'],
+            'mother': ['mother', 'maternal', 'child', 'caring'],
+            'scholar': ['scholar', 'scrolls', 'manuscripts', 'learning']
         }
 
-        # Check for role keywords in description
-        detected_roles = []
+        detected_role = None
         for role, keywords in role_keywords.items():
-            if any(keyword in description for keyword in keywords):
-                detected_roles.append(role)
-
-        # Determine primary role
-        if detected_roles:
-            primary_role = detected_roles[0]  # First match
-
-            # Context-specific role formatting
-            if 'roman' in historical_period.lower() or '79 ad' in historical_period.lower():
-                role_prefix = "ancient Roman"
-            elif 'medieval' in historical_period.lower():
-                role_prefix = "medieval"
-            elif 'egyptian' in historical_period.lower():
-                role_prefix = "ancient Egyptian"
-            elif 'alexandria' in self.current_topic.lower() or 'library' in self.current_topic.lower():
-                role_prefix = "ancient Hellenistic"
-            else:
-                role_prefix = "historical"
-
-            return f"{role_prefix} {primary_role}"
-
-        # Fallback based on historical period or topic
-        if 'alexandria' in self.current_topic.lower() or 'library' in self.current_topic.lower():
-            return "ancient Hellenistic scholar"
-        elif 'roman' in historical_period.lower():
-            return "ancient Roman person"
-        elif 'medieval' in historical_period.lower():
-            return "medieval person"
-        elif 'egyptian' in historical_period.lower():
-            return "ancient Egyptian person"
-        else:
-            return "historical person"
-    def generate_character_prompt(self, character: Dict) -> str:
-        """V7 için optimize edilmiş karakter prompt generation"""
-        char_name = character["name"]
-        role = self.extract_character_role(character)
-        physical = character.get('physical_description', '').split(',')[0].strip()
-
-        # V7 için optimize edilmiş prompt template
-        base_prompt = f"Professional portrait photograph of {role}, {physical}"
-
-        # Karakter tipine göre ek detaylar
-        details = []
-
-        # Yaş ve cinsiyet analizi
-        if 'young' in physical.lower() or 'youthful' in physical.lower():
-            details.append("youthful appearance")
-        elif 'old' in physical.lower() or 'aged' in physical.lower():
-            details.append("wise aged features")
-        else:
-            details.append("mature dignified presence")
-
-        # Duygu durumu - role'e göre
-        emotions = {
-            'baker': 'warm gentle expression with flour-dusted hands',
-            'soldier': 'stoic determined gaze with weathered features',
-            'scribe': 'thoughtful intelligent eyes with ink-stained fingers',
-            'mother': 'loving protective expression with tender smile',
-            'merchant': 'confident assured demeanor with prosperity signs',
-            'priest': 'serene spiritual countenance with peaceful aura',
-            'fisherman': 'weathered sea-worn face with calloused hands',
-            'gladiator': 'strong muscular build with battle scars',
-            'healer': 'gentle wise expression with herb-stained fingers',
-            'artisan': 'skilled craftsman hands with creative focus'
-        }
-
-        for job, emotion in emotions.items():
-            if job in role.lower():
-                details.append(emotion)
+            if any(keyword in description or keyword in name for keyword in keywords):
+                detected_role = role
                 break
+
+        # Cinsiyet ve yaş bazlı rol düzeltmeleri
+        if detected_role == 'baker' and gender == 'female':
+            base_role = "baker woman" if age_group != "elderly" else "elderly baker woman"
+        elif detected_role == 'weaver' and gender == 'female':
+            base_role = "weaver woman"
+        elif detected_role == 'soldier' and gender == 'male':
+            base_role = "soldier" if age_group != "elderly" else "retired soldier"
+        elif detected_role == 'merchant' and gender == 'male':
+            base_role = "merchant"
+        elif detected_role == 'mother' and gender == 'female':
+            base_role = "mother"
+        elif age_group == 'child':
+            if gender == 'male':
+                base_role = "young boy"
+            elif gender == 'female':
+                base_role = "young girl"
+            else:
+                base_role = "child"
         else:
-            details.append("peaceful contemplative expression")
+            # Fallback - cinsiyet ve yaş bazlı genel roller
+            if gender == 'female':
+                if age_group == 'elderly':
+                    base_role = "elderly woman"
+                elif age_group == 'young_adult':
+                    base_role = "young woman"
+                else:
+                    base_role = "woman"
+            elif gender == 'male':
+                if age_group == 'elderly':
+                    base_role = "elderly man"
+                elif age_group == 'young_adult':
+                    base_role = "young man"
+                else:
+                    base_role = "man"
+            else:
+                base_role = "person"
 
-        # Işık ve atmosfer (HER ZAMAN)
-        lighting = "soft golden hour lighting, warm atmospheric glow, cinematic lighting"
+        # Tarihi dönem ekleme
+        if 'roman' in historical_period.lower() or '79 ad' in historical_period.lower():
+            role_prefix = "ancient Roman"
+        elif 'medieval' in historical_period.lower():
+            role_prefix = "medieval"
+        elif 'egyptian' in historical_period.lower():
+            role_prefix = "ancient Egyptian"
+        elif 'alexandria' in self.current_topic.lower() or 'library' in self.current_topic.lower():
+            role_prefix = "ancient Hellenistic"
+        else:
+            role_prefix = "historical"
 
-        # Stil ve kalite
-        style = "portrait photography style, highly detailed, photorealistic, 4K quality"
+        return f"{role_prefix} {base_role}"
 
-        # Tarihi doğruluk
-        historical = f"historically accurate {self.current_historical_period} clothing and appearance"
+    def generate_character_prompt(self, character: Dict) -> str:
+        """JSON verilerinden basit ve etkili Midjourney prompt"""
 
-        # Final prompt assembly
-        full_prompt = f"{base_prompt}, {', '.join(details)}, {historical}, {lighting}, {style}"
+        # Temel bilgiler
+        name = character.get("name", "Unknown")
+        gender = character.get("gender", "unknown")
+        role = character.get("role", "character")
+        physical = character.get("physical_description", "")
+        importance_score = character.get("importance_score", 5)
+        use_in_marketing = character.get("use_in_marketing", False)
 
-        return full_prompt
+        # Emotional core (psychology'den)
+        psychology = character.get("tóibín_psychology", {})
+        emotional_core = psychology.get("emotional_complexity", "peaceful contemplative expression")
+
+        # Context bilgileri (kodun sahip olduğu)
+        topic = self.current_topic  # örn: "Pompeii"
+        period = self.current_historical_period  # örn: "ancient times"
+
+        # Pose seçimi - önem derecesine göre
+        if use_in_marketing or importance_score >= 8:
+            # Ana karakterler - thumbnail ve pazarlama için düz
+            pose = "front facing portrait"
+        elif importance_score >= 7:
+            # Önemli yan karakterler - üç çeyrek
+            pose = "three-quarter view portrait"
+        else:
+            # Yan karakterler - profil
+            pose = "profile portrait"
+
+        # Basit template
+        prompt = f"{topic} {period} character named {name}, {gender} {role}, {physical}, emotional expression: {emotional_core}, {pose}, portrait photography style, highly detailed, soft golden hour lighting, 2:3 aspect ratio"
+
+        return prompt
+
+    # Test ile örnek:
+    # Input: Livia karakteri + "Pompeii" + "79 AD Roman period"
+    # Output: "Pompeii 79 AD Roman period character named Livia (Baker's Wife), female protagonist, 34 years old, calloused hands from years of kneading dough, patient brown eyes, dark hair pulled back practically, flour-dusted apron, movements precise and economical, emotional expression: profound contentment mixed with inexplicable melancholy about the passage of time, portrait photography style, highly detailed, 2:3 aspect ratio"
 
     def clean_prompt_for_piapi_v7(self, prompt: str) -> str:
         """V7 parametrelerini koruyarak temizleme - ESKİ clean_prompt_for_piapi'nin YENİ VERSİYONU"""
@@ -852,9 +899,6 @@ class ServerMidjourneyVisualGenerator:
         except Exception as e:
             self.log_step(f"❌ Download failed: {e}", "ERROR")
             return False
-
-    # SYNTAX HATALARININ DÜZELTMESİ
-    # generate_all_characters_parallel fonksiyonunu tamamen değiştirin
 
     def generate_all_characters_parallel(self, character_profiles: Dict):
         """V7 ile optimize edilmiş karakter generation - SYNTAX FIXED"""

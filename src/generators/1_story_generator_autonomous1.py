@@ -746,6 +746,7 @@ OUTPUT FORMAT:
           {{
             "name": "[Character name from stories]",
             "role": "protagonist|supporting|background",
+            "gender": "male|female",
             "importance_score": 8,
             "scene_appearances": [1, 3, 7, 12],
             "use_in_marketing": true,
