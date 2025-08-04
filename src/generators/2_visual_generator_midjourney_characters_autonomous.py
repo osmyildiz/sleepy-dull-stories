@@ -56,8 +56,12 @@ class ServerConfig:
         print(f"✅ Visual Generator server paths configured:")
         print(f"   📁 Project root: {self.paths['BASE_DIR']}")
 
+    # MIDJOURNEY KARAKTER GENERATOR İYİLEŞTİRMELERİ
+    # Bu kısımları kodunuzda değiştirin
+
+    # 1. CONFIG DEĞİŞİKLİĞİ - setup_visual_config() metodunda
     def setup_visual_config(self):
-        """Setup Midjourney visual generation configuration"""
+        """Setup Midjourney visual generation configuration - IMPROVED"""
         self.visual_config = {
             "api_base_url": "https://api.piapi.ai/api/v1",
             "max_concurrent_tasks": 10,
@@ -68,17 +72,17 @@ class ServerConfig:
                 "scenes": "16:9",
                 "thumbnail": "16:9"
             },
-            "default_version": "6.1",
+            "default_version": "7",  # ✅ V6.1 → V7 DEĞİŞTİRİLDİ
+            "quality": "2",  # ✅ YENİ: Yüksek kalite
+            "stylize": "100",  # ✅ YENİ: Orta stylization
             "process_mode": "relax",
             "character_generation": True,
             "scene_generation": True,
             "thumbnail_generation": True,
             "server_mode": True,
-            "production_ready": True
+            "production_ready": True,
+            "v7_optimized": True  # ✅ YENİ: V7 optimization flag
         }
-
-        # Get API key
-        self.api_key = self.get_midjourney_api_key()
 
     def get_midjourney_api_key(self):
         """Get Midjourney API key from multiple sources"""
@@ -331,6 +335,7 @@ class ServerMidjourneyVisualGenerator:
                 print(f"Raw error: {response.text}")
             print("🔍" + "="*60)
 
+
     def check_existing_character(self, char_name: str) -> bool:
         """Check if character already exists to avoid regeneration"""
         if not hasattr(self, 'characters_dir'):
@@ -534,6 +539,89 @@ class ServerMidjourneyVisualGenerator:
             return "ancient Egyptian person"
         else:
             return "historical person"
+    def generate_character_prompt(self, character: Dict) -> str:
+        """V7 için optimize edilmiş karakter prompt generation"""
+        char_name = character["name"]
+        role = self.extract_character_role(character)
+        physical = character.get('physical_description', '').split(',')[0].strip()
+
+        # V7 için optimize edilmiş prompt template
+        base_prompt = f"Professional portrait photograph of {role}, {physical}"
+
+        # Karakter tipine göre ek detaylar
+        details = []
+
+        # Yaş ve cinsiyet analizi
+        if 'young' in physical.lower() or 'youthful' in physical.lower():
+            details.append("youthful appearance")
+        elif 'old' in physical.lower() or 'aged' in physical.lower():
+            details.append("wise aged features")
+        else:
+            details.append("mature dignified presence")
+
+        # Duygu durumu - role'e göre
+        emotions = {
+            'baker': 'warm gentle expression with flour-dusted hands',
+            'soldier': 'stoic determined gaze with weathered features',
+            'scribe': 'thoughtful intelligent eyes with ink-stained fingers',
+            'mother': 'loving protective expression with tender smile',
+            'merchant': 'confident assured demeanor with prosperity signs',
+            'priest': 'serene spiritual countenance with peaceful aura',
+            'fisherman': 'weathered sea-worn face with calloused hands',
+            'gladiator': 'strong muscular build with battle scars',
+            'healer': 'gentle wise expression with herb-stained fingers',
+            'artisan': 'skilled craftsman hands with creative focus'
+        }
+
+        for job, emotion in emotions.items():
+            if job in role.lower():
+                details.append(emotion)
+                break
+        else:
+            details.append("peaceful contemplative expression")
+
+        # Işık ve atmosfer (HER ZAMAN)
+        lighting = "soft golden hour lighting, warm atmospheric glow, cinematic lighting"
+
+        # Stil ve kalite
+        style = "portrait photography style, highly detailed, photorealistic, 4K quality"
+
+        # Tarihi doğruluk
+        historical = f"historically accurate {self.current_historical_period} clothing and appearance"
+
+        # Final prompt assembly
+        full_prompt = f"{base_prompt}, {', '.join(details)}, {historical}, {lighting}, {style}"
+
+        return full_prompt
+
+    def clean_prompt_for_piapi_v7(self, prompt: str) -> str:
+        """V7 parametrelerini koruyarak temizleme - ESKİ clean_prompt_for_piapi'nin YENİ VERSİYONU"""
+        import re
+
+        # Eski --ar ve eski --v parametrelerini kaldır (ama V7'yi değil)
+        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
+        prompt = re.sub(r'--v\s+[1-6](?:\.\d+)?', '', prompt)  # Sadece V6 ve altını kaldır
+
+        # V7 parametrelerini KORUYACAK şekilde genel temizlik
+        # Tireleri sadece prompt içeriğinde değiştir, parametrelerde değil
+        parts = prompt.split(' --')
+        if len(parts) > 1:
+            # İlk kısım prompt, geri kalanı parametreler
+            content = parts[0]
+            params = [' --' + p for p in parts[1:]]
+
+            # Sadece content kısmındaki tireleri temizle
+            content = content.replace(' - ', ' ').replace('-', ' ')
+            content = re.sub(r'\s+', ' ', content).strip()
+
+            # Parametreleri geri ekle
+            prompt = content + ''.join(params)
+        else:
+            # Parametre yok, sadece content temizle
+            prompt = prompt.replace(' - ', ' ').replace('-', ' ')
+            prompt = re.sub(r'\s+', ' ', prompt).strip()
+
+        return prompt
 
     def test_api_connection(self) -> bool:
         """Test PIAPI connection"""
@@ -633,6 +721,53 @@ class ServerMidjourneyVisualGenerator:
             traceback.print_exc()
             self.log_step(f"❌ Request failed for {char_name}: {e}", "ERROR")
             return None
+
+    def submit_midjourney_task_v7(self, prompt: str, aspect_ratio: str = "16:9", char_name: str = "") -> Optional[str]:
+        """V7 parametreleriyle task submission - ESKİ submit_midjourney_task'ın YENİ VERSİYONU"""
+
+        # V7 parametrelerini prompt'a ekle
+        v7_params = f" --ar {aspect_ratio} --v 7 --quality 2 --stylize 100"
+        full_prompt = prompt + v7_params
+
+        # V7 parametrelerini koruyarak temizle
+        clean_prompt = self.clean_prompt_for_piapi_v7(full_prompt)
+
+        payload = {
+            "model": "midjourney",
+            "task_type": "imagine",
+            "input": {
+                "prompt": clean_prompt,
+                "aspect_ratio": aspect_ratio,
+                "process_mode": CONFIG.visual_config["process_mode"],
+                "skip_prompt_check": False
+            }
+        }
+
+        url = f"{self.base_url}/task"
+
+        try:
+            self.api_calls_made += 1
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("code") == 200:
+                    task_data = result.get("data", {})
+                    task_id = task_data.get("task_id")
+                    print(f"✅ V7 Task submitted: {task_id} ({char_name})")
+                    print(f"   📝 V7 Prompt: {clean_prompt}")
+                    return task_id
+                else:
+                    print(f"❌ API Error for {char_name}: {result.get('message', 'Unknown')}")
+                    return None
+            else:
+                print(f"❌ HTTP {response.status_code} for {char_name}")
+                return None
+
+        except Exception as e:
+            print(f"❌ Request failed for {char_name}: {e}")
+            return None
+
 
     def check_task_status(self, task_id: str) -> Optional[Dict]:
         """Check single task status"""
@@ -748,23 +883,16 @@ class ServerMidjourneyVisualGenerator:
 
         for character in characters_to_generate:
             char_name = character["name"]
-            role = self.extract_character_role(character)
-            physical = character.get('physical_description', '').split(',')[0].strip()
+            v7_prompt = self.generate_character_prompt(character)
 
-            raw_prompt = f"Full body character sheet, {role}, {physical}, {self.current_historical_period}, standing pose, character design reference"
+            print(f"   📝 V7 Prompt: {v7_prompt}")
+            print(f"🎭 Submitting V7: {char_name}")
 
-            # Prompt'u API için temizle
-            prompt = self.clean_prompt_for_piapi(raw_prompt)
-
-            print(f"   📝 Clean prompt: {prompt}")
-            print(f"🎭 Submitting: {char_name} → {role}")
-
-            task_id = self.submit_midjourney_task(prompt, aspect_ratio="2:3", char_name=char_name)
-
+            task_id = self.submit_midjourney_task_v7(v7_prompt, aspect_ratio="2:3", char_name=char_name)
             if task_id:
                 character_tasks[char_name] = {
                     "task_id": task_id,
-                    "prompt": prompt,
+                    "prompt": v7_prompt,
                     "character_data": character
                 }
             else:
