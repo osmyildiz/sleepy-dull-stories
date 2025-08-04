@@ -131,7 +131,10 @@ class ServerConfig:
             "platform_metadata_export": True,
             "production_specs_detailed": True,
             "streaming_response": True,  # ✅ PROVEN CRITICAL
-            "long_timeout": True         # ✅ PROVEN CRITICAL
+            "long_timeout": True,        # ✅ PROVEN CRITICAL,
+            "validation_enabled": True,  # ✅ EKLEYİN
+            "auto_correction": True,  # ✅ EKLEYİN
+            "target_tolerance": 0.2  # ✅ EKLEYİN (±20% tolerans)
         }
 
         # Get API key
@@ -1337,12 +1340,12 @@ class AutomatedStoryGenerator:
 
     ## TÓIBÍN'S SLEEP STORY REQUIREMENTS (ADVANCED):
 
-    ### 📝 WORD COUNT PRECISION (TÓIBÍN PACING):
-    - **2-3 minute scenes:** 300-450 words (short, concentrated observations)
-    - **4-5 minute scenes:** 600-750 words (medium character studies)  
-    - **6-7 minute scenes:** 750-1050 words (extended contemplative moments)
-    - **8+ minute scenes:** 1050+ words (deep psychological exploration)
-    - **Base rate:** ~150 words per minute with Tóibín's contemplative pacing
+    ### 📝 WORD COUNT PRECISION:
+    - 2-3 minute scenes: 280-420 words (2-3 × 140)
+    - 4-5 minute scenes: 560-700 words (4-5 × 140)  
+    - 6-7 minute scenes: 840-980 words (6-7 × 140)
+    - 8+ minute scenes: 1120+ words (8+ × 140)
+    - Base rate: ~140 words per minute for sleep content
 
     ### 🎭 TÓIBÍN'S CHARACTER INTEGRATION (ADVANCED):
     - **"Characters led by desires they don't understand"** - show internal conflicts
