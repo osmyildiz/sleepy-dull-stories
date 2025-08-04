@@ -670,7 +670,22 @@ class ServerMidjourneySceneGenerator:
                     print(f"⚠️ Scene {scene_num}: HTTP 500 - Checking response for banned prompt")
                     try:
                         error_response = response.json()
-                        raw_message = error_response.get("error", {}).get("raw_message", "")
+
+                        # Check both locations for banned prompt
+                        raw_message = ""
+
+                        # Location 1: data.error.raw_message (your case)
+                        data = error_response.get("data", {})
+                        if data:
+                            error_data = data.get("error", {})
+                            raw_message = error_data.get("raw_message", "")
+
+                        # Location 2: error.raw_message (fallback)
+                        if not raw_message:
+                            error_data = error_response.get("error", {})
+                            raw_message = error_data.get("raw_message", "")
+
+                        print(f"🔍 Scene {scene_num}: Found raw_message: '{raw_message}'")
 
                         if "Banned Prompt:" in raw_message:
                             # Extract banned word from raw_message
@@ -705,7 +720,31 @@ class ServerMidjourneySceneGenerator:
                                 print(f"❌ Scene {scene_num}: Banned prompt - no more correction attempts")
                                 return None
                         else:
-                            print(f"❌ Scene {scene_num}: HTTP 500 - Real server error: {raw_message}")
+                            print(f"❌ Scene {scene_num}: HTTP 500 - Real server error or empty response")
+                            # If response is empty but it's HTTP 500, likely a banned prompt
+                            if self.claude_corrector.enabled and attempt < max_claude_attempts:
+                                print(f"🧠 Scene {scene_num}: Empty HTTP 500 response - trying Claude correction anyway")
+
+                                # Use Claude with generic content policy issue
+                                corrected_prompt = self.claude_corrector.correct_prompt_with_claude(
+                                    scene_data, "content policy violation (HTTP 500)", attempt + 1
+                                )
+
+                                if corrected_prompt:
+                                    current_prompt = corrected_prompt
+                                    self.claude_corrector.correction_attempts[scene_num] += 1
+
+                                    # Update JSON file
+                                    visual_prompts_path = Path(self.current_output_dir) / "visual_generation_prompts.json"
+                                    if visual_prompts_path.exists():
+                                        self.claude_corrector.update_visual_prompts_json(
+                                            str(visual_prompts_path), scene_num, corrected_prompt
+                                        )
+
+                                    print(f"🧠 Scene {scene_num}: Trying Claude-corrected prompt for HTTP 500")
+                                    time.sleep(2)
+                                    continue
+
                             return None
 
                     except Exception as e:
@@ -748,8 +787,22 @@ class ServerMidjourneySceneGenerator:
     def apply_content_policy_filter(self, prompt: str) -> str:
         """Apply universal content policy filter to any prompt"""
 
-        # Global content policy replacements
+        # Global content policy replacements - ORDER MATTERS (longer phrases first)
         replacements = {
+            # Intimate shots - SPECIFIC REPLACEMENTS FIRST
+            "INTIMATE MEDIUM SHOT": "MEDIUM SHOT",
+            "INTIMATE CLOSE-UP": "CLOSE-UP",
+            "intimate medium shot": "medium shot",
+            "intimate close-up": "close-up",
+            "intimate shot": "close-up shot",
+            "Intimate medium shot": "Medium shot",
+            "Intimate close-up": "Close-up",
+
+            # Then general intimate replacements
+            "intimate": "quiet",
+            "intimately": "quietly",
+            "INTIMATE": "QUIET",
+
             # Bath/water related
             "thermal baths": "ancient pool facility",
             "bath attendant": "Roman worker",
@@ -758,12 +811,7 @@ class ServerMidjourneySceneGenerator:
             "bathing": "water facility",
             "bath": "pool",
 
-            # Intimate/romantic
-            "intimate": "quiet",
-            "intimately": "quietly",
-            "intimate shot": "close-up shot",
-            "intimate medium shot": "medium shot",
-            "intimate close-up": "close-up",
+            # Romantic/physical
             "embracing tenderly": "sharing a peaceful moment",
             "embracing": "standing together peacefully",
             "embrace": "peaceful moment",
@@ -798,7 +846,7 @@ class ServerMidjourneySceneGenerator:
             "spa": "wellness area"
         }
 
-        # Apply replacements
+        # Apply replacements in order (important for overlapping terms)
         filtered_prompt = prompt
         for old_term, new_term in replacements.items():
             filtered_prompt = filtered_prompt.replace(old_term, new_term)
