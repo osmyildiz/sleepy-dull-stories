@@ -1119,11 +1119,12 @@ class ServerMidjourneySceneGenerator:
         return missing_scenes
 
     def generate_scenes_with_claude_correction(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
-        """Generate all scenes with Claude AI prompt correction"""
+        """Generate all scenes with Claude AI prompt correction - Skip existing scenes"""
 
         print("🧠 ENHANCED SCENE GENERATION WITH CLAUDE AI PROMPT CORRECTION")
         print("🛡️ Real-time prompt correction when Midjourney blocks content")
         print("🔄 Up to 4 correction attempts per scene using Claude Sonnet 4")
+        print("⏭️ Automatically skips existing scenes")
 
         for retry_round in range(max_retry_rounds):
             missing_scenes = self.get_missing_scenes(visual_prompts)
@@ -1133,10 +1134,29 @@ class ServerMidjourneySceneGenerator:
                 return True
 
             total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
+            existing_scenes = total_scenes - len(missing_scenes) - len(self.blacklisted_scenes)
             blacklisted_count = len(self.blacklisted_scenes)
 
             if retry_round == 0:
-                print(f"🎬 Starting scene generation - {len(missing_scenes)} scenes to generate")
+                print(f"📊 Scene Status Overview:")
+                print(f"   ✅ Existing scenes: {existing_scenes}")
+                print(f"   🎬 Missing scenes: {len(missing_scenes)}")
+                print(f"   ⚫ Blacklisted scenes: {blacklisted_count}")
+                print(f"   📋 Total scenes: {total_scenes}")
+                print(f"🎬 Starting generation of {len(missing_scenes)} missing scenes")
+
+                # Show which scenes already exist
+                if existing_scenes > 0:
+                    existing_scene_nums = []
+                    for scene in visual_prompts:
+                        scene_num = scene.get("scene_number", 0)
+                        if scene_num != 99:  # Skip thumbnail
+                            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+                            if image_path.exists():
+                                existing_scene_nums.append(scene_num)
+
+                    if existing_scene_nums:
+                        print(f"⏭️  Skipping existing scenes: {sorted(existing_scene_nums)}")
             else:
                 print(f"\n🔄 RETRY ROUND {retry_round}: {len(missing_scenes)} missing scenes")
                 if blacklisted_count > 0:
@@ -1157,8 +1177,10 @@ class ServerMidjourneySceneGenerator:
             missing_scenes = self.get_missing_scenes(visual_prompts)
 
             if not missing_scenes:
-                completed_count = total_scenes - blacklisted_count
-                print(f"✅ All processable scenes completed! ({completed_count}/{total_scenes})")
+                completed_scenes = total_scenes - blacklisted_count
+                print(f"✅ All processable scenes completed! ({completed_scenes}/{total_scenes})")
+                if blacklisted_count > 0:
+                    print(f"⚫ {blacklisted_count} scenes could not be generated")
                 return True
 
             # Submit scene tasks with Claude correction
@@ -1168,6 +1190,12 @@ class ServerMidjourneySceneGenerator:
             for i, scene in enumerate(missing_scenes):
                 scene_num = scene["scene_number"]
                 attempt_num = self.scene_attempt_count.get(scene_num, 0)
+
+                # Double-check if scene was created during this run
+                image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+                if image_path.exists():
+                    print(f"⏭️  Scene {scene_num}: Already exists, skipping")
+                    continue
 
                 print(f"🎬 Processing Scene {scene_num} ({i + 1}/{len(missing_scenes)}) - Attempt #{attempt_num}")
 
@@ -1247,6 +1275,11 @@ class ServerMidjourneySceneGenerator:
                 result_data = scene_data["result_data"]
                 image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
 
+                # Final check before download (prevent duplicates)
+                if image_path.exists():
+                    print(f"⏭️  Scene {scene_num}: File already exists, skipping download")
+                    continue
+
                 if self.download_image_detailed(result_data, str(image_path), scene_num):
                     successful_downloads += 1
 
@@ -1271,14 +1304,17 @@ class ServerMidjourneySceneGenerator:
 
             print(f"✅ Round {retry_round + 1} downloads: {successful_downloads}")
 
-        # Final summary
+        # Final summary with existing scenes count
         final_missing = self.get_missing_scenes(visual_prompts)
         total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
         completed_count = total_scenes - len(final_missing) - len(self.blacklisted_scenes)
+        existing_from_start = total_scenes - len([s for s in visual_prompts if s["scene_number"] != 99 and not (self.scenes_dir / f"scene_{s['scene_number']:02d}.png").exists()])
 
         print(f"\n📊 FINAL SUMMARY:")
-        print(f"✅ Completed: {completed_count}")
-        print(f"❌ Missing: {len(final_missing)}")
+        print(f"✅ Total completed scenes: {completed_count}")
+        print(f"   📁 Pre-existing: {existing_from_start}")
+        print(f"   🆕 Newly generated: {completed_count - existing_from_start}")
+        print(f"❌ Still missing: {len(final_missing)}")
         print(f"⚫ Blacklisted: {len(self.blacklisted_scenes)}")
         print(f"🧠 Claude corrections used: {sum(self.claude_corrector.correction_attempts.values())}")
 
