@@ -300,18 +300,6 @@ class ServerConfig:
             "server_mode": True,
             "production_ready": True
         }
-        self.prompt_template = {
-            "default_core": "cinematic realistic photograph professional film photography dramatic lighting photorealistic historical scene detailed textures",
-            "style_modifiers": "warm golden light deep shadows atmospheric weathered materials classical proportions",
-            "banned_words": [
-                "intimate", "romantic", "sensual", "seductive",
-                "nude", "naked", "bare", "undressed",
-                "kiss", "kissing", "embrace", "embracing",
-                "children", "child", "kids", "minor",
-                "violence", "blood", "fight", "weapon",
-                "bedroom", "bed", "bath", "bathing"
-            ]
-        }
 
         # Get API key
         self.api_key = self.get_midjourney_api_key()
@@ -544,14 +532,21 @@ class ServerMidjourneySceneGenerator:
         CONFIG.logger.info(f"{step} - Status: {status} - Project: {self.current_topic_id}")
 
     def extract_banned_word_from_error(self, error_response: Dict) -> Optional[str]:
-        """Extract banned word from Midjourney error response"""
+        """Extract banned word from Midjourney error response (both 200 and 500 responses)"""
         try:
+            # For 200 status with error in data
             error_data = error_response.get("error", {})
             raw_message = error_data.get("raw_message", "")
 
             # Format: "Banned Prompt: word"
             if "Banned Prompt:" in raw_message:
                 banned_word = raw_message.split("Banned Prompt:")[-1].strip()
+                return banned_word
+
+            # Also check message field
+            message = error_response.get("message", "")
+            if "Banned Prompt:" in message:
+                banned_word = message.split("Banned Prompt:")[-1].strip()
                 return banned_word
 
             return None
@@ -644,11 +639,78 @@ class ServerMidjourneySceneGenerator:
                                 return None
                         else:
                             print(f"❌ Scene {scene_num}: API Error: {result.get('message', 'Unknown error')}")
+                            # Check if it's content policy but not extractable banned word
+                            if "prompt" in error_message.lower() and self.claude_corrector.enabled and attempt < max_claude_attempts:
+                                print(f"🧠 Scene {scene_num}: Possible content issue, trying Claude correction")
+
+                                # Use Claude without specific banned word
+                                corrected_prompt = self.claude_corrector.correct_prompt_with_claude(
+                                    scene_data, "content policy violation", attempt + 1
+                                )
+
+                                if corrected_prompt:
+                                    current_prompt = corrected_prompt
+                                    self.claude_corrector.correction_attempts[scene_num] += 1
+
+                                    # Update JSON file
+                                    visual_prompts_path = Path(self.current_output_dir) / "visual_generation_prompts.json"
+                                    if visual_prompts_path.exists():
+                                        self.claude_corrector.update_visual_prompts_json(
+                                            str(visual_prompts_path), scene_num, corrected_prompt
+                                        )
+
+                                    print(f"🧠 Scene {scene_num}: Trying Claude-corrected prompt for content policy")
+                                    time.sleep(2)
+                                    continue
+
                             return None
 
                 elif response.status_code == 500:
-                    print(f"❌ Scene {scene_num}: HTTP 500 - Server error")
-                    return None
+                    # HTTP 500 might contain banned prompt error in response body
+                    print(f"⚠️ Scene {scene_num}: HTTP 500 - Checking response for banned prompt")
+                    try:
+                        error_response = response.json()
+                        raw_message = error_response.get("error", {}).get("raw_message", "")
+
+                        if "Banned Prompt:" in raw_message:
+                            # Extract banned word from raw_message
+                            banned_word = raw_message.split("Banned Prompt:")[-1].strip()
+
+                            if banned_word and self.claude_corrector.enabled and attempt < max_claude_attempts:
+                                print(f"🛡️ Scene {scene_num}: HTTP 500 contains banned word: '{banned_word}'")
+
+                                # Use Claude to correct prompt
+                                corrected_prompt = self.claude_corrector.correct_prompt_with_claude(
+                                    scene_data, banned_word, attempt + 1
+                                )
+
+                                if corrected_prompt:
+                                    current_prompt = corrected_prompt
+                                    self.claude_corrector.correction_attempts[scene_num] += 1
+
+                                    # Update JSON file with corrected prompt
+                                    visual_prompts_path = Path(self.current_output_dir) / "visual_generation_prompts.json"
+                                    if visual_prompts_path.exists():
+                                        self.claude_corrector.update_visual_prompts_json(
+                                            str(visual_prompts_path), scene_num, corrected_prompt
+                                        )
+
+                                    print(f"🧠 Scene {scene_num}: Trying Claude-corrected prompt")
+                                    time.sleep(2)  # Brief pause before retry
+                                    continue
+                                else:
+                                    print(f"❌ Scene {scene_num}: Claude correction failed")
+                                    return None
+                            else:
+                                print(f"❌ Scene {scene_num}: Banned prompt - no more correction attempts")
+                                return None
+                        else:
+                            print(f"❌ Scene {scene_num}: HTTP 500 - Real server error: {raw_message}")
+                            return None
+
+                    except Exception as e:
+                        print(f"❌ Scene {scene_num}: HTTP 500 - Could not parse response: {e}")
+                        return None
                 else:
                     print(f"❌ Scene {scene_num}: HTTP Error: {response.status_code}")
                     return None
@@ -696,20 +758,24 @@ class ServerMidjourneySceneGenerator:
             "bathing": "water facility",
             "bath": "pool",
 
+            # Intimate/romantic
+            "intimate": "quiet",
+            "intimately": "quietly",
+            "intimate shot": "close-up shot",
+            "intimate medium shot": "medium shot",
+            "intimate close-up": "close-up",
+            "embracing tenderly": "sharing a peaceful moment",
+            "embracing": "standing together peacefully",
+            "embrace": "peaceful moment",
+            "kissing": "showing affection",
+            "tenderly": "peacefully",
+            "romantic": "affectionate",
+
             # Children related
             "children playing": "young people enjoying activities",
             "children": "young people",
             "kids": "youth",
             "child": "young person",
-
-            # Physical intimacy
-            "embracing tenderly": "sharing a peaceful moment",
-            "embracing": "standing together peacefully",
-            "embrace": "peaceful moment",
-            "kissing": "showing affection",
-            "intimate": "quiet",
-            "tenderly": "peacefully",
-            "romantic": "affectionate",
 
             # Bedroom/private spaces
             "bedchamber": "private chamber",
@@ -890,32 +956,25 @@ class ServerMidjourneySceneGenerator:
                 if char_name in self.character_references:
                     char_refs.append(self.character_references[char_name])
 
-        # Scene-specific (keep it simple - 20 words max)
-        scene_words = base_prompt.split()
-        if len(scene_words) > 20:
-            scene_specific = " ".join(scene_words[:20])
-        else:
-            scene_specific = base_prompt
+        # Apply content policy filter first
+        filtered_prompt = self.apply_content_policy_filter(base_prompt)
 
-        # Build raw prompt first
-        raw_prompt_parts = []
+        # Build final prompt
+        final_parts = []
 
         if char_refs:
-            raw_prompt_parts.extend(char_refs)
+            final_parts.extend(char_refs)
 
-        raw_prompt_parts.append(scene_specific)
-        raw_prompt_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
-        raw_prompt_parts.append("warm golden light deep shadows atmospheric")
-        raw_prompt_parts.append("--v 7.0 --ar 16:9")
+        final_parts.append(filtered_prompt)
+        final_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
+        final_parts.append("warm golden light deep shadows atmospheric")
+        final_parts.append("--v 7.0 --ar 16:9")
 
-        raw_prompt = " ".join(raw_prompt_parts)
+        final_prompt = " ".join(final_parts)
 
-        # Apply content policy filter
-        filtered_prompt = self.apply_content_policy_filter(raw_prompt)
+        print(f"🔧 Final scene prompt: {final_prompt[:150]}...")
 
-        print(f"🔧 Final scene prompt: {filtered_prompt[:150]}...")
-
-        return filtered_prompt
+        return final_prompt
 
     def check_task_status_detailed(self, task_id: str, scene_num: int) -> Optional[Dict]:
         """Check task status with detailed logging"""
