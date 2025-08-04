@@ -1512,6 +1512,7 @@ class AutomatedStoryGenerator:
         for scene_id, story in all_stories.items():
             story_content += f"Scene {scene_id}:\n{story}\n\n"
 
+
         # Add scene plan for context
         scene_context = ""
         for scene in scene_plan:
