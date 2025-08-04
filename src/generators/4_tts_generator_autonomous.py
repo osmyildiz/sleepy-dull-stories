@@ -1,6 +1,6 @@
 """
-Sleepy Dull Stories - AUTONOMOUS TTS Audio Generator
-YouTube Hook + Subscribe + Voice Directions + Enceladus Voice + AUTONOMOUS MODE
+Sleepy Dull Stories - ENHANCED TTS Audio Generator with File Existence Check
+SKIP existing audio files + Enhanced Progress Tracking + Resume from any point
 Production-optimized with complete automation and error recovery
 """
 
@@ -83,10 +83,14 @@ class ServerConfig:
                 "warn_threshold_usd": 2.5  # Warn at $2.5 per story
             },
             "server_mode": True,
-            "production_ready": True
+            "production_ready": True,
+            "skip_existing_files": True,  # NEW: Skip existing audio files
+            "check_file_validity": True,   # NEW: Validate existing files
+            "min_file_size_kb": 5         # NEW: Minimum valid file size
         }
 
         print("✅ TTS audio configuration loaded")
+        print(f"⏭️  Skip existing files: {self.audio_config['skip_existing_files']}")
         print(
             f"💰 Budget controls: ${self.audio_config['budget_controls']['max_cost_per_story_usd']}/story, ${self.audio_config['budget_controls']['max_cost_per_session_usd']}/session")
 
@@ -155,7 +159,9 @@ class DatabaseAudioManager:
             ('audio_generation_completed_at', 'DATETIME'),
             ('audio_chunks_generated', 'INTEGER DEFAULT 0'),
             ('audio_duration_seconds', 'REAL DEFAULT 0.0'),
-            ('audio_cost_usd', 'REAL DEFAULT 0.0')
+            ('audio_cost_usd', 'REAL DEFAULT 0.0'),
+            ('audio_chunks_skipped', 'INTEGER DEFAULT 0'),    # NEW: Count of skipped chunks
+            ('audio_existing_files_count', 'INTEGER DEFAULT 0')  # NEW: Count of existing files
         ]
 
         for column_name, column_definition in columns_to_add:
@@ -198,8 +204,9 @@ class DatabaseAudioManager:
         conn.close()
 
     def mark_audio_generation_completed(self, topic_id: int, chunks_count: int,
-                                        duration_seconds: float, cost_usd: float):
-        """Mark audio generation as completed"""
+                                        duration_seconds: float, cost_usd: float,
+                                        chunks_skipped: int = 0, existing_files_count: int = 0):
+        """Mark audio generation as completed with skip statistics"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -210,9 +217,11 @@ class DatabaseAudioManager:
                 updated_at = CURRENT_TIMESTAMP,
                 audio_chunks_generated = ?,
                 audio_duration_seconds = ?,
-                audio_cost_usd = ?
+                audio_cost_usd = ?,
+                audio_chunks_skipped = ?,
+                audio_existing_files_count = ?
             WHERE id = ?
-        ''', (chunks_count, duration_seconds, cost_usd, topic_id))
+        ''', (chunks_count, duration_seconds, cost_usd, chunks_skipped, existing_files_count, topic_id))
 
         conn.commit()
         conn.close()
@@ -247,7 +256,9 @@ class DatabaseAudioManager:
             ('audio_generation_completed_at', 'DATETIME'),
             ('audio_chunks_generated', 'INTEGER DEFAULT 0'),
             ('audio_duration_seconds', 'REAL DEFAULT 0.0'),
-            ('audio_cost_usd', 'REAL DEFAULT 0.0')
+            ('audio_cost_usd', 'REAL DEFAULT 0.0'),
+            ('audio_chunks_skipped', 'INTEGER DEFAULT 0'),
+            ('audio_existing_files_count', 'INTEGER DEFAULT 0')
         ]
 
         for column_name, column_definition in columns_to_add:
@@ -280,8 +291,8 @@ class DatabaseAudioManager:
         }
 
 
-class ProgressTracker:
-    """Scene processing progress tracking ve resume functionality"""
+class EnhancedProgressTracker:
+    """Enhanced progress tracking with audio file existence checking"""
 
     def __init__(self, story_id: int, output_base_path: str):
         self.story_id = story_id
@@ -294,6 +305,10 @@ class ProgressTracker:
 
         # Load existing progress
         self.progress_data = self.load_progress()
+
+        # NEW: Track skipped files
+        self.skipped_chunks = []
+        self.existing_files_found = []
 
     def load_progress(self):
         """Existing progress'i yükle"""
@@ -310,8 +325,10 @@ class ProgressTracker:
             "story_id": self.story_id,
             "completed_chunks": [],
             "failed_chunks": [],
-            "blacklisted_chunks": [],  # New: chunks that failed too many times
-            "chunk_attempt_count": {},  # New: track attempts per chunk
+            "blacklisted_chunks": [],
+            "chunk_attempt_count": {},
+            "skipped_chunks": [],      # NEW: Track skipped chunks
+            "existing_files": [],      # NEW: Track existing files found
             "total_cost_so_far": 0.0,
             "total_characters_so_far": 0,
             "last_update": datetime.now().isoformat(),
@@ -321,15 +338,87 @@ class ProgressTracker:
     def save_progress(self):
         """Progress'i kaydet"""
         self.progress_data["last_update"] = datetime.now().isoformat()
+        # Update skipped chunks info
+        self.progress_data["skipped_chunks"] = list(set(self.progress_data.get("skipped_chunks", []) + self.skipped_chunks))
+        self.progress_data["existing_files"] = list(set(self.progress_data.get("existing_files", []) + self.existing_files_found))
+
         try:
             with open(self.progress_file, 'w', encoding='utf-8') as f:
                 json.dump(self.progress_data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"⚠️  Progress save warning: {e}")
 
+    def is_audio_file_valid(self, file_path: str) -> bool:
+        """Check if audio file exists and is valid"""
+        if not os.path.exists(file_path):
+            return False
+
+        # Check minimum file size
+        try:
+            file_size_kb = os.path.getsize(file_path) / 1024
+            min_size = CONFIG.audio_config.get("min_file_size_kb", 5)
+
+            if file_size_kb < min_size:
+                print(f"      ⚠️  File too small: {file_size_kb:.1f}KB < {min_size}KB")
+                return False
+
+            # Try to load with pydub to verify it's a valid audio file
+            if CONFIG.audio_config.get("check_file_validity", True):
+                try:
+                    audio = AudioSegment.from_mp3(file_path)
+                    duration_ms = len(audio)
+                    if duration_ms < 100:  # Less than 100ms is suspicious
+                        print(f"      ⚠️  Audio too short: {duration_ms}ms")
+                        return False
+                    return True
+                except Exception as e:
+                    print(f"      ⚠️  Invalid audio file: {e}")
+                    return False
+            else:
+                # Just check file size
+                return True
+
+        except Exception as e:
+            print(f"      ⚠️  File validation error: {e}")
+            return False
+
+    def check_existing_audio_file(self, chunk_name: str) -> Tuple[bool, str]:
+        """Check if audio file already exists and is valid"""
+        file_path = self.get_chunk_audio_path(chunk_name)
+
+        if self.is_audio_file_valid(file_path):
+            file_size = os.path.getsize(file_path) / 1024
+            return True, f"Valid audio file ({file_size:.1f}KB)"
+        else:
+            return False, "File missing or invalid"
+
     def is_chunk_completed(self, chunk_name: str) -> bool:
-        """Chunk tamamlanmış mı kontrol et"""
-        return chunk_name in self.progress_data.get("completed_chunks", [])
+        """Enhanced: Check both progress and actual file existence"""
+        # First check progress data
+        if chunk_name in self.progress_data.get("completed_chunks", []):
+            # Verify file still exists and is valid
+            file_valid, reason = self.check_existing_audio_file(chunk_name)
+            if file_valid:
+                return True
+            else:
+                print(f"      ⚠️  {chunk_name}: Marked complete but {reason.lower()}, regenerating")
+                # Remove from completed list since file is invalid
+                if chunk_name in self.progress_data["completed_chunks"]:
+                    self.progress_data["completed_chunks"].remove(chunk_name)
+                return False
+
+        # Check if file exists even if not marked as completed (resume scenario)
+        file_valid, reason = self.check_existing_audio_file(chunk_name)
+        if file_valid:
+            print(f"      📁 {chunk_name}: Found existing valid file, marking as completed")
+            # Add to completed list
+            if chunk_name not in self.progress_data["completed_chunks"]:
+                self.progress_data["completed_chunks"].append(chunk_name)
+                self.existing_files_found.append(chunk_name)
+            self.save_progress()
+            return True
+
+        return False
 
     def is_chunk_blacklisted(self, chunk_name: str) -> bool:
         """Chunk blacklist'te mi kontrol et"""
@@ -369,6 +458,13 @@ class ProgressTracker:
             self.save_progress()
             print(f"      💾 Progress saved: {chunk_name} completed")
 
+    def mark_chunk_skipped(self, chunk_name: str, reason: str):
+        """Mark chunk as skipped with reason"""
+        if chunk_name not in self.skipped_chunks:
+            self.skipped_chunks.append(chunk_name)
+            print(f"      ⏭️  Skipped: {chunk_name} - {reason}")
+            self.save_progress()
+
     def mark_chunk_failed(self, chunk_name: str, error: str):
         """Chunk'ı failed olarak işaretle"""
         if "failed_chunks" not in self.progress_data:
@@ -389,18 +485,22 @@ class ProgressTracker:
         self.save_progress()
 
     def get_resume_summary(self):
-        """Resume özeti"""
+        """Enhanced resume summary with skip statistics"""
         completed = len(self.progress_data.get("completed_chunks", []))
         blacklisted = len(self.progress_data.get("blacklisted_chunks", []))
+        skipped = len(self.progress_data.get("skipped_chunks", []))
+        existing = len(self.progress_data.get("existing_files", []))
         cost = self.progress_data.get("total_cost_so_far", 0.0)
         chars = self.progress_data.get("total_characters_so_far", 0)
 
         return {
             "completed_chunks": completed,
             "blacklisted_chunks": blacklisted,
+            "skipped_chunks": skipped,
+            "existing_files_found": existing,
             "total_cost_so_far": cost,
             "total_characters_so_far": chars,
-            "can_resume": completed > 0
+            "can_resume": completed > 0 or existing > 0
         }
 
     def cleanup_on_success(self):
@@ -557,7 +657,7 @@ class UsageTracker:
 
 
 class ServerTTSGenerator:
-    """Server-ready TTS generator with database integration"""
+    """Enhanced server-ready TTS generator with file existence checking"""
 
     def __init__(self):
         # Current project tracking
@@ -570,8 +670,9 @@ class ServerTTSGenerator:
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
         self.db_manager = DatabaseAudioManager(str(db_path))
 
-        print("🚀 Server TTS Generator v1.0 Initialized")
+        print("🚀 Enhanced Server TTS Generator v2.0 Initialized")
         print(f"🎙️ Voice: {VOICE_NAME}")
+        print(f"⏭️  Skip existing files: {CONFIG.audio_config['skip_existing_files']}")
 
     def log_step(self, step: str, status: str = "START", metadata: Dict = None):
         """Log generation steps with production logging"""
@@ -609,6 +710,40 @@ class ServerTTSGenerator:
 
         self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
         return True, project_info
+
+    def check_final_audio_file(self) -> Tuple[bool, str]:
+        """Check if final audio file already exists and is valid"""
+        final_audio_path = Path(self.current_output_dir) / "story_audio_youtube.mp3"
+        timeline_path = Path(self.current_output_dir) / "story_audio_youtube_timeline.json"
+
+        if not final_audio_path.exists():
+            return False, "Final audio file does not exist"
+
+        # Check file size
+        try:
+            file_size_mb = final_audio_path.stat().st_size / (1024 * 1024)
+            if file_size_mb < 1:  # Less than 1MB is suspicious for a full story
+                return False, f"Final audio file too small ({file_size_mb:.1f}MB)"
+
+            # Check if timeline exists
+            if not timeline_path.exists():
+                return False, "Timeline file missing"
+
+            # Try to validate audio file
+            if CONFIG.audio_config.get("check_file_validity", True):
+                try:
+                    audio = AudioSegment.from_mp3(str(final_audio_path))
+                    duration_minutes = len(audio) / 60000
+                    if duration_minutes < 5:  # Less than 5 minutes is suspicious
+                        return False, f"Final audio too short ({duration_minutes:.1f} minutes)"
+                    return True, f"Valid final audio file ({file_size_mb:.1f}MB, {duration_minutes:.1f} minutes)"
+                except Exception as e:
+                    return False, f"Invalid audio file: {e}"
+            else:
+                return True, f"Final audio file exists ({file_size_mb:.1f}MB)"
+
+        except Exception as e:
+            return False, f"Error checking final file: {e}"
 
     def extract_hook_and_subscribe(self, complete_text):
         """Complete story'den Hook ve Subscribe kısımlarını çıkar"""
@@ -707,25 +842,21 @@ class ServerTTSGenerator:
         return available_scenes, None
 
     def get_youtube_intro_directions(self):
-        """YouTube Hook ve Subscribe için özel voice directions"""
+        """Enhanced YouTube Hook ve Subscribe için özel voice directions"""
         return {
             "hook": {
                 "scene_number": 0,
                 "title": "Golden Hook - Channel Introduction",
-                "direction": "Captivating, mysterious, cinematic buildup. Start with intrigue and wonder. Build anticipation like a movie trailer. Dramatic but engaging pace. Create that 'I must keep watching' feeling.",
-                "template": "youtube_hook",
-                "style": "cinematic_trailer",
-                "speaking_rate": 0.8,
-                "pitch": 0.1
+                "direction": "DYNAMIC, mysterious, cinematic trailer style. Start with ENERGY and intrigue. Build dramatic tension. Create 'I MUST keep watching' feeling. Fast-paced storytelling with strategic pauses.",
+                "speaking_rate": 1.0,  # ✅ Normal hız (hızlı başlangıç)
+                "pitch": 0.3  # ✅ Daha yüksek enerji
             },
             "subscribe": {
                 "scene_number": -1,
                 "title": "Subscribe Request - Community Building",
-                "direction": "Warm, personal, community-focused like MrBeast. Genuine connection with audience. Not salesy but genuinely inviting. Create feeling of joining a special community of dreamers and history lovers. Friendly but passionate.",
-                "template": "youtube_subscribe",
-                "style": "community_building",
-                "speaking_rate": 0.8,
-                "pitch": 0.0
+                "direction": "Energetic but warming transition. MrBeast-style genuine excitement. Create FOMO for the community. Passionate but welcoming.",
+                "speaking_rate": 0.9,  # ✅ Hâlâ canlı ama yavaşlıyor
+                "pitch": 0.1  # ✅ Orta enerji
             }
         }
 
@@ -832,7 +963,7 @@ class ServerTTSGenerator:
 
             # Voice settings
             direction_text = voice_direction.get('direction', '')
-            speaking_rate = voice_direction.get('speaking_rate', 0.8)
+            speaking_rate = voice_direction.get('speaking_rate', 0.9)
 
             voice = texttospeech.VoiceSelectionParams(
                 language_code=language_code,
@@ -871,7 +1002,7 @@ class ServerTTSGenerator:
 
     def create_scene_audio_with_robust_retry(self, scene_text, voice_direction, chunk_name, progress_tracker,
                                              tracker=None, max_retries=5):
-        """TTS generation with robust retry mechanism AND BUDGET CONTROL"""
+        """Enhanced TTS generation with file existence checking and robust retry"""
 
         # Extract scene number for content filtering
         scene_num = None
@@ -895,6 +1026,20 @@ class ServerTTSGenerator:
             if not can_continue:
                 print(f"      🚨 BUDGET LIMIT EXCEEDED before chunk: {budget_reason}")
                 return False, f"Budget limit exceeded: {budget_reason}", None
+
+        # ENHANCED: Check if chunk is already completed with valid file
+        if progress_tracker.is_chunk_completed(chunk_name):
+            permanent_file = progress_tracker.get_chunk_audio_path(chunk_name)
+            if os.path.exists(permanent_file):
+                file_size = os.path.getsize(permanent_file) / 1024
+                print(f"      ⏭️  Skipping {chunk_name} (already completed, {file_size:.1f}KB)")
+                progress_tracker.mark_chunk_skipped(chunk_name, f"Already completed ({file_size:.1f}KB)")
+                return True, None, permanent_file
+
+        # Check if blacklisted
+        if progress_tracker.is_chunk_blacklisted(chunk_name):
+            print(f"      ⚫ Skipping {chunk_name} (blacklisted after too many failures)")
+            return False, "Blacklisted due to repeated failures", None
 
         # Handle overly long scenes (AUTO-SPLIT if >3000 chars)
         if len(scene_text) > 3000:
@@ -984,22 +1129,6 @@ class ServerTTSGenerator:
         if len(scene_text) > 2500:
             print(f"      ⚠️  Scene quite long ({len(scene_text)} chars), processing as single chunk")
 
-        # Check if already completed
-        if progress_tracker.is_chunk_completed(chunk_name):
-            permanent_file = progress_tracker.get_chunk_audio_path(chunk_name)
-            if os.path.exists(permanent_file):
-                print(f"      ⏭️  Skipping {chunk_name} (already completed)")
-                file_size = os.path.getsize(permanent_file) / 1024
-                print(f"      ✅ Restored: {file_size:.1f} KB (from progress)")
-                return True, None, permanent_file
-            else:
-                print(f"      ⚠️  Progress shows completed but file missing, regenerating: {chunk_name}")
-
-        # Check if blacklisted
-        if progress_tracker.is_chunk_blacklisted(chunk_name):
-            print(f"      ⚫ Skipping {chunk_name} (blacklisted after too many failures)")
-            return False, "Blacklisted due to repeated failures", None
-
         # Retry delays: 10s, 20s, 30s, 60s, 120s
         retry_delays = [10, 20, 30, 60, 120]
 
@@ -1042,18 +1171,18 @@ class ServerTTSGenerator:
 
                 # Direction'dan ses özelliklerini belirle
                 direction_text = voice_direction.get('direction', '')
-                speaking_rate = voice_direction.get('speaking_rate', 0.8)
+                speaking_rate = voice_direction.get('speaking_rate', 0.9)
 
                 # Direction'a göre speaking rate ayarla
                 if 'speaking_rate' not in voice_direction:
                     if 'slow' in direction_text.lower() or 'meditative' in direction_text.lower():
-                        speaking_rate = 0.7
+                        speaking_rate = 0.83
                     elif 'rhythmic' in direction_text.lower() or 'flowing' in direction_text.lower():
-                        speaking_rate = 0.85
+                        speaking_rate = 0.95
                     elif 'gentle' in direction_text.lower() or 'tender' in direction_text.lower():
-                        speaking_rate = 0.75
-                    elif 'alert' in direction_text.lower() or 'business' in direction_text.lower():
                         speaking_rate = 0.9
+                    elif 'alert' in direction_text.lower() or 'business' in direction_text.lower():
+                        speaking_rate = 1.0
 
                 voice = texttospeech.VoiceSelectionParams(
                     language_code=language_code,
@@ -1153,28 +1282,32 @@ class ServerTTSGenerator:
 
         return False, "Max retries exceeded", None
 
-    def process_scene_based_audio_generation_with_retry(self, stories_data, hook_and_subscribe, voice_directions,
-                                                        available_scenes, output_file, story_id, quality="youtube",
-                                                        max_retry_rounds=5):
-        """Scene-based audio generation with robust retry system AND BUDGET CONTROL"""
-        print("🎵 SCENE-BASED AUDIO GENERATION WITH ROBUST RETRY + BUDGET CONTROL")
+    def process_scene_based_audio_generation_with_skip_existing(self, stories_data, hook_and_subscribe, voice_directions,
+                                                                available_scenes, output_file, story_id, quality="youtube",
+                                                                max_retry_rounds=5):
+        """Enhanced scene-based audio generation with existing file skipping"""
+        print("🎵 ENHANCED SCENE-BASED AUDIO GENERATION")
+        print("⏭️  SKIP EXISTING FILES + Smart Resume + Budget Control")
         print("🎬 YouTube Production Quality + Hook & Subscribe")
         print(f"🎙️ Voice: {VOICE_NAME}")
         print(f"🔄 Retry system: {max_retry_rounds} rounds with exponential backoff")
         print(f"💰 Budget monitoring: Active")
         print("=" * 70)
 
-        # Initialize trackers
-        progress_tracker = ProgressTracker(story_id, CONFIG.paths['OUTPUT_DIR'])
+        # Initialize enhanced trackers
+        progress_tracker = EnhancedProgressTracker(story_id, CONFIG.paths['OUTPUT_DIR'])
         tracker = UsageTracker()
 
         # Reset story cost for new story
         tracker.reset_story_cost()
 
-        # Show resume info
+        # Show enhanced resume info
         resume_info = progress_tracker.get_resume_summary()
         if resume_info["can_resume"]:
-            print(f"📂 RESUMING: {resume_info['completed_chunks']} chunks already completed")
+            print(f"📂 ENHANCED RESUMING:")
+            print(f"   ✅ Completed chunks: {resume_info['completed_chunks']}")
+            print(f"   📁 Existing files found: {resume_info['existing_files_found']}")
+            print(f"   ⏭️  Chunks skipped: {resume_info['skipped_chunks']}")
             print(f"   💰 Previous cost: ${resume_info['total_cost_so_far']:.4f}")
             print(f"   📝 Previous chars: {resume_info['total_characters_so_far']:,}")
             if resume_info['blacklisted_chunks'] > 0:
@@ -1209,7 +1342,47 @@ class ServerTTSGenerator:
 
         print(f"📊 Total chunks to process: {len(all_chunks)}")
 
-        # Process chunks with retry rounds
+        # ENHANCED: Pre-scan for existing files
+        print(f"\n🔍 PRE-SCANNING FOR EXISTING AUDIO FILES:")
+        print("=" * 50)
+
+        existing_count = 0
+        valid_existing = []
+        invalid_existing = []
+
+        for chunk_name, chunk_text, chunk_direction in all_chunks:
+            file_exists, status = progress_tracker.check_existing_audio_file(chunk_name)
+            if file_exists:
+                existing_count += 1
+                valid_existing.append(chunk_name)
+                file_size = os.path.getsize(progress_tracker.get_chunk_audio_path(chunk_name)) / 1024
+                print(f"   ✅ {chunk_name}: {status}")
+                # Mark as completed if not already marked
+                if not progress_tracker.is_chunk_completed(chunk_name):
+                    progress_tracker.mark_chunk_completed(chunk_name, len(chunk_text), 0.0)  # No cost for existing
+            else:
+                print(f"   ❌ {chunk_name}: {status}")
+                invalid_existing.append(chunk_name)
+
+        print(f"\n📊 PRE-SCAN RESULTS:")
+        print(f"   ✅ Valid existing files: {len(valid_existing)}")
+        print(f"   ❌ Missing/invalid files: {len(invalid_existing)}")
+        print(f"   💰 Cost savings from existing files: Estimated ${len(valid_existing) * 0.1:.2f}")
+
+        if len(valid_existing) == len(all_chunks):
+            print(f"\n🎉 ALL AUDIO FILES ALREADY EXIST AND ARE VALID!")
+            print(f"   ⏭️  Skipping to final audio combination...")
+            # Jump directly to combination
+            completed_chunks = []
+            for chunk_name, chunk_text, chunk_direction in all_chunks:
+                file_path = progress_tracker.get_chunk_audio_path(chunk_name)
+                completed_chunks.append((chunk_name, file_path, chunk_direction))
+                progress_tracker.mark_chunk_skipped(chunk_name, "Pre-existing valid file")
+
+            # Skip to combination
+            return self.combine_audio_chunks(completed_chunks, output_file, story_id, settings, progress_tracker, tracker)
+
+        # Process chunks with retry rounds (only for missing/invalid chunks)
         for retry_round in range(max_retry_rounds):
             print(f"\n{'🔄 RETRY ROUND ' + str(retry_round) if retry_round > 0 else '🚀 INITIAL ROUND'}")
             print("=" * 50)
@@ -1232,6 +1405,7 @@ class ServerTTSGenerator:
                 break
 
             print(f"📝 Missing chunks: {len(missing_chunks)}")
+            print(f"⏭️  Already completed/skipped: {len(all_chunks) - len(missing_chunks)}")
             print(f"💰 Current story cost: ${tracker.story_cost:.4f}")
 
             # Show blacklisted chunks if any
@@ -1248,6 +1422,7 @@ class ServerTTSGenerator:
             # Process missing chunks
             successful_in_round = 0
             failed_in_round = 0
+            skipped_in_round = 0
 
             for i, (chunk_name, chunk_text, chunk_direction) in enumerate(missing_chunks):
                 print(f"\n📄 Processing {chunk_name} ({i + 1}/{len(missing_chunks)})")
@@ -1263,8 +1438,12 @@ class ServerTTSGenerator:
                 )
 
                 if success:
-                    successful_in_round += 1
-                    print(f"      ✅ {chunk_name} completed and saved to audio_parts/")
+                    if "skipping" in str(error).lower():
+                        skipped_in_round += 1
+                        print(f"      ⏭️  {chunk_name} skipped (existing file found)")
+                    else:
+                        successful_in_round += 1
+                        print(f"      ✅ {chunk_name} completed and saved to audio_parts/")
                 else:
                     failed_in_round += 1
                     print(f"      ❌ {chunk_name} failed: {error}")
@@ -1279,7 +1458,8 @@ class ServerTTSGenerator:
                     time.sleep(base_wait)
 
             print(f"\n📊 Round {retry_round + 1} Results:")
-            print(f"   ✅ Successful: {successful_in_round}")
+            print(f"   ✅ Generated: {successful_in_round}")
+            print(f"   ⏭️  Skipped: {skipped_in_round}")
             print(f"   ❌ Failed: {failed_in_round}")
             print(f"   💰 Story cost: ${tracker.story_cost:.4f}")
 
@@ -1300,13 +1480,17 @@ class ServerTTSGenerator:
 
         final_missing = []
         completed_chunks = []
+        total_skipped = len(progress_tracker.progress_data.get("skipped_chunks", []))
 
         for chunk_name, chunk_text, chunk_direction in all_chunks:
             if progress_tracker.is_chunk_completed(chunk_name):
                 file_path = progress_tracker.get_chunk_audio_path(chunk_name)
                 if os.path.exists(file_path):
                     completed_chunks.append((chunk_name, file_path, chunk_direction))
-                    print(f"   ✅ {chunk_name}: {os.path.getsize(file_path) / 1024:.1f} KB")
+                    file_size = os.path.getsize(file_path) / 1024
+                    was_existing = chunk_name in progress_tracker.progress_data.get("existing_files", [])
+                    status = "📁 Pre-existing" if was_existing else "🆕 Generated"
+                    print(f"   ✅ {chunk_name}: {file_size:.1f}KB ({status})")
                 else:
                     final_missing.append(chunk_name)
                     print(f"   ❌ {chunk_name}: marked complete but file missing")
@@ -1328,8 +1512,22 @@ class ServerTTSGenerator:
             return False, "No chunks were successfully generated", None
 
         # Combine completed chunks
+        return self.combine_audio_chunks(completed_chunks, output_file, story_id, settings, progress_tracker, tracker)
+
+    def combine_audio_chunks(self, completed_chunks, output_file, story_id, settings, progress_tracker, tracker):
+        """Combine audio chunks into final file with enhanced statistics"""
+
         print(f"\n🔗 Combining {len(completed_chunks)} audio chunks...")
         print(f"💰 Final story cost: ${tracker.story_cost:.4f}")
+
+        # Count pre-existing vs newly generated
+        existing_files = progress_tracker.progress_data.get("existing_files", [])
+        pre_existing_count = len([chunk for chunk_name, _, _ in completed_chunks if chunk_name in existing_files])
+        newly_generated_count = len(completed_chunks) - pre_existing_count
+
+        print(f"📊 Chunk breakdown:")
+        print(f"   📁 Pre-existing files: {pre_existing_count}")
+        print(f"   🆕 Newly generated: {newly_generated_count}")
 
         try:
             combined = AudioSegment.empty()
@@ -1344,11 +1542,15 @@ class ServerTTSGenerator:
                 "youtube_optimized": True,
                 "voice_used": VOICE_NAME,
                 "story_id": story_id,
-                "retry_rounds_used": max_retry_rounds,
-                "final_missing_count": len(final_missing),
+                "retry_rounds_used": max_retry_rounds if hasattr(self, 'max_retry_rounds') else 5,
+                "final_missing_count": 0,
                 "blacklisted_count": len(progress_tracker.progress_data.get("blacklisted_chunks", [])),
                 "budget_controls_used": True,
-                "story_cost_usd": tracker.story_cost
+                "story_cost_usd": tracker.story_cost,
+                "pre_existing_files_count": pre_existing_count,
+                "newly_generated_files_count": newly_generated_count,
+                "existing_files_used": existing_files,
+                "skip_existing_enabled": True
             }
 
             for i, (chunk_name, file_path, voice_direction) in enumerate(completed_chunks):
@@ -1361,7 +1563,7 @@ class ServerTTSGenerator:
                 chunk_start_ms = current_time_ms
                 chunk_end_ms = current_time_ms + audio_duration_ms
 
-                # Determine chunk type
+                # Determine chunk type and status
                 if chunk_name == "hook":
                     chunk_type = "youtube_hook"
                     scene_num = 0
@@ -1375,6 +1577,9 @@ class ServerTTSGenerator:
                     scene_num = int(chunk_name.split('_')[1])
                     image_file = f"scene_{scene_num:02d}.png"
 
+                # Determine if file was pre-existing or newly generated
+                file_status = "pre_existing" if chunk_name in existing_files else "newly_generated"
+
                 chunk_timeline = {
                     "type": chunk_type,
                     "scene_number": scene_num,
@@ -1387,7 +1592,9 @@ class ServerTTSGenerator:
                     "end_time_formatted": self.format_time_ms(chunk_end_ms),
                     "duration_formatted": self.format_time_ms(audio_duration_ms),
                     "audio_file": f"{chunk_name}_audio.mp3",
-                    "image_file": image_file
+                    "image_file": image_file,
+                    "file_status": file_status,  # NEW: Track if pre-existing or generated
+                    "file_size_kb": round(os.path.getsize(file_path) / 1024, 1)
                 }
 
                 timeline_data["scenes"].append(chunk_timeline)
@@ -1406,10 +1613,11 @@ class ServerTTSGenerator:
             timeline_data["total_duration_ms"] = current_time_ms
             timeline_data["total_duration_formatted"] = self.format_time_ms(current_time_ms)
 
-            # Add usage summary WITH BUDGET INFO
+            # Add enhanced usage summary
             usage_summary = tracker.print_final_summary()
             usage_summary["budget_controls"] = CONFIG.audio_config.get("budget_controls", {})
             usage_summary["story_cost_usd"] = tracker.story_cost
+            usage_summary["cost_savings_from_existing"] = pre_existing_count * 0.1  # Estimated savings
             timeline_data["usage_summary"] = usage_summary
 
             # Export final audio
@@ -1430,17 +1638,22 @@ class ServerTTSGenerator:
             with open(timeline_file, 'w', encoding='utf-8') as f:
                 json.dump(timeline_data, f, indent=2, ensure_ascii=False)
 
-            # Stats
+            # Enhanced stats
             duration_min = len(combined) / 60000
             file_size_mb = os.path.getsize(output_file) / (1024 * 1024)
+            total_skipped = len(progress_tracker.progress_data.get("skipped_chunks", []))
 
             print(f"\n🎉 SUCCESS!")
             print(f"   📁 Audio: {output_file}")
             print(f"   📋 Timeline: {timeline_file}")
             print(f"   ⏱️  Duration: {duration_min:.1f} minutes")
             print(f"   📦 Size: {file_size_mb:.1f} MB")
-            print(f"   🎭 Chunks used: {len(completed_chunks)}/{len(all_chunks)}")
+            print(f"   🎭 Chunks used: {len(completed_chunks)}")
+            print(f"   📁 Pre-existing files: {pre_existing_count}")
+            print(f"   🆕 Newly generated: {newly_generated_count}")
             print(f"   💰 Final cost: ${tracker.story_cost:.4f}")
+            if pre_existing_count > 0:
+                print(f"   💸 Estimated savings: ${pre_existing_count * 0.1:.2f}")
 
             # Cleanup progress on success
             progress_tracker.cleanup_on_success()
@@ -1451,19 +1664,24 @@ class ServerTTSGenerator:
             return False, f"Audio combining failed: {e}", None
 
     def create_audio_summary(self, story_id: int, topic: str, success: bool, scenes_processed: int = 0,
-                             error: str = None, usage_data: dict = None):
-        """Audio oluşturma özeti - Usage tracking ile"""
+                             error: str = None, usage_data: dict = None, chunks_skipped: int = 0,
+                             existing_files_count: int = 0):
+        """Enhanced audio summary with skip statistics"""
         summary = {
             "timestamp": datetime.now().isoformat(),
             "story_id": story_id,
             "topic": topic,
             "audio_generation_success": success,
             "scenes_processed": scenes_processed,
+            "chunks_skipped": chunks_skipped,
+            "existing_files_reused": existing_files_count,
             "voice_used": VOICE_NAME,
             "error": error,
-            "approach": "robust_retry_system_with_progress_tracking",
+            "approach": "enhanced_skip_existing_with_progress_tracking",
             "quality": "youtube_production",
             "retry_system": "enabled_with_blacklisting",
+            "skip_existing_files": True,
+            "file_validation_enabled": CONFIG.audio_config.get("check_file_validity", True),
             "server_mode": True
         }
 
@@ -1477,20 +1695,22 @@ class ServerTTSGenerator:
         try:
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary, f, indent=2, ensure_ascii=False)
-            print(f"✅ Audio summary saved: {summary_path}")
+            print(f"✅ Enhanced audio summary saved: {summary_path}")
         except Exception as e:
             print(f"⚠️  Summary save warning: {e}")
 
         return summary
 
-    def run_audio_generation(self) -> bool:
-        """Run AUDIO generation process for server environment"""
+    def run_enhanced_audio_generation(self) -> bool:
+        """Run ENHANCED AUDIO generation with existing file detection"""
         print("🚀" * 50)
-        print("SERVER TTS AUDIO GENERATOR v1.0")
+        print("ENHANCED SERVER TTS AUDIO GENERATOR v2.0")
+        print("⏭️  SKIP EXISTING FILES + Smart Resume")
         print("🔗 Database integrated")
         print("🎵 YouTube Production Audio Generation")
         print("🎭 Hook + Subscribe + Voice Directions")
         print("💰 Budget controls enabled")
+        print("📁 File existence validation enabled")
         print("🖥️ Production-ready automation")
         print("🚀" * 50)
 
@@ -1501,6 +1721,12 @@ class ServerTTSGenerator:
         print(f"   📊 Max per session: ${budget.get('max_cost_per_session_usd', 25.0)}")
         print(f"   🚨 Emergency stop: ${budget.get('emergency_stop_cost_usd', 50.0)}")
         print(f"   ⚠️  Warning threshold: ${budget.get('warn_threshold_usd', 2.5)}")
+
+        # Print skip settings
+        print(f"⏭️  SKIP SETTINGS:")
+        print(f"   📁 Skip existing files: {CONFIG.audio_config['skip_existing_files']}")
+        print(f"   🔍 Validate existing files: {CONFIG.audio_config['check_file_validity']}")
+        print(f"   📏 Min file size: {CONFIG.audio_config['min_file_size_kb']}KB")
 
         # Initialize success tracking
         overall_success = False
@@ -1513,6 +1739,37 @@ class ServerTTSGenerator:
         print(f"✅ Project found: {project_info['topic']}")
         print(f"📁 Output directory: {project_info['output_dir']}")
         print(f"🆔 Topic ID: {project_info['topic_id']}")
+
+        # ENHANCED: Check if final audio already exists
+        final_exists, final_status = self.check_final_audio_file()
+        if final_exists:
+            print(f"\n🎉 FINAL AUDIO ALREADY EXISTS!")
+            print(f"   ✅ Status: {final_status}")
+            print(f"   ⏭️  Skipping entire audio generation process")
+
+            # Still mark as completed in database
+            try:
+                # Get some basic info for database
+                timeline_path = Path(self.current_output_dir) / "story_audio_youtube_timeline.json"
+                chunks_count = 0
+                duration_seconds = 0.0
+
+                if timeline_path.exists():
+                    with open(timeline_path, 'r', encoding='utf-8') as f:
+                        timeline_data = json.load(f)
+                        chunks_count = timeline_data.get('total_scenes', 0)
+                        duration_seconds = timeline_data.get('total_duration_ms', 0) / 1000
+
+                self.db_manager.mark_audio_generation_completed(
+                    self.current_topic_id, chunks_count, duration_seconds, 0.0,
+                    chunks_count, chunks_count  # All chunks were pre-existing
+                )
+                print(f"📋 Database updated: marked as completed (pre-existing final file)")
+
+            except Exception as e:
+                print(f"⚠️  Database update warning: {e}")
+
+            return True
 
         try:
             story_id = self.current_topic_id
@@ -1549,16 +1806,17 @@ class ServerTTSGenerator:
                 self.create_audio_summary(story_id, topic, False, 0, error_msg, None)
                 return False
 
-            # Step 4: Generate audio with robust retry AND BUDGET CONTROL
+            # Step 4: Generate audio with enhanced skip existing functionality
             audio_output = Path(self.current_output_dir) / "story_audio_youtube.mp3"
 
             start_time = time.time()
 
-            print(f"🔧 Starting robust retry audio generation for story_id={story_id}")
+            print(f"🔧 Starting enhanced audio generation with existing file detection for story_id={story_id}")
             print(f"🔧 Audio output path: {audio_output}")
-            print(f"💰 Budget monitoring active")
+            print(f"⏭️  Skip existing files: Enabled")
+            print(f"💰 Budget monitoring: Active")
 
-            success, error, timeline_data = self.process_scene_based_audio_generation_with_retry(
+            success, error, timeline_data = self.process_scene_based_audio_generation_with_skip_existing(
                 stories_data=stories_data,
                 hook_and_subscribe=hook_and_subscribe,
                 voice_directions=voice_directions,
@@ -1573,41 +1831,52 @@ class ServerTTSGenerator:
             processing_time = int(end_time - start_time)
 
             if success:
-                print(f"✅ Robust retry audio generation başarılı!")
-                print(f"⚡ İşlem süresi: {processing_time // 60}m {processing_time % 60}s")
+                print(f"✅ Enhanced audio generation successful!")
+                print(f"⚡ Processing time: {processing_time // 60}m {processing_time % 60}s")
 
                 if timeline_data:
                     duration_seconds = timeline_data['total_duration_ms'] / 1000
                     chunks_count = timeline_data['total_scenes']
                     cost_usd = timeline_data.get('usage_summary', {}).get('total_cost', 0.0)
+                    pre_existing_count = timeline_data.get('pre_existing_files_count', 0)
+                    newly_generated_count = timeline_data.get('newly_generated_files_count', 0)
 
                     print(f"💰 Final cost for this story: ${cost_usd:.4f}")
+                    print(f"📁 Files reused: {pre_existing_count}")
+                    print(f"🆕 Files generated: {newly_generated_count}")
 
-                    # Step 5: Update database with cost tracking
+                    # Step 5: Update database with enhanced statistics
                     self.db_manager.mark_audio_generation_completed(
-                        self.current_topic_id, chunks_count, duration_seconds, cost_usd
+                        self.current_topic_id, chunks_count, duration_seconds, cost_usd,
+                        pre_existing_count, pre_existing_count  # chunks_skipped and existing_files_count
                     )
 
                     print(f"📋 Timeline: {chunks_count} total chunks")
                     print(f"⏱️  Total duration: {timeline_data['total_duration_formatted']}")
-                    print(f"💾 Database updated with cost: ${cost_usd:.4f}")
+                    print(f"💾 Database updated with enhanced stats")
 
-                # Create summary
+                # Create enhanced summary
                 usage_data = timeline_data.get('usage_summary') if timeline_data else None
-                self.create_audio_summary(story_id, topic, True, len(available_scenes), None, usage_data)
+                chunks_skipped = timeline_data.get('pre_existing_files_count', 0) if timeline_data else 0
+                existing_files_count = chunks_skipped
+
+                self.create_audio_summary(story_id, topic, True, len(available_scenes), None, usage_data,
+                                        chunks_skipped, existing_files_count)
 
                 print("\n" + "🎉" * 50)
-                print("AUDIO GENERATION SUCCESSFUL!")
+                print("ENHANCED AUDIO GENERATION SUCCESSFUL!")
                 print("✅ YouTube-optimized audio with Hook & Subscribe")
                 print("✅ Voice directions applied")
-                print("✅ Robust retry system completed")
+                print("✅ Existing files detected and reused")
                 print("✅ Budget controls respected")
-                print("✅ Database updated with cost tracking")
+                print("✅ Database updated with skip statistics")
+                if chunks_skipped > 0:
+                    print(f"✅ Cost savings: {chunks_skipped} files reused")
                 print("🎉" * 50)
                 overall_success = True
 
             else:
-                print(f"❌ Robust retry audio generation başarısız: {error}")
+                print(f"❌ Enhanced audio generation failed: {error}")
 
                 # Check if failure was due to budget
                 if "BUDGET" in str(error).upper() or "COST" in str(error).upper():
@@ -1624,7 +1893,7 @@ class ServerTTSGenerator:
             return overall_success
 
         except Exception as e:
-            self.log_step(f"❌ Audio generation failed: {e}", "ERROR")
+            self.log_step(f"❌ Enhanced audio generation failed: {e}", "ERROR")
             self.db_manager.mark_audio_generation_failed(
                 self.current_topic_id, str(e)
             )
@@ -1635,7 +1904,8 @@ class ServerTTSGenerator:
 
 def run_autonomous_mode():
     """Run autonomous mode - continuously process completed scene topics for audio generation"""
-    print("🤖 AUTONOMOUS AUDIO GENERATION MODE STARTED")
+    print("🤖 ENHANCED AUTONOMOUS AUDIO GENERATION MODE STARTED")
+    print("⏭️  Skip existing files + Smart resume enabled")
     print("🔄 Will process all completed scene topics continuously")
     print("⏹️ Press Ctrl+C to stop gracefully")
 
@@ -1665,18 +1935,18 @@ def run_autonomous_mode():
             if status['audio_generation_queue'] > 0:
                 print(f"\n🎵 Found {status['audio_generation_queue']} completed scene topics ready for audio generation")
 
-                # Initialize generator
+                # Initialize enhanced generator
                 generator = ServerTTSGenerator()
 
-                # Process one topic
-                success = generator.run_audio_generation()
+                # Process one topic with enhanced features
+                success = generator.run_enhanced_audio_generation()
 
                 if success:
                     processed_count += 1
-                    print(f"\n✅ Audio generation completed!")
+                    print(f"\n✅ Enhanced audio generation completed!")
                     print(f"📊 Progress: {processed_count} topics processed")
                 else:
-                    print(f"\n⚠️ Audio generation failed or no projects ready")
+                    print(f"\n⚠️ Enhanced audio generation failed or no projects ready")
 
                 # Short pause between topics
                 if running:
@@ -1700,7 +1970,7 @@ def run_autonomous_mode():
 
     # Shutdown summary
     runtime = time.time() - start_time
-    print(f"\n🏁 AUTONOMOUS AUDIO GENERATION SHUTDOWN")
+    print(f"\n🏁 ENHANCED AUTONOMOUS AUDIO GENERATION SHUTDOWN")
     print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
     print(f"✅ Topics processed: {processed_count}")
     print("👋 Goodbye!")
@@ -1711,9 +1981,10 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == '--autonomous':
         run_autonomous_mode()
     else:
-        # Original single topic mode
+        # Enhanced single topic mode
         try:
-            print("🚀 SERVER TTS AUDIO GENERATOR v1.0")
+            print("🚀 ENHANCED SERVER TTS AUDIO GENERATOR v2.0")
+            print("⏭️  SKIP EXISTING FILES + Smart Resume")
             print("🔗 Database integration with robust retry")
             print("🎵 YouTube Production Audio Generation")
             print("🎭 Hook + Subscribe + Voice Directions + Enceladus Voice")
@@ -1721,35 +1992,39 @@ if __name__ == "__main__":
             print("💾 IMMEDIATE SAVE - Each chunk saved immediately")
             print("⚫ BLACKLIST SYSTEM - Auto-blacklist failed chunks")
             print("🔄 RESUME SYSTEM - Continue from any interruption")
+            print("📁 FILE VALIDATION - Skip existing valid files")
+            print("💰 BUDGET CONTROLS - Real-time cost monitoring")
             print("🖥️ Production-ready automation")
             print("=" * 60)
 
             generator = ServerTTSGenerator()
-            success = generator.run_audio_generation()
+            success = generator.run_enhanced_audio_generation()
 
             if success:
-                print("🎊 Audio generation completed successfully!")
+                print("🎊 Enhanced audio generation completed successfully!")
                 print("📁 Audio saved: story_audio_youtube.mp3")
                 print("📋 Timeline saved: story_audio_youtube_timeline.json")
                 print("🎬 YouTube Hook & Subscribe included")
                 print("🎭 Voice directions applied")
                 print("💾 Audio parts preserved in audio_parts/")
                 print("🔄 Resume capability enabled")
-                print("💰 Real-time cost tracking")
+                print("⏭️  Existing files automatically detected and reused")
+                print("💰 Real-time cost tracking with budget controls")
                 print("🛡️ ROBUST API error protection")
             else:
-                print("⚠️ Audio generation failed or no projects ready")
+                print("⚠️ Enhanced audio generation failed or no projects ready")
 
         except KeyboardInterrupt:
-            print("\n⏹️ Audio generation stopped by user")
+            print("\n⏹️ Enhanced audio generation stopped by user")
             print("🛡️ Progress saved! Restart to resume from last completed chunk.")
             print("💾 All completed chunks saved in audio_parts/ directory")
+            print("⏭️  Existing files will be detected and skipped on restart")
         except Exception as e:
-            print(f"💥 Audio generation failed: {e}")
+            print(f"💥 Enhanced audio generation failed: {e}")
             print("🛡️ Progress saved! Check audio_progress.json for resume info.")
-            print("🔄 Robust retry system will attempt recovery on restart.")
+            print("🔄 Enhanced retry system will attempt recovery on restart.")
             print("💾 Completed chunks preserved in audio_parts/ directory")
-            CONFIG.logger.error(f"Audio generation failed: {e}")
+            print("⏭️  Existing files will be automatically detected")
+            CONFIG.logger.error(f"Enhanced audio generation failed: {e}")
             import traceback
-
             traceback.print_exc()
