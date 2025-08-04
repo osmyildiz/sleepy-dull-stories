@@ -748,6 +748,7 @@ OUTPUT FORMAT:
             "role": "protagonist|supporting|background",
             "importance_score": 8,
             "scene_appearances": [1, 3, 7, 12],
+            "use_in_marketing": true,
             "personality_traits": ["trait1", "trait2", "trait3"],
             "physical_description": "[Detailed visual description]",
             "tóibín_psychology": {{

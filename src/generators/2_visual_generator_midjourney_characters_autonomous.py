@@ -762,11 +762,28 @@ class ServerMidjourneyVisualGenerator:
                     print(f"❌ API Error for {char_name}: {result.get('message', 'Unknown')}")
                     return None
             else:
-                print(f"❌ HTTP {response.status_code} for {char_name}")
+                print(f"\n🔍 HTTP ERROR DEBUG for {char_name}:")
+                print(f"Status Code: {response.status_code}")
+                print(f"URL: {url}")
+                print(f"Request Payload: {json.dumps(payload, indent=2)}")
+                print(f"Response Headers: {dict(response.headers)}")
+                print(f"Response Text: {response.text}")
+                try:
+                    error_json = response.json()
+                    print(f"Error JSON: {json.dumps(error_json, indent=2)}")
+                except:
+                    print("Could not parse response as JSON")
                 return None
 
+
         except Exception as e:
-            print(f"❌ Request failed for {char_name}: {e}")
+
+            print(f"❌ EXCEPTION DEBUG for {char_name}: {e}")
+
+            import traceback
+
+            traceback.print_exc()
+
             return None
 
 
