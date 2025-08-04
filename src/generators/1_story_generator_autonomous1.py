@@ -1,6 +1,6 @@
 """
 Sleepy Dull Stories - COMPLETE TÓIBÍN QUALITY STORY GENERATOR
-System Logic: Master Plan → Emotional Distribution → Scene Creation → Tóibín Stories → Production JSONs
+System Logic: Master Plan → Emotional Distribution → Scene Creation → Tóibín Stories → Production JSONs → Social Media
 Quality Focus: Literary excellence with COLM TÓIBÍN standards throughout
 """
 
@@ -226,11 +226,11 @@ class ToibinStoryGenerator:
         """
         COMPLETE TÓIBÍN QUALITY GENERATION PIPELINE:
         1. Emotional Scene Structure (28-40 scenes, emotion distribution)
-        2. Master Scene Plan (Claude as director creating 30 detailed scenes)
+        2. Master Scene Plan (Claude as director creating detailed scenes)
         3. Stage 1: First half stories (Tóibín style)
         4. Stage 2: Second half stories (Tóibín continuity)
         5. Production JSONs (characters, thumbnails, metadata)
-        6. Social Media Content (YouTube Shorts, Instagram Reels, TikTok) - YENİ!
+        6. Social Media Content (YouTube Shorts, Instagram Reels, TikTok)
         """
 
         self.log_step("TÓIBÍN QUALITY Generation Pipeline Started")
@@ -250,27 +250,27 @@ class ToibinStoryGenerator:
 
             # STEP 5: Create production JSONs
             production_data = self._create_production_jsons(topic, description, master_plan,
-                                                            stage1_stories, stage2_stories, clickbait_title)
+                                                          stage1_stories, stage2_stories, clickbait_title)
 
-            # STEP 6: Create viral social media content - YENİ!
+            # STEP 6: Create viral social media content
             all_stories = {}
             all_stories.update(stage1_stories.get('stories', {}))
             all_stories.update(stage2_stories.get('stories', {}))
 
             social_media_content = self._create_social_media_content(topic, description, master_plan, all_stories)
 
-            # COMBINE ALL RESULTS - ESKİ PARAMETRELERİ KULLAN
+            # COMBINE ALL RESULTS
             complete_result = self._combine_all_results(master_plan, stage1_stories, stage2_stories,
-                                                        production_data, topic, description)
+                                                      production_data, topic, description)
 
             # Social media content'i sonradan ekle
             complete_result["social_media_content"] = social_media_content
 
             # Stats'ı güncelle
             complete_result["generation_stats"]["social_media_pieces"] = (
-                    len(social_media_content.get('youtube_shorts', [])) +
-                    len(social_media_content.get('instagram_reels', [])) +
-                    len(social_media_content.get('tiktok_videos', []))
+                len(social_media_content.get('youtube_shorts', [])) +
+                len(social_media_content.get('instagram_reels', [])) +
+                len(social_media_content.get('tiktok_videos', []))
             )
             complete_result["generation_stats"]["viral_content_created"] = True
 
@@ -379,7 +379,7 @@ class ToibinStoryGenerator:
         self.log_step("Creating Master Scene Plan with Claude Director")
 
         emotional_structure = scene_structure["emotional_structure"]
-        total_scenes = scene_structure["total_scenes"]  # This is the ACTUAL count (28-40)
+        total_scenes = scene_structure["total_scenes"]
 
         # Create emotional summary for Claude
         emotional_summary = "\n".join([
@@ -397,7 +397,7 @@ EMOTIONAL STRUCTURE TO FOLLOW (EXACTLY {total_scenes} SCENES):
 
 🎬 YOUR ROLE AS MASTER DIRECTOR:
 
-You must create EXACTLY {total_scenes} detailed scenes (not 30, but {total_scenes}!) that follow TÓIBÍN'S LITERARY MASTERY while respecting the emotional progression. Each scene should be a small masterpiece of character psychology and daily life observation.
+You must create EXACTLY {total_scenes} detailed scenes that follow TÓIBÍN'S LITERARY MASTERY while respecting the emotional progression. Each scene should be a small masterpiece of character psychology and daily life observation.
 
 ## TÓIBÍN'S CORE PRINCIPLES TO FOLLOW:
 
@@ -420,37 +420,6 @@ You must create EXACTLY {total_scenes} detailed scenes (not 30, but {total_scene
 - NO external dramatic events needed
 - Internal character drama is sufficient
 - Relationships and emotions are the real "plot"
-
-## SCENE PLANNING REQUIREMENTS:
-
-For each scene, create:
-- **Specific Scene Title** related to the topic and moment
-- **Detailed Scene Description** (what exactly happens)
-- **Character Focus** (who is the main character, what are they doing)
-- **Tóibín Element** (which aspect of his style this scene demonstrates)
-- **Setting Details** (specific location within the topic context)
-- **Emotional Core** (the internal feeling/recognition happening)
-- **Connection to Previous/Next** (how scenes flow together)
-
-## TOPIC-SPECIFIC DIRECTION:
-
-Create scenes that authentically represent {topic} through:
-- Historically accurate daily life activities
-- Period-appropriate character interactions  
-- Authentic environmental details
-- Time-of-day progression (morning to evening flow)
-- Seasonal or contextual atmosphere
-
-## TÓIBÍN SCENE TEMPLATES TO USE:
-
-1. **Quiet Observation**: Character notices something subtle about their environment
-2. **Memory Trigger**: Small detail brings back a distant memory
-3. **Relationship Moment**: Understated interaction revealing character dynamics
-4. **Internal Recognition**: Character realizes something about themselves
-5. **Environmental Connection**: Character's relationship with their physical space
-6. **Contemplative Activity**: Daily task performed with internal reflection
-7. **Shared Silence**: Two characters understanding each other without words
-8. **Gentle Revelation**: Slow understanding of something previously hidden
 
 OUTPUT FORMAT:
 {{
@@ -484,62 +453,26 @@ OUTPUT FORMAT:
         "key_tóibín_qualities": ["silence_between_words", "ordinary_made_profound", "character_psychology"],
         "sleep_optimization": "[How this scene promotes peaceful contemplation]"
       }}
-    ],
-    "character_overview": {{
-      "primary_characters": [
-        {{
-          "name": "[Character name]",
-          "role": "[Their function in the story]",
-          "psychology": "[Tóibín-style character complexity]",
-          "scenes_featured": [1, 3, 7, 12],
-          "internal_contradiction": "[What they want vs what they understand]"
-        }}
-      ]
-    }},
-    "narrative_flow": {{
-      "opening_strategy": "[How the story begins peacefully]",
-      "progression_logic": "[How scenes build on each other]",
-      "resolution_approach": "[How the story concludes with acceptance]",
-      "sleep_content_optimization": "[How the entire flow promotes rest]"
-    }}
+    ]
   }}
 }}
 
-## MASTER DIRECTOR CHALLENGE:
-
-Create {total_scenes} scenes that demonstrate TÓIBÍN'S LITERARY GENIUS while authentically representing {topic}. Each scene should be:
-
-✅ **Topic-Authentic**: Genuinely connected to {topic} with historical accuracy
-✅ **Tóibín-Masterful**: Demonstrating his signature psychological depth  
-✅ **Sleep-Optimized**: Promoting peaceful contemplation and rest
-✅ **Character-Rich**: Complex internal lives with mixed motives
-✅ **Emotionally-Structured**: Following the planned emotional progression
-✅ **Daily-Life-Focused**: Extraordinary meaning in ordinary moments
-
-Transform {topic} into a TÓIBÍN masterpiece that will both engage listeners and help them sleep peacefully."""
+Create {total_scenes} scenes that demonstrate TÓIBÍN'S LITERARY GENIUS while authentically representing {topic}."""
 
         try:
             self.api_call_count += 1
-            print(f"🔍 API Key: {CONFIG.api_key[:10]}...")
-            print(f"🔍 Model: {CONFIG.claude_config['model']}")
-            print(f"🔍 Prompt length: {len(master_plan_prompt)} chars")
-            print("📡 Sending to Claude...")
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
                 max_tokens=20000,
-                temperature=0.5,  # Balanced creativity with consistency
-                timeout=1200,
-                system="You are COLM TÓIBÍN, the master Irish literary author, working as a film director to create a detailed scene plan. Apply your signature literary genius: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and quiet recognition of human psychology. Create scenes that capture the 'hush you hear, the sighing of disappearance' - peaceful, contemplative, psychologically rich. Focus on daily life moments with extraordinary emotional depth.",
+                temperature=0.5,
+                timeout=300,  # 5 dakika timeout
+                system="You are COLM TÓIBÍN, the master Irish literary author, working as a film director to create a detailed scene plan. Apply your signature literary genius: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and quiet recognition of human psychology.",
                 messages=[{"role": "user", "content": master_plan_prompt}]
             )
-            print("📡 Claude responded!")
 
-            content = ""
-            print("📡 Claude Director creating master scene plan...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
+            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
+            content = response.content[0].text
 
             print(f"✅ Master scene plan complete: {len(content):,} characters")
 
@@ -603,36 +536,7 @@ SCENES TO WRITE (First {first_half} of {total_scenes}):
 
 🎭 TÓIBÍN WRITING REQUIREMENTS:
 
-## LITERARY MASTERY STANDARDS:
-- **"Sparseness of tone with superabundance of suggestion"** - say less, suggest more
-- **"Characters led by desires they don't understand"** - complex psychology  
-- **"Fascination of commonplaces"** - extraordinary meaning in ordinary moments
-- **"Quiet, vivid epiphanies of belonging and estrangement"** - moments of recognition
-- **"Mixed motives and tacit exchanges"** - complex character relationships
-
-## STORY STRUCTURE FOR EACH SCENE:
-1. **Atmospheric Opening** - set mood with environmental observation
-2. **Character Action** - what they're doing (daily activity)
-3. **Internal Layer** - thoughts, feelings, memories
-4. **Sensory Details** - authentic period details
-5. **Relationship Dynamics** - if other characters present
-6. **Emotional Recognition** - the heart of the scene
-7. **Peaceful Resolution** - gentle, sleep-optimized closure
-
-## TECHNICAL REQUIREMENTS:
-- **Present tense, second person** ("You notice..." / "The light settles...")
-- **Word count**: ~{CONFIG.claude_config['target_words_per_minute']} words per minute duration
-- **[PAUSE] markers** at natural breathing points
-- **Historical authenticity** through specific period details
-- **Sleep optimization** - peaceful, contemplative pacing
-
-## OPENING STYLE VARIATIONS:
-Use different opening approaches for variety:
-- Environmental: "The morning light filters through..."
-- Temporal: "As the day settles into afternoon..."
-- Character: "Marcus pauses at the threshold..."
-- Sensory: "The scent of bread drifts from..."
-- Internal: "Something in this moment feels familiar..."
+Create stories worthy of COLM TÓIBÍN's literary reputation while serving as perfect sleep content.
 
 OUTPUT FORMAT:
 {{
@@ -656,20 +560,7 @@ OUTPUT FORMAT:
     "tóibín_mastery_applied": true,
     "master_plan_followed": true
   }}
-}}
-
-## TÓIBÍN EXCELLENCE CHALLENGE:
-
-Write {first_half} stories that demonstrate TÓIBÍN'S LITERARY GENIUS:
-
-✅ **Follow Master Plan Exactly** - each story must match its planned scene description
-✅ **Tóibín Style Mastery** - understated emotion, psychological depth
-✅ **Historical Authenticity** - period-accurate details and atmosphere  
-✅ **Sleep Optimization** - peaceful, contemplative flow
-✅ **Character Psychology** - complex internal lives and motivations
-✅ **Daily Life Focus** - extraordinary meaning in ordinary moments
-
-Create stories worthy of COLM TÓIBÍN's literary reputation while serving as perfect sleep content."""
+}}"""
 
         try:
             self.api_call_count += 1
@@ -678,16 +569,13 @@ Create stories worthy of COLM TÓIBÍN's literary reputation while serving as pe
                 model=CONFIG.claude_config["model"],
                 max_tokens=30000,
                 temperature=0.7,
-                timeout=1800,
-                system="You are COLM TÓIBÍN, the celebrated Irish master of literary fiction. Apply your signature style: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and the quiet recognition of human psychology. Your stories capture the 'hush you hear, the sighing of disappearance' - peaceful, contemplative, psychologically rich. Focus on daily life moments with extraordinary emotional depth. Create sleep content with your literary mastery.",
+                timeout=300,
+                system="You are COLM TÓIBÍN, the celebrated Irish master of literary fiction. Apply your signature style: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and the quiet recognition of human psychology.",
                 messages=[{"role": "user", "content": stage1_prompt}]
             )
 
-            content = ""
-            print("📡 Stage 1: Writing Tóibín stories...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
+            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
+            content = response.content[0].text
 
             print(f"✅ Stage 1 complete: {len(content):,} characters")
 
@@ -746,27 +634,7 @@ DESCRIPTION: {description}
 SCENES TO WRITE (Remaining {len(second_half_scenes)} of {total_scenes}):
 {scenes_text}
 
-🎭 TÓIBÍN CONTINUITY REQUIREMENTS:
-
-## MAINTAIN STAGE 1 CONSISTENCY:
-- **Same character personalities** established in first half
-- **Same internal voice patterns** and psychological depths
-- **Same historical atmosphere** and period details
-- **Same narrative tone** and contemplative pacing
-
-## TÓIBÍN LITERARY MASTERY (Continue):
-- **"Sparseness with superabundance"** - restraint with deep suggestion
-- **Character psychology depth** - internal contradictions and recognition
-- **"Fascination of commonplaces"** - profound meaning in daily activities
-- **Emotional progression** - building on first half's emotional foundation
-
-## STORY PROGRESSION:
-Each scene must:
-- **Follow master plan exactly** - match the planned scene description
-- **Connect to previous scenes** - reference established elements
-- **Maintain character consistency** - same internal voices and patterns
-- **Progress emotionally** - deepen the contemplative journey
-- **Sleep-optimize pacing** - increasingly peaceful and resolving
+Complete this TÓIBÍN masterpiece with the same literary excellence as the first half.
 
 OUTPUT FORMAT:
 {{
@@ -780,20 +648,7 @@ OUTPUT FORMAT:
     "tóibín_mastery_sustained": true,
     "master_plan_completed": true
   }}
-}}
-
-## TÓIBÍN CONTINUITY CHALLENGE:
-
-Write {len(second_half_scenes)} stories that:
-
-✅ **Perfect Continuity** - seamlessly connected to Stage 1 stories
-✅ **Character Consistency** - same personalities, internal patterns, relationships
-✅ **Master Plan Adherence** - exactly match planned scene descriptions
-✅ **Emotional Progression** - deepen contemplative journey toward peaceful resolution
-✅ **Tóibín Excellence** - sustained literary quality and psychological depth
-✅ **Sleep Optimization** - increasingly peaceful, gentle pacing toward rest
-
-Complete this TÓIBÍN masterpiece with the same literary excellence as the first half."""
+}}"""
 
         try:
             self.api_call_count += 1
@@ -802,16 +657,13 @@ Complete this TÓIBÍN masterpiece with the same literary excellence as the firs
                 model=CONFIG.claude_config["model"],
                 max_tokens=30000,
                 temperature=0.7,
-                timeout=1800,
-                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier. Continue the 'hush you hear' atmospheric quality and 'fascination of commonplaces' approach. These stories must feel seamlessly connected to Stage 1 while completing the master plan.",
+                timeout=300,
+                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier.",
                 messages=[{"role": "user", "content": stage2_prompt}]
             )
 
-            content = ""
-            print("📡 Stage 2: Continuing Tóibín stories...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
+            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
+            content = response.content[0].text
 
             print(f"✅ Stage 2 complete: {len(content):,} characters")
 
@@ -835,284 +687,6 @@ Complete this TÓIBÍN masterpiece with the same literary excellence as the firs
             self.log_step("Stage 2 Failed", "ERROR")
             CONFIG.logger.error(f"Stage 2 error: {e}")
             raise
-
-    def _create_social_media_content(self, topic: str, description: str, master_plan: Dict,
-                                     all_stories: Dict) -> Dict:
-        """Create platform-specific social media content for viral reach using Claude API"""
-
-        self.log_step("Creating Social Media Content for Viral Growth")
-
-        scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
-
-        # Select best scenes for social media (high emotion, visual potential)
-        selected_scenes = self._select_best_scenes_for_social(scene_plan)
-
-        social_media_prompt = f"""Create viral social media content for "{topic}" designed to drive traffic to Sleepy Dull Stories YouTube channel (goal: 1M subscribers).
-
-    CRITICAL: Each piece must include MIDJOURNEY VISUAL PROMPTS for image generation!
-
-    TOPIC: {topic}
-    DESCRIPTION: {description}
-
-    SELECTED SCENES FOR ADAPTATION:
-    {self._format_scenes_for_social(selected_scenes, all_stories)}
-
-    🚀 VIRAL STRATEGY REQUIREMENTS:
-
-    ## PLATFORM-SPECIFIC ADAPTATIONS:
-
-    ### YouTube Shorts (60 seconds):
-    - **Hook within 3 seconds** - immediate engagement
-    - **Story teaser** - compressed Tóibín quality maintaining literary essence
-    - **Strong CTA** - drive to main channel
-    - **Cliffhanger endings** - create curiosity
-
-    ### Instagram Reels (60 seconds):
-    - **Trending audio compatibility** - voice over + trending sounds
-    - **Visual storytelling** - period-accurate but Instagram-appealing
-    - **POV formats** - "POV: You're [Character]..."
-    - **Hashtag optimization** - balance trending + niche
-
-    ### TikTok (60 seconds):
-    - **Educational angles** - "Historical fact that will help you sleep"
-    - **Trend integration** - current TikTok formats
-    - **Comment bait** - encourage engagement
-    - **Duet potential** - content others can react to
-
-    ## CONTENT REQUIREMENTS:
-
-    For each platform, create 5 pieces of content that:
-
-    ✅ **Maintain Tóibín Quality** - literary excellence in compressed format
-    ✅ **Drive Channel Growth** - clear CTAs to main YouTube
-    ✅ **Midjourney Visual Prompts** - detailed prompts for each platform's visual requirements
-    ✅ **Platform-Specific Aspect Ratios** - 9:16 vertical format optimization  
-    ✅ **Text Overlay Considerations** - space planning for titles and captions
-    ✅ **Character Consistency** - visual continuity with main story characters
-
-    ## OUTPUT FORMAT:
-    {{
-      "social_media_strategy": {{
-        "campaign_name": "Sleepy Dull Stories - {topic} Viral Campaign",
-        "main_story_connection": {{
-          "selected_scenes": [scene IDs],
-          "character_focus": "[Main character]",
-          "viral_hooks": ["hook1", "hook2", "hook3"]
-        }},
-        "growth_target": "1M subscribers",
-        "cross_platform_cta": "Full story → @SleepyDullStories"
-      }},
-
-      "youtube_shorts": [
-        {{
-          "short_id": 1,
-          "title": "[Viral title with character/mystery hook]",
-          "duration_seconds": 60,
-          "based_on_scene": [scene_id],
-          "script": {{
-            "hook": "[0-5s] [Immediate engagement hook]",
-            "story_teaser": "[5-45s] [Compressed scene maintaining Tóibín quality]", 
-            "cta": "[45-60s] [Strong call to action to main channel]"
-          }},
-          "midjourney_prompt": "[DETAILED Midjourney prompt for thumbnail/cover image - 9:16 aspect ratio, character positioning, historical setting, dramatic lighting, text space consideration]",
-          "visual_elements": {{
-            "character_positioning": "[Where character should be positioned for text overlay]",
-            "mood_lighting": "[Dramatic/mysterious/peaceful lighting description]",
-            "historical_accuracy": "[Period-specific visual elements]",
-            "text_overlay_space": "[Where text/titles can be placed]"
-          }},
-          "viral_elements": {{
-            "mystery_hook": "[What creates curiosity]",
-            "visual_direction": "[Dramatic/engaging visual approach]",
-            "engagement_bait": "[What makes people comment/share]"
-          }}
-        }}
-        // ... 4 more YouTube Shorts
-      ],
-
-      "instagram_reels": [
-        {{
-          "reel_id": 1,
-          "title": "[Instagram-optimized title]",
-          "duration_seconds": 60,
-          "based_on_scene": [scene_id],
-          "script": {{
-            "hook": "[0-3s] [Instagram-style hook]",
-            "visual_story": "[3-50s] [Visual storytelling adaptation]",
-            "cta": "[50-60s] [Instagram-appropriate CTA]"
-          }},
-          "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 vertical, Instagram-aesthetic, character focused, bright/engaging lighting, space for text overlays and stickers]",
-          "visual_elements": {{
-            "instagram_aesthetic": "[Bright, clean, engaging visual style]",
-            "character_focus": "[How character should be presented]",
-            "background_setting": "[Historical setting adapted for Instagram appeal]",
-            "overlay_compatibility": "[Areas for text overlays and stickers]"
-          }},
-          "instagram_optimization": {{
-            "trending_audio": "[Compatible with trending sounds]",
-            "text_overlays": ["overlay1", "overlay2"],
-            "hashtag_strategy": ["#SleepyDullStories", "#BedtimeStory", "#HistoricalFiction"],
-            "sticker_usage": ["Question sticker", "Link sticker"]
-          }}
-        }}
-        // ... 4 more Instagram Reels  
-      ],
-
-      "tiktok_videos": [
-        {{
-          "tiktok_id": 1,
-          "title": "[TikTok-optimized title]", 
-          "duration_seconds": 60,
-          "based_on_scene": [scene_id],
-          "script": {{
-            "hook": "[0-3s] [TikTok-style educational/mystery hook]",
-            "educational_story": "[3-50s] [Educational angle + story adaptation]",
-            "cta": "[50-60s] [TikTok-appropriate CTA]"
-          }},
-          "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 mobile format, TikTok-native style, educational/storytelling visual approach, dynamic composition, space for captions]",
-          "visual_elements": {{
-            "tiktok_native_style": "[Dynamic, engaging, mobile-first composition]",
-            "educational_visual": "[How to present educational/historical content visually]",
-            "character_presentation": "[Character styling for TikTok audience]",
-            "caption_space": "[Areas where TikTok captions/text can be placed]"
-          }},
-          "tiktok_optimization": {{
-            "trending_potential": "[Why this will trend]",
-            "educational_angle": "[Historical fact/insight]",
-            "comment_baits": ["Question to drive comments"],
-            "hashtag_mix": ["#HistoryTok", "#SleepTok", "#SleepyDullStories"]
-          }}
-        }}
-        // ... 4 more TikTok videos
-      ]
-    }}
-
-    ## VIRAL GROWTH CHALLENGE:
-
-    Create 15 pieces of content (5 per platform) that will:
-
-    🎯 **Drive 1M Subscriber Growth** through strategic social media funneling
-    📱 **Platform Native Content** that feels authentic to each platform
-    🎭 **Maintain Tóibín Literary Quality** even in 60-second format  
-    🔥 **Viral Potential** with hooks, mystery, and educational value
-    💤 **Sleep Content Branding** - establish Sleepy Dull Stories as THE sleep story destination
-
-    ## MIDJOURNEY PROMPT REQUIREMENTS:
-
-    Each piece MUST include detailed Midjourney prompts with:
-
-    ### Universal Requirements:
-    - **Aspect Ratio**: --ar 9:16 for all mobile platforms
-    - **Style**: Cinematic, historical accuracy, soft lighting for sleep content
-    - **Character Consistency**: Match main story character descriptions
-    - **Text Space**: Strategic positioning for platform-specific text overlays
-
-    ### Platform-Specific Visual Styles:
-    - **YouTube Shorts**: Dramatic, movie-poster style, mystery elements, bold composition
-    - **Instagram Reels**: Bright, clean, aesthetically pleasing, Instagram-native feel  
-    - **TikTok Videos**: Dynamic, educational visual storytelling, mobile-first design
-
-    ### Historical Accuracy:
-    - Period-appropriate clothing, architecture, lighting
-    - Authentic environmental details from the selected scene
-    - Cultural context that matches the main story setting
-
-    Transform {topic} into viral social media gold with stunning Midjourney visuals while maintaining literary excellence!"""
-
-        try:
-            self.api_call_count += 1
-
-            response = self.client.messages.create(
-                model=CONFIG.claude_config["model"],
-                max_tokens=20000,
-                temperature=0.8,  # Higher creativity for viral content
-                timeout=1200,
-                system="You are a viral social media strategist AND Colm Tóibín literary expert AND Midjourney prompt specialist. Create platform-native content that maintains literary quality while optimizing for viral growth. Each piece MUST include detailed Midjourney visual generation prompts with --ar 9:16, character positioning, historical accuracy, and text overlay space planning. Focus on driving traffic to the main YouTube channel through strategic hooks, educational angles, and mystery elements. Each piece should feel native to its platform while maintaining the peaceful, sleep-optimized brand of Sleepy Dull Stories.",
-                messages=[{"role": "user", "content": social_media_prompt}]
-            )
-
-            content = ""
-            print("📱 Creating viral social media content...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
-
-            print(f"✅ Social media content complete: {len(content):,} characters")
-
-            # Calculate cost
-            input_tokens = len(social_media_prompt) // 4
-            output_tokens = len(content) // 4
-            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
-            self.total_cost += stage_cost
-
-            # Parse response
-            parsed_result = self._parse_claude_response(content, "social_media")
-
-            self.log_step("Social Media Content Created", "SUCCESS", {
-                "youtube_shorts": len(parsed_result.get('youtube_shorts', [])),
-                "instagram_reels": len(parsed_result.get('instagram_reels', [])),
-                "tiktok_videos": len(parsed_result.get('tiktok_videos', [])),
-                "stage_cost": stage_cost
-            })
-
-            return parsed_result
-
-        except Exception as e:
-            self.log_step("Social Media Content Failed", "ERROR")
-            CONFIG.logger.error(f"Social media content error: {e}")
-            raise
-
-    def _select_best_scenes_for_social(self, scene_plan: List[Dict]) -> List[Dict]:
-        """Select scenes with highest viral potential"""
-
-        # Score scenes based on viral potential
-        scored_scenes = []
-        for scene in scene_plan:
-            score = 0
-
-            # High emotion scenes
-            if scene.get('emotion') in ['curiosity', 'recognition', 'resolution']:
-                score += 3
-
-            # Character-focused scenes
-            if 'character' in scene.get('scene_description', '').lower():
-                score += 2
-
-            # Visual potential
-            if any(word in scene.get('setting', '').lower() for word in
-                   ['night', 'fire', 'door', 'window', 'market', 'house']):
-                score += 2
-
-            # Mystery elements
-            if any(word in scene.get('emotional_core', '').lower() for word in
-                   ['secret', 'hidden', 'unknown', 'mystery', 'wonder']):
-                score += 3
-
-            scored_scenes.append((score, scene))
-
-        # Sort by score and take top 5
-        scored_scenes.sort(key=lambda x: x[0], reverse=True)
-        return [scene for score, scene in scored_scenes[:5]]
-
-    def _format_scenes_for_social(self, selected_scenes: List[Dict], all_stories: Dict) -> str:
-        """Format selected scenes for social media prompt"""
-
-        formatted = []
-        for scene in selected_scenes:
-            scene_id = str(scene['scene_id'])
-            story_content = all_stories.get(scene_id, '')
-
-            formatted.append(f"""
-    SCENE {scene_id}: {scene['title']}
-    Emotion: {scene['emotion']} | Duration: {scene['duration_minutes']:.1f}min
-    Setting: {scene['setting']}
-    Character: {scene['main_character']}
-    Emotional Core: {scene['emotional_core']}
-    Story Content (first 500 chars): {story_content[:500]}...
-    Viral Potential: {scene.get('viral_score', 'High')}
-    """)
-
-        return "\n".join(formatted)
 
     def _create_production_jsons(self, topic: str, description: str, master_plan: Dict,
                                stage1_result: Dict, stage2_result: Dict, clickbait_title: str = None) -> Dict:
@@ -1140,32 +714,7 @@ DESCRIPTION: {description}
 COMPLETE STORY CONTENT (First 25000 chars):
 {story_content[:25000]}
 
-SCENE PLAN CONTEXT:
-{json.dumps(scene_plan[:5], indent=2)}... (and {len(scene_plan)-5} more scenes)
-
-🎬 PRODUCTION REQUIREMENTS:
-
-Create comprehensive production data including:
-
-## 1. CHARACTER EXTRACTION
-- Extract main characters with Tóibín psychological depth
-- Character relationships and internal complexities
-- Scene-by-scene character presence mapping
-
-## 2. VISUAL GENERATION PROMPTS  
-- Scene-specific visual prompts based on actual story content
-- Character-consistent visual descriptions
-- Historical accuracy and atmospheric details
-
-## 3. YOUTUBE OPTIMIZATION
-- Clickbait titles balancing drama with literary authenticity
-- SEO strategy for sleep content and historical topics
-- Thumbnail concepts emphasizing character psychology
-
-## 4. PRODUCTION SPECIFICATIONS
-- Audio settings optimized for sleep content
-- Video timing and scene synchronization
-- Quality control metrics
+Extract the literary excellence from these Tóibín stories and transform it into production-ready content.
 
 OUTPUT FORMAT:
 {{
@@ -1245,19 +794,7 @@ OUTPUT FORMAT:
       "tóibín_authenticity": true
     }}
   }}
-}}
-
-## PRODUCTION EXCELLENCE CHALLENGE:
-
-Create production data that maintains TÓIBÍN QUALITY while optimizing for:
-
-✅ **Character Authenticity** - true to Tóibín's psychological complexity
-✅ **Visual Accuracy** - historically authentic and story-specific
-✅ **YouTube Success** - dramatic appeal balanced with literary quality
-✅ **Sleep Optimization** - all elements promote peaceful rest
-✅ **Production Ready** - complete technical specifications
-
-Extract the literary excellence from these Tóibín stories and transform it into production-ready content."""
+}}"""
 
         try:
             self.api_call_count += 1
@@ -1266,16 +803,13 @@ Extract the literary excellence from these Tóibín stories and transform it int
                 model=CONFIG.claude_config["model"],
                 max_tokens=16000,
                 temperature=0.3,
-                timeout=900,
-                system="You are a production expert analyzing COLM TÓIBÍN's literary work. Extract characters with his signature psychological depth - 'characters led by desires they don't understand,' 'quiet dignity,' 'mixed motives and tacit exchanges' - while creating professional production specifications. Balance literary authenticity with YouTube optimization.",
+                timeout=300,
+                system="You are a production expert analyzing COLM TÓIBÍN's literary work. Extract characters with his signature psychological depth while creating professional production specifications.",
                 messages=[{"role": "user", "content": production_prompt}]
             )
 
-            content = ""
-            print("📡 Creating production JSONs...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
+            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
+            content = response.content[0].text
 
             print(f"✅ Production JSONs complete: {len(content):,} characters")
 
@@ -1301,8 +835,208 @@ Extract the literary excellence from these Tóibín stories and transform it int
             CONFIG.logger.error(f"Production JSON error: {e}")
             raise
 
+    def _create_social_media_content(self, topic: str, description: str, master_plan: Dict,
+                                   all_stories: Dict) -> Dict:
+        """Create platform-specific social media content for viral reach using Claude API"""
+
+        self.log_step("Creating Social Media Content for Viral Growth")
+
+        scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
+
+        # Select best scenes for social media (high emotion, visual potential)
+        selected_scenes = self._select_best_scenes_for_social(scene_plan)
+
+        social_media_prompt = f"""Create viral social media content for "{topic}" designed to drive traffic to Sleepy Dull Stories YouTube channel (goal: 1M subscribers).
+
+CRITICAL: Each piece must include MIDJOURNEY VISUAL PROMPTS for image generation!
+
+TOPIC: {topic}
+DESCRIPTION: {description}
+
+SELECTED SCENES FOR ADAPTATION:
+{self._format_scenes_for_social(selected_scenes, all_stories)}
+
+Create 15 pieces of content (5 per platform) that will:
+
+🎯 **Drive 1M Subscriber Growth** through strategic social media funneling
+📱 **Platform Native Content** that feels authentic to each platform
+🎭 **Maintain Tóibín Literary Quality** even in 60-second format  
+🔥 **Viral Potential** with hooks, mystery, and educational value
+💤 **Sleep Content Branding** - establish Sleepy Dull Stories as THE sleep story destination
+
+OUTPUT FORMAT:
+{{
+  "social_media_strategy": {{
+    "campaign_name": "Sleepy Dull Stories - {topic} Viral Campaign",
+    "main_story_connection": {{
+      "selected_scenes": [scene IDs],
+      "character_focus": "[Main character]",
+      "viral_hooks": ["hook1", "hook2", "hook3"]
+    }},
+    "growth_target": "1M subscribers",
+    "cross_platform_cta": "Full story → @SleepyDullStories"
+  }},
+
+  "youtube_shorts": [
+    {{
+      "short_id": 1,
+      "title": "[Viral title with character/mystery hook]",
+      "duration_seconds": 60,
+      "based_on_scene": [scene_id],
+      "script": {{
+        "hook": "[0-5s] [Immediate engagement hook]",
+        "story_teaser": "[5-45s] [Compressed scene maintaining Tóibín quality]", 
+        "cta": "[45-60s] [Strong call to action to main channel]"
+      }},
+      "midjourney_prompt": "[DETAILED Midjourney prompt for thumbnail/cover image - 9:16 aspect ratio, character positioning, historical setting, dramatic lighting, text space consideration]",
+      "visual_elements": {{
+        "character_positioning": "[Where character should be positioned for text overlay]",
+        "mood_lighting": "[Dramatic/mysterious/peaceful lighting description]",
+        "historical_accuracy": "[Period-specific visual elements]",
+        "text_overlay_space": "[Where text/titles can be placed]"
+      }}
+    }}
+  ],
+
+  "instagram_reels": [
+    {{
+      "reel_id": 1,
+      "title": "[Instagram-optimized title]",
+      "duration_seconds": 60,
+      "based_on_scene": [scene_id],
+      "script": {{
+        "hook": "[0-3s] [Instagram-style hook]",
+        "visual_story": "[3-50s] [Visual storytelling adaptation]",
+        "cta": "[50-60s] [Instagram-appropriate CTA]"
+      }},
+      "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 vertical, Instagram-aesthetic, character focused, bright/engaging lighting, space for text overlays and stickers]",
+      "visual_elements": {{
+        "instagram_aesthetic": "[Bright, clean, engaging visual style]",
+        "character_focus": "[How character should be presented]",
+        "background_setting": "[Historical setting adapted for Instagram appeal]",
+        "overlay_compatibility": "[Areas for text overlays and stickers]"
+      }}
+    }}
+  ],
+
+  "tiktok_videos": [
+    {{
+      "tiktok_id": 1,
+      "title": "[TikTok-optimized title]", 
+      "duration_seconds": 60,
+      "based_on_scene": [scene_id],
+      "script": {{
+        "hook": "[0-3s] [TikTok-style educational/mystery hook]",
+        "educational_story": "[3-50s] [Educational angle + story adaptation]",
+        "cta": "[50-60s] [TikTok-appropriate CTA]"
+      }},
+      "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 mobile format, TikTok-native style, educational/storytelling visual approach, dynamic composition, space for captions]",
+      "visual_elements": {{
+        "tiktok_native_style": "[Dynamic, engaging, mobile-first composition]",
+        "educational_visual": "[How to present educational/historical content visually]",
+        "character_presentation": "[Character styling for TikTok audience]",
+        "caption_space": "[Areas where TikTok captions/text can be placed]"
+      }}
+    }}
+  ]
+}}
+
+Transform {topic} into viral social media gold with stunning Midjourney visuals while maintaining literary excellence!"""
+
+        try:
+            self.api_call_count += 1
+
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=20000,
+                temperature=0.8,
+                timeout=300,
+                system="You are a viral social media strategist AND Colm Tóibín literary expert AND Midjourney prompt specialist. Create platform-native content that maintains literary quality while optimizing for viral growth.",
+                messages=[{"role": "user", "content": social_media_prompt}]
+            )
+
+            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
+            content = response.content[0].text
+
+            print(f"✅ Social media content complete: {len(content):,} characters")
+
+            # Calculate cost
+            input_tokens = len(social_media_prompt) // 4
+            output_tokens = len(content) // 4
+            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
+            self.total_cost += stage_cost
+
+            # Parse response
+            parsed_result = self._parse_claude_response(content, "social_media")
+
+            self.log_step("Social Media Content Created", "SUCCESS", {
+                "youtube_shorts": len(parsed_result.get('youtube_shorts', [])),
+                "instagram_reels": len(parsed_result.get('instagram_reels', [])),
+                "tiktok_videos": len(parsed_result.get('tiktok_videos', [])),
+                "stage_cost": stage_cost
+            })
+
+            return parsed_result
+
+        except Exception as e:
+            self.log_step("Social Media Content Failed", "ERROR")
+            CONFIG.logger.error(f"Social media content error: {e}")
+            raise
+
+    def _select_best_scenes_for_social(self, scene_plan: List[Dict]) -> List[Dict]:
+        """Select scenes with highest viral potential"""
+
+        # Score scenes based on viral potential
+        scored_scenes = []
+        for scene in scene_plan:
+            score = 0
+
+            # High emotion scenes
+            if scene.get('emotion') in ['curiosity', 'recognition', 'resolution']:
+                score += 3
+
+            # Character-focused scenes
+            if 'character' in scene.get('scene_description', '').lower():
+                score += 2
+
+            # Visual potential
+            if any(word in scene.get('setting', '').lower() for word in
+                   ['night', 'fire', 'door', 'window', 'market', 'house']):
+                score += 2
+
+            # Mystery elements
+            if any(word in scene.get('emotional_core', '').lower() for word in
+                   ['secret', 'hidden', 'unknown', 'mystery', 'wonder']):
+                score += 3
+
+            scored_scenes.append((score, scene))
+
+        # Sort by score and take top 5
+        scored_scenes.sort(key=lambda x: x[0], reverse=True)
+        return [scene for score, scene in scored_scenes[:5]]
+
+    def _format_scenes_for_social(self, selected_scenes: List[Dict], all_stories: Dict) -> str:
+        """Format selected scenes for social media prompt"""
+
+        formatted = []
+        for scene in selected_scenes:
+            scene_id = str(scene['scene_id'])
+            story_content = all_stories.get(scene_id, '')
+
+            formatted.append(f"""
+SCENE {scene_id}: {scene['title']}
+Emotion: {scene['emotion']} | Duration: {scene['duration_minutes']:.1f}min
+Setting: {scene['setting']}
+Character: {scene['main_character']}
+Emotional Core: {scene['emotional_core']}
+Story Content (first 500 chars): {story_content[:500]}...
+Viral Potential: {scene.get('viral_score', 'High')}
+""")
+
+        return "\n".join(formatted)
+
     def _combine_all_results(self, master_plan: Dict, stage1_result: Dict, stage2_result: Dict,
-                             production_data: Dict, topic: str, description: str) -> Dict:
+                           production_data: Dict, topic: str, description: str) -> Dict:
         """Combine all results into final output"""
 
         # Combine stories
@@ -1488,6 +1222,15 @@ Extract the literary excellence from these Tóibín stories and transform it int
                     "production_specs": {}
                 }
 
+            elif stage == "social_media":
+                # Extract social media structure
+                result = {
+                    "social_media_strategy": {},
+                    "youtube_shorts": [],
+                    "instagram_reels": [],
+                    "tiktok_videos": []
+                }
+
         except Exception as e:
             print(f"⚠️ Partial extraction error for {stage}: {e}")
 
@@ -1515,79 +1258,71 @@ Extract the literary excellence from these Tóibín stories and transform it int
 
         return stories
 
-
 def save_production_outputs(output_dir: str, result: Dict, story_topic: str, topic_id: int,
-                            api_calls: int, total_cost: float):
-    """Save complete production outputs - MAINTAINING 16 FILE COMPATIBILITY + SOCIAL MEDIA"""
+                          api_calls: int, total_cost: float):
+    """Save complete production outputs"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     saved_files = []
 
     try:
-        # ... mevcut 1-15 dosyalar aynen kalacak ...
+        # 1. Complete story text
+        story_path = output_path / "complete_story.txt"
+        with open(story_path, "w", encoding="utf-8") as f:
+            f.write(result["complete_story"])
+        saved_files.append("complete_story.txt")
 
-        # 16. Generation report (ENHANCED WITH SOCIAL MEDIA)
-        report_path = output_path / "generation_report.json"
-        production_report = {
-            "topic": story_topic,
-            "topic_id": topic_id,
-            "generation_completed": datetime.now().isoformat(),
-            "model_used": CONFIG.claude_config["model"],
-            "tóibín_quality_applied": True,
+        # 2. Scene plan
+        scene_path = output_path / "scene_plan.json"
+        scene_data = {
+            "scene_plan": result["scene_plan"],
+            "scene_chapters": result["scene_chapters"],
+            "total_scenes": len(result["scene_plan"]),
+            "total_duration_minutes": result["generation_stats"]["total_duration_minutes"],
             "master_plan_approach": True,
-            "emotional_structure_used": True,
-            "literary_excellence": True,
-            "viral_content_created": True,  # YENİ!
-            "stats": result["generation_stats"],
-            "cost_analysis": {
-                "total_api_calls": api_calls,
-                "total_cost": total_cost,
-                "cost_per_scene": total_cost / len(result["scene_plan"]) if result["scene_plan"] else 0,
-                "cost_efficiency": "Tóibín quality + viral social media with master plan optimization"
-            },
-            "quality_metrics": {
-                "scenes_planned": len(result["scene_plan"]),
-                "stories_written": len(result["stories"]),
-                "characters_extracted": len(result["characters"].get("main_characters", [])),
-                "social_media_pieces": result["generation_stats"].get("social_media_pieces", 0),  # YENİ!
-                "completion_rate": result["generation_stats"]["completion_rate"],
-                "tóibín_authenticity_verified": True,
-                "master_plan_followed": True,
-                "emotional_structure_applied": True,
-                "literary_quality_maintained": True,
-                "viral_potential_optimized": True  # YENİ!
-            },
-            "files_saved": saved_files,
-            "next_steps": [
-                "1. Generate character reference images using character_profiles.json",
-                "2. Generate scene visuals (1-N) using visual_generation_prompts.json",
-                "3. Generate thumbnail using thumbnail_generation.json",
-                "4. Generate audio using audio_generation_prompts.json",
-                "5. Compose video using video_composition_instructions.json",
-                "6. Upload to YouTube using platform_metadata.json",
-                "7. Create social media content using social_media_content.json",  # YENİ!
-                "8. Execute viral growth strategy across all platforms"  # YENİ!
-            ],
-            "automation_readiness": {
-                "character_extraction": "✅ Complete",
-                "youtube_optimization": "✅ Complete",
-                "production_specifications": "✅ Complete",
-                "platform_metadata": "✅ Complete",
-                "social_media_strategy": "✅ Complete",  # YENİ!
-                "tóibín_quality_standards": "✅ Complete"
-            }
+            "emotional_structure_used": True
         }
-        with open(report_path, "w", encoding="utf-8") as f:
-            json.dump(production_report, f, indent=2, ensure_ascii=False)
-        saved_files.append("generation_report.json")
+        with open(scene_path, "w", encoding="utf-8") as f:
+            json.dump(scene_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("scene_plan.json")
 
-        # 17. Social media content (YENİ)
+        # 3. All stories
+        stories_path = output_path / "all_stories.json"
+        with open(stories_path, "w", encoding="utf-8") as f:
+            json.dump(result["stories"], f, indent=2, ensure_ascii=False)
+        saved_files.append("all_stories.json")
+
+        # 4. Visual prompts
+        visual_path = output_path / "visual_generation_prompts.json"
+        with open(visual_path, "w", encoding="utf-8") as f:
+            json.dump(result["visual_prompts"], f, indent=2, ensure_ascii=False)
+        saved_files.append("visual_generation_prompts.json")
+
+        # 5. Character profiles
+        character_path = output_path / "character_profiles.json"
+        with open(character_path, "w", encoding="utf-8") as f:
+            json.dump(result["characters"], f, indent=2, ensure_ascii=False)
+        saved_files.append("character_profiles.json")
+
+        # 6. YouTube optimization
+        youtube_path = output_path / "youtube_metadata.json"
+        with open(youtube_path, "w", encoding="utf-8") as f:
+            json.dump(result["youtube_optimization"], f, indent=2, ensure_ascii=False)
+        saved_files.append("youtube_metadata.json")
+
+        # 7. Production specifications
+        production_path = output_path / "production_specifications.json"
+        with open(production_path, "w", encoding="utf-8") as f:
+            json.dump(result["production_specs"], f, indent=2, ensure_ascii=False)
+        saved_files.append("production_specifications.json")
+
+        # 8. Social media content
         social_path = output_path / "social_media_content.json"
-        social_media_data = result.get("social_media_content", {})
+        social_data = result.get("social_media_content", {})
 
-        # Enhanced social media data with production specs
+        # Enhanced social media data
         enhanced_social_data = {
-            **social_media_data,
+            **social_data,
             "production_ready": True,
             "viral_growth_strategy": {
                 "target_subscribers": "1M",
@@ -1599,19 +1334,6 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
                 },
                 "cross_promotion": "Each platform drives to main channel",
                 "hashtag_strategy": "#SleepyDullStories on all platforms"
-            },
-            "analytics_tracking": {
-                "kpis": [
-                    "Click-through rate to main channel",
-                    "Subscriber conversion rate",
-                    "Engagement rate per platform",
-                    "Cross-platform brand recognition"
-                ],
-                "success_metrics": {
-                    "youtube_shorts": "CTR > 8%, Comments mentioning main channel",
-                    "instagram_reels": "Saves > 15%, Story shares, Profile visits",
-                    "tiktok_videos": "Completion rate > 70%, Comments asking for full story"
-                }
             }
         }
 
@@ -1619,7 +1341,39 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             json.dump(enhanced_social_data, f, indent=2, ensure_ascii=False)
         saved_files.append("social_media_content.json")
 
-        print(f"✅ Production files saved ({len(saved_files)} files - FULL COMPATIBILITY + SOCIAL MEDIA): {saved_files}")
+        # 9. Generation report
+        report_path = output_path / "generation_report.json"
+        production_report = {
+            "topic": story_topic,
+            "topic_id": topic_id,
+            "generation_completed": datetime.now().isoformat(),
+            "model_used": CONFIG.claude_config["model"],
+            "tóibín_quality_applied": True,
+            "master_plan_approach": True,
+            "emotional_structure_used": True,
+            "literary_excellence": True,
+            "viral_content_created": True,
+            "stats": result["generation_stats"],
+            "cost_analysis": {
+                "total_api_calls": api_calls,
+                "total_cost": total_cost,
+                "cost_per_scene": total_cost / len(result["scene_plan"]) if result["scene_plan"] else 0,
+                "cost_efficiency": "Tóibín quality + viral social media with master plan optimization"
+            },
+            "files_saved": saved_files,
+            "next_steps": [
+                "1. Generate character reference images using character_profiles.json",
+                "2. Generate scene visuals using visual_generation_prompts.json",
+                "3. Generate audio using production_specifications.json",
+                "4. Create social media content using social_media_content.json",
+                "5. Upload to YouTube using youtube_metadata.json"
+            ]
+        }
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(production_report, f, indent=2, ensure_ascii=False)
+        saved_files.append("generation_report.json")
+
+        print(f"✅ Production files saved ({len(saved_files)} files): {saved_files}")
         CONFIG.logger.info(f"Files saved to: {output_dir}")
 
     except Exception as e:
@@ -1653,7 +1407,6 @@ def complete_topic_in_database(topic_id: int, scene_count: int, total_duration: 
         topic_id, scene_count, total_duration, api_calls, total_cost, output_path
     )
 
-
     print(f"✅ Topic {topic_id} marked as completed")
 
 def print_production_summary(result: Dict, story_topic: str, output_path: str, generation_time: float):
@@ -1672,7 +1425,7 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print(f"\n📊 GENERATION RESULTS:")
     print(f"🎬 Scenes Planned: {stats['total_scenes']}")
     print(f"📝 Stories Written: {stats['total_stories']}")
-    print(f"📱 Social Media Pieces: {stats.get('social_media_pieces', 0)}")  # YENİ!
+    print(f"📱 Social Media Pieces: {stats.get('social_media_pieces', 0)}")
     print(f"📈 Completion Rate: {stats['completion_rate']:.1f}%")
     print(f"⏰ Total Duration: {stats['total_duration_minutes']:.1f} minutes")
     print(f"🔥 API Calls: {stats['api_calls_used']}")
@@ -1682,40 +1435,32 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print(f"✅ Master Plan Approach: {stats.get('master_plan_approach', False)}")
     print(f"✅ Emotional Structure: {stats.get('emotional_structure_used', False)}")
     print(f"✅ Tóibín Literary Style: {stats.get('tóibín_quality_applied', False)}")
-    print(f"✅ Viral Content Created: {stats.get('viral_content_created', False)}")  # YENİ!
+    print(f"✅ Viral Content Created: {stats.get('viral_content_created', False)}")
 
     completion_rate = stats['completion_rate']
     if completion_rate >= 80:
         print(f"\n🎉 TÓIBÍN QUALITY SUCCESS!")
         print(f"✅ Literary excellence with production optimization")
         print(f"✅ Master plan approach delivered quality results")
-        print(f"🚀 Ready for full production pipeline + viral growth")  # UPDATED!
+        print(f"🚀 Ready for full production pipeline + viral growth")
     else:
         print(f"\n⚠️ PARTIAL SUCCESS")
         print(f"🔍 Review generation_report.json for details")
 
-    print("\n📄 PRODUCTION FILES CREATED (17 FILES - FULL COMPATIBILITY + SOCIAL MEDIA):")
+    print("\n📄 PRODUCTION FILES CREATED (9 FILES):")
     print("1. 📖 complete_story.txt - Full Tóibín-quality story")
     print("2. 🎬 scene_plan.json - Master scene plan + chapters")
-    print("3. 🖼️ visual_generation_prompts.json - Story-based visuals")
-    print("4. 🎵 voice_directions.json - TTS guidance")
+    print("3. 📚 all_stories.json - All individual stories")
+    print("4. 🖼️ visual_generation_prompts.json - Story-based visuals")
     print("5. 👥 character_profiles.json - Tóibín character analysis")
-    print("6. 📚 all_stories.json - All individual stories")
-    print("7. 🌍 platform_metadata.json - COMPREHENSIVE platform data")
-    print("8. 📺 youtube_metadata.json - YouTube optimization")
-    print("9. 🖼️ thumbnail_generation.json - Thumbnail composition")
-    print("10. 🎭 hook_subscribe_scenes.json - Background scenes")
-    print("11. 🏭 production_specifications.json - Technical specs")
-    print("12. 🤖 automation_specs.json - Automation data")
-    print("13. 🎵 audio_generation_prompts.json - Enhanced TTS")
-    print("14. 🎥 video_composition_instructions.json - Video timeline")
-    print("15. 📊 generation_report.json - Complete analytics")
-    print("16. 🎭 Tóibín Literary Quality - Maintained throughout")
-    print("17. 📱 social_media_content.json - VIRAL GROWTH STRATEGY")  # YENİ!
+    print("6. 📺 youtube_metadata.json - YouTube optimization")
+    print("7. 🏭 production_specifications.json - Technical specs")
+    print("8. 📱 social_media_content.json - VIRAL GROWTH STRATEGY")
+    print("9. 📊 generation_report.json - Complete analytics")
 
-    # YENİ SECTION
-    print(f"\n🚀 VIRAL GROWTH STRATEGY:")
+    # Social media breakdown
     social_stats = result.get("social_media_content", {})
+    print(f"\n🚀 VIRAL GROWTH STRATEGY:")
     print(f"📺 YouTube Shorts: {len(social_stats.get('youtube_shorts', []))} pieces")
     print(f"📸 Instagram Reels: {len(social_stats.get('instagram_reels', []))} pieces")
     print(f"🎵 TikTok Videos: {len(social_stats.get('tiktok_videos', []))} pieces")
@@ -1726,7 +1471,7 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 if __name__ == "__main__":
     try:
         print("🎭 TÓIBÍN QUALITY STORY GENERATOR")
-        print("⚡ Master Plan + Emotional Structure + Literary Excellence")
+        print("⚡ Master Plan + Emotional Structure + Literary Excellence + Social Media")
         print("=" * 60)
 
         # Get topic from database
@@ -1740,7 +1485,7 @@ if __name__ == "__main__":
         # Initialize generator
         generator = ToibinStoryGenerator()
 
-        # Generate complete story with Tóibín quality
+        # Generate complete story with Tóibín quality + social media
         start_time = time.time()
         result = generator.generate_complete_story(topic, description, clickbait_title)
         generation_time = time.time() - start_time
@@ -1761,8 +1506,10 @@ if __name__ == "__main__":
         )
 
         print("\n🎭 TÓIBÍN QUALITY GENERATION COMPLETE!")
-        print(f"✅ Literary excellence delivered: {output_path}")
+        print(f"✅ Literary excellence + viral social media delivered: {output_path}")
         print(f"💰 Total cost: ${generator.total_cost:.4f}")
+        print(f"📱 Social media pieces: {result['generation_stats'].get('social_media_pieces', 0)}")
+        print(f"🎯 Ready for 1M subscriber strategy!")
 
     except Exception as e:
         print(f"\n💥 GENERATION ERROR: {e}")
