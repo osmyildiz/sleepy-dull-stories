@@ -1,8 +1,7 @@
 """
-Sleepy Dull Stories - SERVER-READY Midjourney Scene Generator
-SCENE generation with independent thumbnail integration
-Production-optimized with complete automation and error recovery
-FIXED: Thumbnail separation + All missing prompt elements from local version
+Sleepy Dull Stories - ENHANCED Midjourney Scene Generator with Claude AI Prompt Correction
+REAL-TIME prompt correction using Claude Sonnet 4 when Midjourney rejects prompts
+Production-optimized with intelligent error recovery and JSON updating
 """
 
 import requests
@@ -21,6 +20,216 @@ import logging
 
 # Load environment first
 load_dotenv()
+
+# ADD CLAUDE API INTEGRATION
+class ClaudePromptCorrector:
+    """Claude Sonnet 4 powered prompt correction for Midjourney content policy"""
+
+    def __init__(self):
+        self.setup_claude_config()
+
+        if not self.api_key:
+            print("⚠️ CLAUDE_API_KEY not found - Claude prompt correction disabled")
+            self.enabled = False
+        else:
+            print("🧠 Claude Sonnet 4 prompt corrector enabled")
+            self.enabled = True
+
+        self.headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+
+        # Track correction attempts per scene
+        self.correction_attempts = {}
+        self.max_attempts = 4
+
+    def setup_claude_config(self):
+        """Setup Claude configuration with PROVEN SETTINGS from successful version"""
+        self.claude_config = {
+            "model": "claude-sonnet-4-20250514",  # ✅ CLAUDE 4 - PROVEN SUCCESSFUL
+            "max_tokens": 64000,  # ✅ HIGH TOKEN LIMIT - PROVEN SUCCESSFUL
+            "temperature": 0.7,
+            "streaming_response": True,  # ✅ PROVEN CRITICAL
+            "long_timeout": True  # ✅ PROVEN CRITICAL
+        }
+
+        # Get API key
+        self.api_key = self.get_claude_api_key()
+
+    def get_claude_api_key(self):
+        """Get Claude API key from multiple sources"""
+        # Try different environment variable names
+        api_key = (
+                os.getenv('CLAUDE_API_KEY') or
+                os.getenv('ANTHROPIC_API_KEY') or
+                os.getenv('CLAUDE_4_API_KEY') or
+                os.getenv('CLAUDE_SONNET_API_KEY')
+        )
+
+        if not api_key:
+            # Check .env file
+            env_files = [
+                Path('.env'),
+                Path('../../.env'),
+                Path('../../.env')
+            ]
+
+            for env_file in env_files:
+                if env_file.exists():
+                    load_dotenv(env_file)
+                    api_key = (
+                        os.getenv('CLAUDE_API_KEY') or
+                        os.getenv('ANTHROPIC_API_KEY') or
+                        os.getenv('CLAUDE_4_API_KEY') or
+                        os.getenv('CLAUDE_SONNET_API_KEY')
+                    )
+                    if api_key:
+                        print(f"✅ Claude API key loaded from: {env_file}")
+                        break
+
+        if not api_key:
+            raise ValueError(
+                "❌ Claude API key required!\n"
+                "Set in .env file:\n"
+                "CLAUDE_API_KEY=sk-ant-api03-xxxxx\n"
+                "Or environment variable: CLAUDE_API_KEY"
+            )
+
+        print("✅ Claude API key loaded successfully")
+        return api_key
+
+    def correct_prompt_with_claude(self, scene_data: Dict, banned_word: str, attempt_number: int) -> Optional[str]:
+        """Use Claude Sonnet 4 to correct a banned prompt"""
+
+        if not self.enabled:
+            return None
+
+        scene_num = scene_data.get("scene_number", 0)
+        original_prompt = scene_data.get("enhanced_prompt", scene_data.get("prompt", ""))
+
+        # Different severity levels based on attempt
+        if attempt_number == 1:
+            severity = "carefully review and make minimal changes to avoid the banned word"
+            tone = "Keep the essence and visual details intact"
+        elif attempt_number == 2:
+            severity = "more aggressively rewrite problem areas and similar risky words"
+            tone = "Be more conservative with word choices"
+        elif attempt_number == 3:
+            severity = "completely rewrite the problematic sections with safe alternatives"
+            tone = "Prioritize Midjourney safety over original wording"
+        else:
+            severity = "completely restructure the entire prompt to be maximally safe"
+            tone = "Create entirely new wording that achieves the same visual goal"
+
+        system_message = f"""You are a Midjourney prompt expert specializing in content policy compliance. Midjourney has rejected a prompt for containing the banned word: "{banned_word}"
+
+Your task: {severity}. {tone}.
+
+CRITICAL RULES:
+1. Keep the same visual scene and cinematic style
+2. Maintain character references [CHARACTERNAME] if present
+3. Keep technical parameters (--ar 16:9, --v 7.0, etc)
+4. Remove or replace ANY potentially problematic words
+5. Add safety phrases like "historical educational content, appropriate content"
+6. Keep the prompt under 4000 characters
+7. This is attempt #{attempt_number}/4 - {'be more aggressive' if attempt_number > 2 else 'be careful but thorough'}
+
+COMMON MIDJOURNEY BANNED WORDS TO AVOID:
+intimate, romantic, bath, bathing, bedroom, bed, nude, naked, bare, undressed, children, child, kids, embrace, embracing, kiss, kissing, violence, blood, fight, sensual, seductive
+
+Return ONLY the corrected prompt, nothing else."""
+
+        user_message = f"""SCENE #{scene_num} - ATTEMPT #{attempt_number}
+
+BANNED WORD DETECTED: "{banned_word}"
+
+ORIGINAL PROMPT:
+{original_prompt}
+
+SCENE CONTEXT:
+- Title: {scene_data.get('title', 'Unknown')}
+- Location: {scene_data.get('location', 'Unknown')}
+- Characters: {scene_data.get('characters_present', [])}
+- Emotion: {scene_data.get('emotion', 'neutral')}
+
+Please provide the corrected prompt that will pass Midjourney's content policy."""
+
+        payload = {
+            "model": self.claude_config["model"],
+            "max_tokens": 4000,
+            "temperature": self.claude_config["temperature"],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"{system_message}\n\n{user_message}"
+                }
+            ]
+        }
+
+        try:
+            print(f"🧠 Claude Sonnet 4: Correcting Scene {scene_num} prompt (attempt {attempt_number}/4)")
+            print(f"   Banned word: '{banned_word}'")
+
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                corrected_prompt = result["content"][0]["text"].strip()
+
+                print(f"✅ Claude Sonnet 4: Scene {scene_num} prompt corrected")
+                print(f"   Original length: {len(original_prompt)}")
+                print(f"   Corrected length: {len(corrected_prompt)}")
+                print(f"   Preview: {corrected_prompt[:100]}...")
+
+                return corrected_prompt
+            else:
+                print(f"❌ Claude API error: {response.status_code}")
+                print(f"   Response: {response.text}")
+                return None
+
+        except Exception as e:
+            print(f"❌ Claude correction failed: {e}")
+            return None
+
+    def update_visual_prompts_json(self, visual_prompts_path: str, scene_number: int, corrected_prompt: str) -> bool:
+        """Update the visual_generation_prompts.json file with corrected prompt"""
+
+        try:
+            # Read current JSON
+            with open(visual_prompts_path, 'r', encoding='utf-8') as f:
+                prompts_data = json.load(f)
+
+            # Find and update the scene
+            updated = False
+            for scene in prompts_data:
+                if scene.get("scene_number") == scene_number:
+                    scene["enhanced_prompt"] = corrected_prompt
+                    scene["claude_corrected"] = True
+                    scene["original_prompt_backup"] = scene.get("prompt", "")
+                    updated = True
+                    break
+
+            if updated:
+                # Save updated JSON
+                with open(visual_prompts_path, 'w', encoding='utf-8') as f:
+                    json.dump(prompts_data, f, indent=2, ensure_ascii=False)
+
+                print(f"✅ Updated visual_generation_prompts.json for Scene {scene_number}")
+                return True
+            else:
+                print(f"❌ Scene {scene_number} not found in JSON")
+                return False
+
+        except Exception as e:
+            print(f"❌ Failed to update JSON: {e}")
+            return False
 
 # ADD INDEPENDENT THUMBNAIL IMPORT
 try:
@@ -107,7 +316,6 @@ class ServerConfig:
         # Get API key
         self.api_key = self.get_midjourney_api_key()
 
-
     def get_midjourney_api_key(self):
         """Get Midjourney API key from multiple sources"""
         # Try different environment variable names
@@ -144,7 +352,6 @@ class ServerConfig:
 
         print("✅ Midjourney API key loaded successfully")
         return api_key
-
 
     def setup_logging(self):
         """Setup production logging"""
@@ -239,28 +446,6 @@ class DatabaseSceneManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Check if scene generation columns exist, if not create them
-        cursor.execute('PRAGMA table_info(topics)')
-        columns = [row[1] for row in cursor.fetchall()]
-
-        # Add columns individually if they don't exist
-        columns_to_add = [
-            ('scene_generation_status', 'TEXT DEFAULT "pending"'),
-            ('scene_generation_started_at', 'DATETIME'),
-            ('scene_generation_completed_at', 'DATETIME'),
-            ('scenes_generated', 'INTEGER DEFAULT 0'),
-            ('thumbnail_generated', 'BOOLEAN DEFAULT FALSE')
-        ]
-
-        columns_added = []
-        for column_name, column_definition in columns_to_add:
-            if column_name not in columns:
-                cursor.execute(f'ALTER TABLE topics ADD COLUMN {column_name} {column_definition}')
-                columns_added.append(column_name)
-
-        if columns_added:
-            print(f"🔧 Added columns: {', '.join(columns_added)}")
-
         cursor.execute('''
             UPDATE topics 
             SET scene_generation_status = 'in_progress', 
@@ -291,7 +476,7 @@ class DatabaseSceneManager:
         conn.close()
 
 class ServerMidjourneySceneGenerator:
-    """Server-ready Midjourney scene generator with character integration"""
+    """Enhanced server-ready Midjourney scene generator with Claude AI prompt correction"""
 
     def __init__(self):
         self.api_key = CONFIG.api_key
@@ -315,13 +500,16 @@ class ServerMidjourneySceneGenerator:
         self.api_calls_made = 0
         self.successful_downloads = 0
 
-        # Track failed scenes to prevent infinite loops - FIXED: Added from local version
-        self.scene_attempt_count = {}  # scene_number: attempt_count
-        self.blacklisted_scenes = set()  # scenes that failed too many times
+        # Track failed scenes to prevent infinite loops
+        self.scene_attempt_count = {}
+        self.blacklisted_scenes = set()
 
         # Database manager
         db_path = Path(CONFIG.paths['DATA_DIR']) / 'production.db'
         self.db_manager = DatabaseSceneManager(str(db_path))
+
+        # Initialize Claude prompt corrector
+        self.claude_corrector = ClaudePromptCorrector()
 
         # Initialize intelligent retry system if available
         if INTELLIGENT_RETRY_AVAILABLE:
@@ -333,8 +521,9 @@ class ServerMidjourneySceneGenerator:
             self.intelligent_retry_enabled = False
             print("⚠️ Intelligent retry system disabled")
 
-        print("🚀 Server Midjourney Scene Generator v1.1 Initialized")
-        print(f"🔑 API Key: {self.api_key[:8]}...")
+        print("🚀 Enhanced Midjourney Scene Generator v2.0 with Claude AI Initialized")
+        print(f"🔑 Midjourney API Key: {self.api_key[:8]}...")
+        print(f"🧠 Claude AI Correction: {'✅ Enabled' if self.claude_corrector.enabled else '❌ Disabled'}")
         print(f"🌐 Base URL: {self.base_url}")
 
     def log_step(self, step: str, status: str = "START", metadata: Dict = None):
@@ -353,6 +542,215 @@ class ServerMidjourneySceneGenerator:
         icon = "🔄" if status == "START" else "✅" if status == "SUCCESS" else "❌" if status == "ERROR" else "ℹ️"
         print(f"{icon} {step} [Calls: {self.api_calls_made}] [Downloads: {self.successful_downloads}]")
         CONFIG.logger.info(f"{step} - Status: {status} - Project: {self.current_topic_id}")
+
+    def extract_banned_word_from_error(self, error_response: Dict) -> Optional[str]:
+        """Extract banned word from Midjourney error response"""
+        try:
+            error_data = error_response.get("error", {})
+            raw_message = error_data.get("raw_message", "")
+
+            # Format: "Banned Prompt: word"
+            if "Banned Prompt:" in raw_message:
+                banned_word = raw_message.split("Banned Prompt:")[-1].strip()
+                return banned_word
+
+            return None
+        except:
+            return None
+
+    def submit_midjourney_task_with_claude_correction(self, prompt: str, scene_data: Dict, aspect_ratio: str = "16:9") -> Optional[str]:
+        """Submit task with Claude AI correction on banned prompts"""
+
+        scene_num = scene_data.get("scene_number", 0)
+        max_claude_attempts = self.claude_corrector.max_attempts
+
+        # Track correction attempts for this scene
+        if scene_num not in self.claude_corrector.correction_attempts:
+            self.claude_corrector.correction_attempts[scene_num] = 0
+
+        current_prompt = prompt
+
+        for attempt in range(max_claude_attempts + 1):  # +1 for original attempt
+
+            if attempt == 0:
+                print(f"🎬 Scene {scene_num}: Submitting original prompt")
+            else:
+                print(f"🔄 Scene {scene_num}: Claude correction attempt {attempt}/{max_claude_attempts}")
+
+            # Clean prompt for PiAPI
+            cleaned_prompt = self.clean_prompt_for_piapi(current_prompt)
+
+            payload = {
+                "model": "midjourney",
+                "task_type": "imagine",
+                "input": {
+                    "prompt": cleaned_prompt,
+                    "aspect_ratio": aspect_ratio,
+                    "process_mode": "relax"
+                }
+            }
+
+            url = f"{self.base_url}/task"
+
+            try:
+                self.api_calls_made += 1
+                response = requests.post(url, headers=self.headers, json=payload, timeout=30)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get("code") == 200:
+                        task_data = result.get("data", {})
+                        task_id = task_data.get("task_id")
+
+                        if attempt > 0:
+                            print(f"✅ Scene {scene_num}: Submitted after Claude correction #{attempt}")
+
+                        return task_id
+                    else:
+                        # Check for banned prompt error
+                        error_message = result.get('message', '')
+
+                        if "failed to check prompt" in error_message or result.get("error", {}).get("code") == 10000:
+                            # Extract banned word
+                            banned_word = self.extract_banned_word_from_error(result)
+
+                            if banned_word and self.claude_corrector.enabled and attempt < max_claude_attempts:
+                                print(f"🛡️ Scene {scene_num}: Banned word detected: '{banned_word}'")
+
+                                # Use Claude to correct prompt
+                                corrected_prompt = self.claude_corrector.correct_prompt_with_claude(
+                                    scene_data, banned_word, attempt + 1
+                                )
+
+                                if corrected_prompt:
+                                    current_prompt = corrected_prompt
+                                    self.claude_corrector.correction_attempts[scene_num] += 1
+
+                                    # Update JSON file with corrected prompt
+                                    visual_prompts_path = Path(self.current_output_dir) / "visual_generation_prompts.json"
+                                    if visual_prompts_path.exists():
+                                        self.claude_corrector.update_visual_prompts_json(
+                                            str(visual_prompts_path), scene_num, corrected_prompt
+                                        )
+
+                                    print(f"🧠 Scene {scene_num}: Trying Claude-corrected prompt")
+                                    time.sleep(2)  # Brief pause before retry
+                                    continue
+                                else:
+                                    print(f"❌ Scene {scene_num}: Claude correction failed")
+                                    return None
+                            else:
+                                print(f"❌ Scene {scene_num}: Banned prompt - no more correction attempts")
+                                return None
+                        else:
+                            print(f"❌ Scene {scene_num}: API Error: {result.get('message', 'Unknown error')}")
+                            return None
+
+                elif response.status_code == 500:
+                    print(f"❌ Scene {scene_num}: HTTP 500 - Server error")
+                    return None
+                else:
+                    print(f"❌ Scene {scene_num}: HTTP Error: {response.status_code}")
+                    return None
+
+            except Exception as e:
+                print(f"❌ Scene {scene_num}: Request failed: {e}")
+                return None
+
+        print(f"❌ Scene {scene_num}: Failed after {max_claude_attempts} Claude correction attempts")
+        return None
+
+    def clean_prompt_for_piapi(self, prompt: str) -> str:
+        """Remove all characters that might confuse PiAPI's prompt parser"""
+        import re
+
+        # Remove all --ar parameters
+        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
+
+        # Remove all --v parameters
+        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
+
+        # Remove any other -- parameters
+        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
+
+        # Remove problematic dash characters
+        prompt = prompt.replace(' - ', ' ')
+        prompt = prompt.replace('-', ' ')
+
+        # Clean up spaces
+        prompt = re.sub(r'\s+', ' ', prompt)
+        prompt = prompt.strip()
+
+        return prompt
+
+    def apply_content_policy_filter(self, prompt: str) -> str:
+        """Apply universal content policy filter to any prompt"""
+
+        # Global content policy replacements
+        replacements = {
+            # Bath/water related
+            "thermal baths": "ancient pool facility",
+            "bath attendant": "Roman worker",
+            "baths setting": "pool complex",
+            "heated pools": "warm water pools",
+            "bathing": "water facility",
+            "bath": "pool",
+
+            # Children related
+            "children playing": "young people enjoying activities",
+            "children": "young people",
+            "kids": "youth",
+            "child": "young person",
+
+            # Physical intimacy
+            "embracing tenderly": "sharing a peaceful moment",
+            "embracing": "standing together peacefully",
+            "embrace": "peaceful moment",
+            "kissing": "showing affection",
+            "intimate": "quiet",
+            "tenderly": "peacefully",
+            "romantic": "affectionate",
+
+            # Bedroom/private spaces
+            "bedchamber": "private chamber",
+            "bedroom": "sleeping chamber",
+            "bed": "resting area",
+
+            # Body/nudity related
+            "nude": "unclothed figure",
+            "naked": "bare figure",
+            "undressed": "unclothed",
+            "bare": "uncovered",
+
+            # Violence/conflict
+            "blood": "red liquid",
+            "violence": "conflict",
+            "fighting": "confrontation",
+
+            # Modern terms that might confuse
+            "thermal": "warm",
+            "spa": "wellness area"
+        }
+
+        # Apply replacements
+        filtered_prompt = prompt
+        for old_term, new_term in replacements.items():
+            filtered_prompt = filtered_prompt.replace(old_term, new_term)
+
+        # Add safety qualifiers if needed
+        safety_keywords = ["educational", "historical", "classical", "artistic"]
+        has_safety = any(keyword in filtered_prompt.lower() for keyword in safety_keywords)
+
+        if not has_safety:
+            filtered_prompt += ", historical educational content, classical art style"
+
+        # Add explicit safety clause for potentially sensitive scenes
+        sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
+        if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
+            if "no explicit content" not in filtered_prompt.lower():
+                filtered_prompt += ", appropriate content"
+
+        return filtered_prompt
 
     def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
         """Get next completed character project that needs SCENE generation"""
@@ -399,193 +797,6 @@ class ServerMidjourneySceneGenerator:
         self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
         return True, project_info
 
-    def apply_content_policy_filter(self, prompt: str) -> str:
-        """Apply universal content policy filter to any prompt - EXACT COPY FROM LOCAL"""
-
-        # Global content policy replacements
-        replacements = {
-            # Bath/water related
-            "thermal baths": "ancient pool facility",
-            "bath attendant": "Roman worker",
-            "baths setting": "pool complex",
-            "heated pools": "warm water pools",
-            "bathing": "water facility",
-            "bath": "pool",
-
-            # Children related
-            "children playing": "young people enjoying activities",
-            "children": "young people",
-            "kids": "youth",
-            "child": "young person",
-
-            # Physical intimacy
-            "embracing tenderly": "sharing a peaceful moment",
-            "embracing": "standing together peacefully",
-            "embrace": "peaceful moment",
-            "kissing": "showing affection",
-            "intimate": "quiet",
-            "tenderly": "peacefully",
-            "romantic": "affectionate",
-
-            # Bedroom/private spaces
-            "bedchamber": "private chamber",
-            "bedroom": "sleeping chamber",
-            "bed": "resting area",
-
-            # Body/nudity related
-            "nude": "unclothed figure",
-            "naked": "bare figure",
-            "undressed": "unclothed",
-            "bare": "uncovered",
-
-            # Violence/conflict (just in case)
-            "blood": "red liquid",
-            "violence": "conflict",
-            "fighting": "confrontation",
-
-            # Modern terms that might confuse
-            "thermal": "warm",
-            "spa": "wellness area"
-        }
-
-        # Apply replacements
-        filtered_prompt = prompt
-        for old_term, new_term in replacements.items():
-            filtered_prompt = filtered_prompt.replace(old_term, new_term)
-
-        # Add safety qualifiers if needed
-        safety_keywords = ["educational", "historical", "classical", "artistic"]
-        has_safety = any(keyword in filtered_prompt.lower() for keyword in safety_keywords)
-
-        if not has_safety:
-            filtered_prompt += ", historical educational content, classical art style"
-
-        # Add explicit safety clause for potentially sensitive scenes
-        sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
-        if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
-            if "no explicit content" not in filtered_prompt.lower():
-                filtered_prompt += ", appropriate content"
-
-        return filtered_prompt
-
-    def is_content_policy_safe(self, prompt: str) -> bool:
-        """Check if prompt is likely to pass content policy - EXACT COPY FROM LOCAL"""
-
-        # Red flag keywords that often cause issues
-        red_flags = [
-            "children", "child", "kids", "minor",
-            "nude", "naked", "bare", "undressed",
-            "bath", "bathing", "thermal",
-            "intimate", "romantic", "bedroom", "bed",
-            "embrace", "kiss", "touch",
-            "violence", "blood", "fight"
-        ]
-
-        prompt_lower = prompt.lower()
-        found_flags = [flag for flag in red_flags if flag in prompt_lower]
-
-        if found_flags:
-            print(f"⚠️ Content policy issues detected: {', '.join(found_flags)} - Auto-filtering...")
-            return False
-
-        return True
-
-    def debug_log_on_error(self, method: str, url: str, headers: dict, payload: dict = None,
-                           response: requests.Response = None):
-        """Only log debug info when there's an error"""
-        if response and response.status_code != 200:
-            timestamp = datetime.now().isoformat()
-            print(f"\n🔍 ERROR DEBUG [{timestamp}]")
-            print(f"📡 Method: {method} | Status: {response.status_code}")
-            print(f"🌐 URL: {url}")
-
-            if payload:
-                print(f"📦 Request Payload:")
-                print(json.dumps(payload, indent=2))
-
-            print(f"📄 Error Response:")
-            try:
-                error_json = response.json()
-                print(json.dumps(error_json, indent=2))
-            except:
-                print(f"Raw error: {response.text}")
-            print("🔍" + "=" * 60)
-
-    def clean_prompt_for_piapi(self, prompt: str) -> str:
-        """Remove all characters that might confuse PiAPI's prompt parser"""
-        import re
-
-        # Remove all --ar parameters
-        prompt = re.sub(r'--ar\s+\d+:\d+', '', prompt)
-
-        # Remove all --v parameters
-        prompt = re.sub(r'--v\s+[\d.]+', '', prompt)
-
-        # Remove any other -- parameters
-        prompt = re.sub(r'--\w+(?:\s+[\w:.]+)?', '', prompt)
-
-        # KRITIK: Tüm tire karakterlerini çıkar veya değiştir
-        prompt = prompt.replace(' - ', ' ')  # " - " -> " "
-        prompt = prompt.replace('-', ' ')  # Tüm tireleri boşlukla değiştir
-
-        # Extra spaces ve temizlik
-        prompt = re.sub(r'\s+', ' ', prompt)  # Multiple spaces to single
-        prompt = prompt.strip()
-
-        return prompt
-
-
-    def extract_character_role(self, character: Dict) -> str:
-        """Extract character role from description dynamically - EXACT COPY FROM LOCAL"""
-        description = character.get('physical_description', '').lower()
-        historical_period = getattr(self, 'current_historical_period', 'ancient times')
-
-        # Role detection based on description keywords
-        role_keywords = {
-            'baker': ['flour', 'bread', 'kneading', 'oven', 'dough', 'bakery'],
-            'fisherman': ['fishing', 'nets', 'harbor', 'sea', 'boat', 'maritime'],
-            'gladiator': ['sword', 'arena', 'combat', 'warrior', 'battle', 'muscular'],
-            'senator': ['toga', 'dignified', 'authority', 'noble', 'distinguished'],
-            'woman': ['elegant', 'graceful', 'flowing robes', 'gentle hands'],
-            'priest': ['temple', 'robes', 'religious', 'ceremony', 'sacred'],
-            'merchant': ['trade', 'goods', 'market', 'commerce', 'wealthy'],
-            'soldier': ['armor', 'military', 'guard', 'captain', 'uniform'],
-            'artisan': ['craft', 'tools', 'workshop', 'skilled', 'maker'],
-            'healer': ['herbs', 'medicine', 'healing', 'physician']
-        }
-
-        # Check for role keywords in description
-        detected_roles = []
-        for role, keywords in role_keywords.items():
-            if any(keyword in description for keyword in keywords):
-                detected_roles.append(role)
-
-        # Determine primary role
-        if detected_roles:
-            primary_role = detected_roles[0]  # First match
-
-            # Context-specific role formatting
-            if 'roman' in historical_period.lower() or '79 ad' in historical_period.lower() or 'century ce' in historical_period.lower():
-                role_prefix = "ancient Roman"
-            elif 'medieval' in historical_period.lower():
-                role_prefix = "medieval"
-            elif 'egyptian' in historical_period.lower():
-                role_prefix = "ancient Egyptian"
-            else:
-                role_prefix = "historical"
-
-            return f"{role_prefix} {primary_role}"
-
-        # Fallback based on historical period
-        if 'roman' in historical_period.lower():
-            return "ancient Roman person"
-        elif 'medieval' in historical_period.lower():
-            return "medieval person"
-        elif 'egyptian' in historical_period.lower():
-            return "ancient Egyptian person"
-        else:
-            return "historical person"
-
     def load_existing_character_references(self) -> bool:
         """Load existing character references from generated files"""
         self.log_step("🎭 Loading existing character references")
@@ -598,9 +809,8 @@ class ServerMidjourneySceneGenerator:
 
         loaded_count = 0
 
-        # Look for character JSON files which contain the image URLs
         for filename in characters_dir.glob("*.json"):
-            if filename.stem == "thumbnail":  # Skip thumbnail.json
+            if filename.stem == "thumbnail":
                 continue
 
             try:
@@ -622,7 +832,7 @@ class ServerMidjourneySceneGenerator:
         return loaded_count > 0
 
     def load_visual_prompts(self) -> List[Dict]:
-        """Load visual generation prompts from story generator output - filter out scene 99"""
+        """Load visual generation prompts from story generator output"""
         self.log_step("📂 Loading visual generation prompts")
 
         output_dir = Path(self.current_output_dir)
@@ -642,7 +852,7 @@ class ServerMidjourneySceneGenerator:
         else:
             raise ValueError("Invalid visual prompts format")
 
-        # FILTER OUT scene 99 (thumbnail) - it will be handled by independent generator
+        # Filter out scene 99 (thumbnail)
         regular_scenes = [s for s in visual_prompts if s.get("scene_number", 0) != 99]
 
         self.log_step("✅ Visual prompts loaded", "SUCCESS", {
@@ -658,257 +868,20 @@ class ServerMidjourneySceneGenerator:
         output_dir = Path(self.current_output_dir)
 
         self.scenes_dir = output_dir / "scenes"
-        self.thumbnail_dir = output_dir / "thumbnail"  # ← KORU - Independent generator will use this
+        self.thumbnail_dir = output_dir / "thumbnail"
 
         self.scenes_dir.mkdir(exist_ok=True)
-        self.thumbnail_dir.mkdir(exist_ok=True)  # ← KORU - Independent generator will use this
+        self.thumbnail_dir.mkdir(exist_ok=True)
 
         self.log_step("📁 Scene generation directories created", "SUCCESS")
 
-    def save_scene_generation_report(self):
-        """Save scene generation report"""
-        output_dir = Path(self.current_output_dir)
-
-        report = {
-            "scene_generation_completed": datetime.now().isoformat(),
-            "topic_id": self.current_topic_id,
-            "topic": self.current_topic,
-            "api_calls_made": self.api_calls_made,
-            "successful_downloads": self.successful_downloads,
-            "character_references_used": len(self.character_references),
-            "scenes_dir": str(self.scenes_dir),
-            "thumbnail_dir": str(self.thumbnail_dir),
-            "historical_period": self.current_historical_period,
-            "generation_log": self.generation_log,
-            "server_optimized": True,
-            "scene_only_mode": True,
-            "independent_thumbnail_used": INDEPENDENT_THUMBNAIL_AVAILABLE
-        }
-
-        report_path = output_dir / "scene_generation_report.json"
-        with open(report_path, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False)
-
-        self.log_step(f"✅ Scene generation report saved: {report_path}", "SUCCESS")
-
-    def test_api_connection(self) -> bool:
-        """Test PIAPI connection"""
-        self.log_step("🔍 Testing PIAPI connection")
-
-        test_prompt = "red apple on white table --ar 1:1 --v 6.1"
-
-        payload = {
-            "model": "midjourney",
-            "task_type": "imagine",
-            "input": {
-                "prompt": test_prompt,
-                "aspect_ratio": "1:1",
-                "process_mode": "relax"
-            }
-        }
-
-        try:
-            response = requests.post(
-                f"{self.base_url}/task",
-                headers=self.headers,
-                json=payload,
-                timeout=10
-            )
-
-            print(f"📡 Test Response: {response.status_code}")
-
-            if response.status_code == 200:
-                result = response.json()
-                self.log_step("✅ API Connection OK", "SUCCESS", {"response": result})
-                return True
-            else:
-                self.log_step(f"❌ API Error: {response.status_code}", "ERROR")
-                return False
-
-        except Exception as e:
-            self.log_step(f"❌ Connection Test Failed: {e}", "ERROR")
-            return False
-
-    def submit_midjourney_task(self, prompt: str, aspect_ratio: str = "16:9", retry_count: int = 0) -> Optional[str]:
-        """Submit task to Midjourney API with universal content filtering and smart retry - UPDATED WITH DEBUG"""
-
-        # Apply content policy filter to ALL prompts automatically
-        original_prompt = prompt
-        filtered_prompt = self.apply_content_policy_filter(prompt)
-
-        # Log if changes were made
-        if filtered_prompt != original_prompt:
-            print(f"🛡️ Content filter applied:")
-            print(f"   Original: {original_prompt[:80]}...")
-            print(f"   Filtered: {filtered_prompt[:80]}...")
-
-        # Clean prompt for PiAPI (remove problematic characters)
-        cleaned_prompt = self.clean_prompt_for_piapi(filtered_prompt)
-
-        if cleaned_prompt != filtered_prompt:
-            print(f"🔧 Prompt cleaned for PiAPI:")
-            print(f"   Before: {filtered_prompt[:80]}...")
-            print(f"   After: {cleaned_prompt[:80]}...")
-
-        payload = {
-            "model": "midjourney",
-            "task_type": "imagine",
-            "input": {
-                "prompt": cleaned_prompt,
-                "aspect_ratio": aspect_ratio,
-                "process_mode": "relax"
-            }
-        }
-
-        url = f"{self.base_url}/task"
-
-        # Debug info
-        print(f"🔍 Exact payload: {payload}")
-        print(f"🔍 Headers: {self.headers}")
-        print(f"🔍 URL: {url}")
-        print(f"🔍 Retry count: {retry_count}")
-
-        try:
-            self.api_calls_made += 1
-            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
-
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("code") == 200:
-                    task_data = result.get("data", {})
-                    task_id = task_data.get("task_id")
-                    if retry_count > 0:
-                        print(f"✅ Task submitted after {retry_count} retries: {task_id}")
-                    return task_id
-                else:
-                    print(f"❌ API Error: {result.get('message', 'Unknown error')}")
-                    self.debug_log_on_error("POST", url, self.headers, payload, response)
-                    return None
-            elif response.status_code == 500:
-                # Rate limiting detected - show debug info
-                print(f"🔍 HTTP 500 DEBUG:")
-                print(f"Response text: {response.text}")
-                try:
-                    error_json = response.json()
-                    print(f"Error JSON: {json.dumps(error_json, indent=2)}")
-                except:
-                    print("Could not parse as JSON")
-
-                self.debug_log_on_error("POST", url, self.headers, payload, response)
-
-                if retry_count < 3:
-                    wait_time = (retry_count + 1) * 10  # 10, 20, 30 seconds
-                    print(f"⚠️ HTTP 500 - Waiting {wait_time}s before retry {retry_count + 1}/3")
-                    time.sleep(wait_time)
-                    # Use original_prompt for retry
-                    return self.submit_midjourney_task(original_prompt, aspect_ratio, retry_count + 1)
-                else:
-                    print(f"❌ HTTP 500 - Max retries reached")
-                    return None
-            else:
-                print(f"❌ HTTP Error: {response.status_code}")
-                self.debug_log_on_error("POST", url, self.headers, payload, response)
-                return None
-
-        except Exception as e:
-            print(f"❌ Request failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-
-    def check_task_status(self, task_id: str) -> Optional[Dict]:
-        """Check single task status"""
-        try:
-            status_url = f"{self.base_url}/task/{task_id}"
-            response = requests.get(status_url, headers=self.headers, timeout=10)
-
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("code") == 200:
-                    task_data = result.get("data", {})
-                    status = task_data.get("status", "").lower()
-                    output = task_data.get("output", {})
-
-                    if status == "completed":
-                        # Get image URLs with priority: temporary_image_urls > image_url
-                        temp_urls = output.get("temporary_image_urls", [])
-                        image_url = output.get("image_url", "")
-
-                        if temp_urls and len(temp_urls) > 0:
-                            selected_url = temp_urls[1] if len(temp_urls) >= 2 else temp_urls[0]
-                            return {"url": selected_url, "source": "temporary_image_urls"}
-                        elif image_url:
-                            return {"url": image_url, "source": "image_url"}
-                        else:
-                            return False  # Completed but no images
-
-                    elif status == "failed":
-                        return False  # Failed
-                    else:
-                        return None  # Still processing
-
-        except Exception as e:
-            return None  # Error, treat as still processing
-
-        return None
-
-    def download_image(self, result_data: Dict, save_path: str) -> bool:
-        """Download image with proper headers"""
-        image_url = result_data["url"]
-
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                'Referer': 'https://discord.com/',
-                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
-            }
-
-            response = requests.get(image_url, headers=headers, timeout=30, stream=True)
-
-            if response.status_code == 200:
-                with open(save_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-
-                file_size = os.path.getsize(save_path)
-                self.successful_downloads += 1
-                self.log_step(f"✅ Downloaded: {os.path.basename(save_path)} ({file_size} bytes)", "SUCCESS")
-                return True
-            else:
-                self.log_step(f"❌ HTTP {response.status_code}", "ERROR")
-                return False
-
-        except Exception as e:
-            self.log_step(f"❌ Download failed: {e}", "ERROR")
-            return False
-
-    def get_missing_scenes(self, visual_prompts: List[Dict]) -> List[Dict]:
-        """Get list of scenes that are missing (not downloaded yet) and not blacklisted"""
-        regular_scenes = [s for s in visual_prompts if s["scene_number"] != 99]
-        missing_scenes = []
-
-        for scene in regular_scenes:
-            scene_num = scene["scene_number"]
-
-            # Skip blacklisted scenes
-            if scene_num in self.blacklisted_scenes:
-                continue
-
-            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
-
-            # Only add to missing if file doesn't exist
-            if not image_path.exists():
-                missing_scenes.append(scene)
-
-        return missing_scenes
-
     def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build V7 scene prompt using clean template system"""
+        """Build safe scene prompt using clean template system"""
 
-        base_prompt = scene.get("enhanced_prompt", scene["prompt"])
+        base_prompt = scene.get("enhanced_prompt", scene.get("prompt", ""))
         scene_num = scene.get("scene_number")
 
-        print(f"🎬 Building V7 prompt for Scene {scene_num}")
+        print(f"🎬 Building prompt for Scene {scene_num}")
 
         # Character references
         char_refs = []
@@ -937,20 +910,15 @@ class ServerMidjourneySceneGenerator:
 
         raw_prompt = " ".join(raw_prompt_parts)
 
-        # Clean prompt for PiAPI (remove problematic characters)
-        cleaned_prompt = self.clean_prompt_for_piapi(raw_prompt)
+        # Apply content policy filter
+        filtered_prompt = self.apply_content_policy_filter(raw_prompt)
 
-        if cleaned_prompt != raw_prompt:
-            print(f"🔧 Scene prompt cleaned for PiAPI:")
-            print(f"   Before: {raw_prompt[:80]}...")
-            print(f"   After: {cleaned_prompt[:80]}...")
+        print(f"🔧 Final scene prompt: {filtered_prompt[:150]}...")
 
-        print(f"🔧 Final clean scene prompt: {cleaned_prompt[:150]}...")
-
-        return cleaned_prompt
+        return filtered_prompt
 
     def check_task_status_detailed(self, task_id: str, scene_num: int) -> Optional[Dict]:
-        """Check task status with detailed logging - EXACT COPY FROM LOCAL"""
+        """Check task status with detailed logging"""
         try:
             status_url = f"{self.base_url}/task/{task_id}"
             response = requests.get(status_url, headers=self.headers, timeout=10)
@@ -963,7 +931,6 @@ class ServerMidjourneySceneGenerator:
                     output = task_data.get("output", {})
 
                     if status == "completed":
-                        # Get image URLs with priority: temporary_image_urls > image_url
                         temp_urls = output.get("temporary_image_urls", [])
                         image_url = output.get("image_url", "")
 
@@ -974,16 +941,15 @@ class ServerMidjourneySceneGenerator:
                             return {"url": image_url, "source": "image_url"}
                         else:
                             print(f"⚠️ Scene {scene_num}: Completed but no image URLs found")
-                            return False  # Completed but no images
+                            return False
 
                     elif status == "failed":
-                        # Get failure reason if available
                         error_info = task_data.get("error", {})
                         error_msg = error_info.get("message", "Unknown error")
                         print(f"❌ Scene {scene_num}: Task failed - {error_msg}")
-                        return False  # Failed
+                        return False
                     else:
-                        return None  # Still processing
+                        return None
 
             else:
                 print(f"⚠️ Scene {scene_num}: Status check failed HTTP {response.status_code}")
@@ -991,12 +957,12 @@ class ServerMidjourneySceneGenerator:
 
         except Exception as e:
             print(f"⚠️ Scene {scene_num}: Status check exception - {e}")
-            return None  # Error, treat as still processing
+            return None
 
         return None
 
     def download_image_detailed(self, result_data: Dict, save_path: str, scene_num: int) -> bool:
-        """Download image with detailed logging - EXACT COPY FROM LOCAL"""
+        """Download image with detailed logging"""
         image_url = result_data["url"]
 
         try:
@@ -1006,12 +972,7 @@ class ServerMidjourneySceneGenerator:
                 'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
             }
 
-            if scene_num == 99:
-                print(f"📥 Thumbnail: Downloading from {image_url[:50]}...")
-            elif scene_num == 0:
-                print(f"📥 Character: Downloading from {image_url[:50]}...")
-            else:
-                print(f"📥 Scene {scene_num}: Downloading from {image_url[:50]}...")
+            print(f"📥 Scene {scene_num}: Downloading from {image_url[:50]}...")
 
             response = requests.get(image_url, headers=headers, timeout=30, stream=True)
 
@@ -1020,13 +981,9 @@ class ServerMidjourneySceneGenerator:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                file_size = save_path.stat().st_size if isinstance(save_path, Path) else os.path.getsize(save_path)
-                if scene_num == 99:
-                    print(f"✅ Thumbnail: Downloaded successfully ({file_size} bytes)")
-                elif scene_num == 0:
-                    print(f"✅ Character: Downloaded successfully ({file_size} bytes)")
-                else:
-                    print(f"✅ Scene {scene_num}: Downloaded successfully ({file_size} bytes)")
+                file_size = os.path.getsize(save_path)
+                print(f"✅ Scene {scene_num}: Downloaded successfully ({file_size} bytes)")
+                self.successful_downloads += 1
                 return True
             else:
                 print(f"❌ Scene {scene_num}: Download failed HTTP {response.status_code}")
@@ -1036,8 +993,30 @@ class ServerMidjourneySceneGenerator:
             print(f"❌ Scene {scene_num}: Download exception - {e}")
             return False
 
-    def generate_scenes_with_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
-        """Generate all scenes with smart retry and universal content filtering - EXACT COPY FROM LOCAL"""
+    def get_missing_scenes(self, visual_prompts: List[Dict]) -> List[Dict]:
+        """Get list of scenes that are missing and not blacklisted"""
+        regular_scenes = [s for s in visual_prompts if s["scene_number"] != 99]
+        missing_scenes = []
+
+        for scene in regular_scenes:
+            scene_num = scene["scene_number"]
+
+            if scene_num in self.blacklisted_scenes:
+                continue
+
+            image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
+
+            if not image_path.exists():
+                missing_scenes.append(scene)
+
+        return missing_scenes
+
+    def generate_scenes_with_claude_correction(self, visual_prompts: List[Dict], max_retry_rounds: int = 10):
+        """Generate all scenes with Claude AI prompt correction"""
+
+        print("🧠 ENHANCED SCENE GENERATION WITH CLAUDE AI PROMPT CORRECTION")
+        print("🛡️ Real-time prompt correction when Midjourney blocks content")
+        print("🔄 Up to 4 correction attempts per scene using Claude Sonnet 4")
 
         for retry_round in range(max_retry_rounds):
             missing_scenes = self.get_missing_scenes(visual_prompts)
@@ -1046,32 +1025,26 @@ class ServerMidjourneySceneGenerator:
                 print("✅ All scenes completed!")
                 return True
 
-            # Check if we have blacklisted scenes
             total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
             blacklisted_count = len(self.blacklisted_scenes)
 
             if retry_round == 0:
                 print(f"🎬 Starting scene generation - {len(missing_scenes)} scenes to generate")
-                print("🛡️ Universal content filter active for all prompts")
             else:
                 print(f"\n🔄 RETRY ROUND {retry_round}: {len(missing_scenes)} missing scenes")
                 if blacklisted_count > 0:
-                    print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
-
-                # Longer wait between retry rounds
+                    print(f"⚫ {blacklisted_count} scenes blacklisted")
                 print("⏳ Waiting 60 seconds before retry round...")
                 time.sleep(60)
 
-            # Check and update attempt counts
+            # Update attempt counts and blacklisting
             for scene in missing_scenes:
                 scene_num = scene["scene_number"]
                 self.scene_attempt_count[scene_num] = self.scene_attempt_count.get(scene_num, 0) + 1
 
-                # Blacklist scenes that failed too many times
-                if self.scene_attempt_count[scene_num] > 5:
+                if self.scene_attempt_count[scene_num] > 8:  # Higher limit with Claude correction
                     self.blacklisted_scenes.add(scene_num)
-                    print(
-                        f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} failed attempts")
+                    print(f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} attempts")
 
             # Re-get missing scenes after blacklisting
             missing_scenes = self.get_missing_scenes(visual_prompts)
@@ -1079,11 +1052,9 @@ class ServerMidjourneySceneGenerator:
             if not missing_scenes:
                 completed_count = total_scenes - blacklisted_count
                 print(f"✅ All processable scenes completed! ({completed_count}/{total_scenes})")
-                if blacklisted_count > 0:
-                    print(f"⚫ {blacklisted_count} scenes blacklisted due to repeated failures")
                 return True
 
-            # Submit missing scene tasks
+            # Submit scene tasks with Claude correction
             scene_tasks = {}
             successful_submissions = 0
 
@@ -1093,35 +1064,13 @@ class ServerMidjourneySceneGenerator:
 
                 print(f"🎬 Processing Scene {scene_num} ({i + 1}/{len(missing_scenes)}) - Attempt #{attempt_num}")
 
-                # Build safe scene prompt (content filter applied automatically)
+                # Build safe scene prompt
                 final_prompt = self.build_safe_scene_prompt(scene)
 
-                # Check prompt length and truncate if necessary
-                if len(final_prompt) > 4000:
-                    print(f"⚠️ Scene {scene_num}: Truncating long prompt...")
-                    base_prompt = scene.get("enhanced_prompt", scene["prompt"])
-
-                    # Get character refs
-                    char_refs = []
-                    if scene.get("characters_present") and len(self.character_references) > 0:
-                        for char_name in scene["characters_present"]:
-                            if char_name in self.character_references:
-                                char_refs.append(self.character_references[char_name])
-
-                    if char_refs:
-                        ref_string = " ".join(char_refs)
-                        available_text_length = 3900 - len(ref_string) - len(" --ar 16:9 --v 6.1")
-                        truncated_text = base_prompt[:available_text_length]
-                        final_prompt = f"{ref_string} {truncated_text} --ar 16:9 --v 6.1"
-                    else:
-                        final_prompt = final_prompt[:3900] + " --ar 16:9 --v 6.1"
-
-                # Check for content policy issues (informational only)
-                if not self.is_content_policy_safe(final_prompt):
-                    print(f"🛡️ Scene {scene_num}: Content filter will be applied")
-
-                # Submit task (content filter applied automatically)
-                task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
+                # Submit task with Claude correction capability
+                task_id = self.submit_midjourney_task_with_claude_correction(
+                    final_prompt, scene, aspect_ratio="16:9"
+                )
 
                 if task_id:
                     scene_tasks[scene_num] = {
@@ -1132,26 +1081,23 @@ class ServerMidjourneySceneGenerator:
                     successful_submissions += 1
                     print(f"✅ Scene {scene_num}: Submitted successfully")
                 else:
-                    print(f"❌ Scene {scene_num}: Submission failed")
+                    print(f"❌ Scene {scene_num}: Submission failed after all correction attempts")
 
-                # Progressive rate limiting based on retry round
-                base_wait = 5 if retry_round == 0 else 8
-                wait_time = base_wait + (retry_round * 2)  # Increase wait time each retry round
-
+                # Rate limiting
                 if i < len(missing_scenes) - 1:
+                    wait_time = 8 + (retry_round * 2)
                     print(f"⏳ Waiting {wait_time} seconds...")
                     time.sleep(wait_time)
 
-            print(
-                f"📊 Round {retry_round + 1} submissions: ✅ {successful_submissions} | ❌ {len(missing_scenes) - successful_submissions}")
+            print(f"📊 Round {retry_round + 1} submissions: ✅ {successful_submissions} | ❌ {len(missing_scenes) - successful_submissions}")
 
             if not scene_tasks:
-                print("❌ No tasks submitted in this round, trying next round...")
+                print("❌ No tasks submitted in this round")
                 continue
 
-            # Monitor tasks with detailed logging
+            # Monitor tasks
             completed_scenes = {}
-            max_cycles = 45
+            max_cycles = 50
 
             for cycle in range(max_cycles):
                 if not scene_tasks:
@@ -1187,256 +1133,6 @@ class ServerMidjourneySceneGenerator:
 
                 time.sleep(30)
 
-            # Download completed scenes with detailed logging
-            successful_downloads = 0
-
-            for scene_num, scene_data in completed_scenes.items():
-                result_data = scene_data["result_data"]
-                image_path = self.scenes_dir / f"scene_{scene_num:02d}.png"
-
-                if self.download_image_detailed(result_data, str(image_path), scene_num):
-                    successful_downloads += 1
-
-                    # Save metadata
-                    metadata = {
-                        "scene_number": scene_num,
-                        "title": scene_data["task_data"]["scene_data"]["title"],
-                        "prompt": scene_data["task_data"]["prompt"],
-                        "image_url": result_data["url"],
-                        "url_source": result_data["source"],
-                        "local_path": str(image_path),
-                        "generated_at": datetime.now().isoformat(),
-                        "retry_round": retry_round,
-                        "attempt_number": self.scene_attempt_count.get(scene_num, 1),
-                        "content_filtered": True
-                    }
-
-                    json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump(metadata, f, indent=2, ensure_ascii=False)
-                else:
-                    print(f"❌ Scene {scene_num}: Download failed, will retry in next round")
-
-            print(f"✅ Round {retry_round + 1} downloads: {successful_downloads}")
-
-        # Final check and summary
-        final_missing = self.get_missing_scenes(visual_prompts)
-        total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
-        blacklisted_count = len(self.blacklisted_scenes)
-        completed_count = total_scenes - len(final_missing) - blacklisted_count
-
-        print(f"\n📊 FINAL SUMMARY:")
-        print(f"✅ Completed: {completed_count}")
-        print(f"❌ Missing: {len(final_missing)}")
-        print(f"⚫ Blacklisted: {blacklisted_count}")
-        print(f"📋 Total: {total_scenes}")
-        print(f"🛡️ All prompts were content filtered")
-
-        if final_missing:
-            print(f"⚠️ Still missing after {max_retry_rounds} rounds:")
-            for scene in final_missing:
-                attempts = self.scene_attempt_count.get(scene['scene_number'], 0)
-                print(f"  ❌ Scene {scene['scene_number']}: {scene['title']} (tried {attempts} times)")
-
-        if self.blacklisted_scenes:
-            print(f"⚫ Blacklisted scenes (failed >5 times):")
-            for scene_num in self.blacklisted_scenes:
-                attempts = self.scene_attempt_count.get(scene_num, 0)
-                print(f"  ⚫ Scene {scene_num} (failed {attempts} times)")
-
-        # Return success if we have most scenes (allowing some failures)
-        success_rate = completed_count / total_scenes
-        if success_rate >= 0.9:  # 90% success rate is acceptable
-            print(f"✅ Generation successful with {success_rate:.1%} success rate")
-            return True
-        else:
-            print(f"❌ Generation failed with only {success_rate:.1%} success rate")
-            return False
-
-    def generate_scenes_with_intelligent_retry(self, visual_prompts: List[Dict], max_retry_rounds: int = 15):
-        """Enhanced scene generation with intelligent retry using Claude AI"""
-
-        print("🧠 ENHANCED SCENE GENERATION WITH INTELLIGENT RETRY")
-        print("🔄 Normal retry: 3 rounds")
-        print("🧠 Intelligent retry: Claude AI generates new prompts")
-        print("🛡️ Content filtering: All prompts")
-
-        for retry_round in range(max_retry_rounds):
-            missing_scenes = self.get_missing_scenes(visual_prompts)
-
-            if not missing_scenes:
-                print("✅ All scenes completed!")
-                return True
-
-            # Determine retry mode
-            if retry_round < 3:
-                retry_mode = "NORMAL"
-                print(f"\n🔄 NORMAL RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
-            elif self.intelligent_retry_enabled:
-                retry_mode = "INTELLIGENT"
-                print(f"\n🧠 INTELLIGENT RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
-                print("🤖 Claude AI will generate alternative prompts")
-            else:
-                retry_mode = "EXTENDED_NORMAL"
-                print(f"\n🔄 EXTENDED RETRY ROUND {retry_round + 1}: {len(missing_scenes)} missing scenes")
-
-            # Check blacklisted scenes
-            total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
-            blacklisted_count = len(self.blacklisted_scenes)
-
-            if blacklisted_count > 0:
-                print(f"⚫ {blacklisted_count} scenes blacklisted (failed too many times)")
-
-            # Update attempt counts and blacklisting
-            for scene in missing_scenes:
-                scene_num = scene["scene_number"]
-                self.scene_attempt_count[scene_num] = self.scene_attempt_count.get(scene_num, 0) + 1
-
-                # More lenient blacklisting with intelligent retry
-                max_attempts = 10 if self.intelligent_retry_enabled else 5
-
-                if self.scene_attempt_count[scene_num] > max_attempts:
-                    self.blacklisted_scenes.add(scene_num)
-                    print(f"⚫ Scene {scene_num}: Blacklisted after {self.scene_attempt_count[scene_num]} attempts")
-
-            # Re-get missing scenes after blacklisting
-            missing_scenes = self.get_missing_scenes(visual_prompts)
-
-            if not missing_scenes:
-                completed_count = total_scenes - blacklisted_count
-                print(f"✅ All processable scenes completed! ({completed_count}/{total_scenes})")
-                return True
-
-            # Wait between retry rounds
-            if retry_round > 0:
-                wait_time = 90 if retry_mode == "INTELLIGENT" else 60
-                print(f"⏳ Waiting {wait_time} seconds before retry...")
-                time.sleep(wait_time)
-
-            # Submit scene tasks
-            scene_tasks = {}
-            successful_submissions = 0
-
-            for i, scene in enumerate(missing_scenes):
-                scene_num = scene["scene_number"]
-                attempt_num = self.scene_attempt_count.get(scene_num, 0)
-
-                print(f"🎬 Processing Scene {scene_num} ({i + 1}/{len(missing_scenes)}) - Attempt #{attempt_num}")
-
-                # Generate prompt based on retry mode
-                if (retry_mode == "INTELLIGENT" and self.intelligent_retry_system and
-                    self.intelligent_retry_system.should_use_intelligent_retry(scene_num, attempt_num)):
-
-                    # Use Claude AI to generate alternative prompt
-                    failure_context = self.intelligent_retry_system.create_intelligent_retry_context(
-                        scene, attempt_num
-                    )
-
-                    alternative_prompt = self.intelligent_retry_system.generate_alternative_scene_prompt(
-                        scene, failure_context
-                    )
-
-                    if alternative_prompt:
-                        final_prompt = alternative_prompt
-
-                        # Track intelligent retry
-                        if scene_num not in self.intelligent_retry_system.intelligent_retries:
-                            self.intelligent_retry_system.intelligent_retries[scene_num] = {
-                                "attempts": 1,
-                                "prompts": [alternative_prompt]
-                            }
-                        else:
-                            self.intelligent_retry_system.intelligent_retries[scene_num]["attempts"] += 1
-                            self.intelligent_retry_system.intelligent_retries[scene_num]["prompts"].append(alternative_prompt)
-
-                        print(f"🧠 Scene {scene_num}: Using Claude-generated alternative prompt")
-                    else:
-                        # Fallback to normal prompt if Claude fails
-                        final_prompt = self.build_safe_scene_prompt(scene)
-                        print(f"⚠️ Scene {scene_num}: Claude failed, using normal prompt")
-                else:
-                    # Normal retry - use original prompt building
-                    final_prompt = self.build_safe_scene_prompt(scene)
-
-                # Handle long prompts
-                if len(final_prompt) > 4000:
-                    print(f"⚠️ Scene {scene_num}: Truncating long prompt...")
-                    final_prompt = final_prompt[:3900] + " --ar 16:9 --v 6.1"
-
-                # Content policy check (informational)
-                if not self.is_content_policy_safe(final_prompt):
-                    print(f"🛡️ Scene {scene_num}: Content filter will be applied")
-
-                # Submit task
-                task_id = self.submit_midjourney_task(final_prompt, aspect_ratio="16:9")
-
-                if task_id:
-                    scene_tasks[scene_num] = {
-                        "task_id": task_id,
-                        "prompt": final_prompt,
-                        "scene_data": scene,
-                        "retry_mode": retry_mode,
-                        "intelligent_retry": (retry_mode == "INTELLIGENT" and self.intelligent_retry_system and
-                                            scene_num in self.intelligent_retry_system.intelligent_retries)
-                    }
-                    successful_submissions += 1
-                    print(f"✅ Scene {scene_num}: Submitted successfully")
-                else:
-                    print(f"❌ Scene {scene_num}: Submission failed")
-
-                # Rate limiting
-                base_wait = 5 if retry_round < 3 else 8
-                wait_time = base_wait + (retry_round * 2)
-
-                if i < len(missing_scenes) - 1:
-                    print(f"⏳ Waiting {wait_time} seconds...")
-                    time.sleep(wait_time)
-
-            print(f"📊 Round {retry_round + 1} submissions: ✅ {successful_submissions} | ❌ {len(missing_scenes) - successful_submissions}")
-
-            if not scene_tasks:
-                print("❌ No tasks submitted, continuing to next round...")
-                continue
-
-            # Monitor and download (same as original)
-            completed_scenes = {}
-            max_cycles = 50  # Longer for intelligent retry
-
-            for cycle in range(max_cycles):
-                if not scene_tasks:
-                    break
-
-                completed_count = len(completed_scenes)
-                total_count = completed_count + len(scene_tasks)
-                print(f"📊 Monitoring Cycle {cycle + 1}: {completed_count}/{total_count} completed")
-
-                scenes_to_remove = []
-
-                for scene_num, task_data in scene_tasks.items():
-                    task_id = task_data["task_id"]
-
-                    result_data = self.check_task_status_detailed(task_id, scene_num)
-
-                    if result_data and isinstance(result_data, dict):
-                        print(f"✅ Scene {scene_num}: Task completed!")
-                        completed_scenes[scene_num] = {
-                            "result_data": result_data,
-                            "task_data": task_data
-                        }
-                        scenes_to_remove.append(scene_num)
-                    elif result_data is False:
-                        mode_info = " (Intelligent)" if task_data.get("intelligent_retry") else ""
-                        print(f"❌ Scene {scene_num}: Task failed{mode_info}")
-                        scenes_to_remove.append(scene_num)
-
-                for scene_num in scenes_to_remove:
-                    del scene_tasks[scene_num]
-
-                if not scene_tasks:
-                    break
-
-                time.sleep(30)
-
             # Download completed scenes
             successful_downloads = 0
 
@@ -1447,7 +1143,7 @@ class ServerMidjourneySceneGenerator:
                 if self.download_image_detailed(result_data, str(image_path), scene_num):
                     successful_downloads += 1
 
-                    # Enhanced metadata with intelligent retry info
+                    # Enhanced metadata with Claude correction info
                     metadata = {
                         "scene_number": scene_num,
                         "title": scene_data["task_data"]["scene_data"]["title"],
@@ -1457,16 +1153,10 @@ class ServerMidjourneySceneGenerator:
                         "local_path": str(image_path),
                         "generated_at": datetime.now().isoformat(),
                         "retry_round": retry_round,
-                        "retry_mode": scene_data["task_data"]["retry_mode"],
                         "attempt_number": self.scene_attempt_count.get(scene_num, 1),
-                        "intelligent_retry_used": scene_data["task_data"].get("intelligent_retry", False),
+                        "claude_corrections": self.claude_corrector.correction_attempts.get(scene_num, 0),
                         "content_filtered": True
                     }
-
-                    # Add intelligent retry details if used
-                    if (self.intelligent_retry_system and
-                        scene_num in self.intelligent_retry_system.intelligent_retries):
-                        metadata["intelligent_retry_details"] = self.intelligent_retry_system.intelligent_retries[scene_num]
 
                     json_path = self.scenes_dir / f"scene_{scene_num:02d}.json"
                     with open(json_path, 'w', encoding='utf-8') as f:
@@ -1474,7 +1164,7 @@ class ServerMidjourneySceneGenerator:
 
             print(f"✅ Round {retry_round + 1} downloads: {successful_downloads}")
 
-        # Final summary with intelligent retry stats
+        # Final summary
         final_missing = self.get_missing_scenes(visual_prompts)
         total_scenes = len([s for s in visual_prompts if s["scene_number"] != 99])
         completed_count = total_scenes - len(final_missing) - len(self.blacklisted_scenes)
@@ -1483,66 +1173,120 @@ class ServerMidjourneySceneGenerator:
         print(f"✅ Completed: {completed_count}")
         print(f"❌ Missing: {len(final_missing)}")
         print(f"⚫ Blacklisted: {len(self.blacklisted_scenes)}")
-        if self.intelligent_retry_system:
-            print(f"🧠 Claude API calls: {self.intelligent_retry_system.claude_calls_made}")
-            print(f"🤖 Intelligent retries used: {len(self.intelligent_retry_system.intelligent_retries)}")
+        print(f"🧠 Claude corrections used: {sum(self.claude_corrector.correction_attempts.values())}")
 
         success_rate = completed_count / total_scenes
-        return success_rate >= 0.85  # 85% success rate with intelligent retry
+        return success_rate >= 0.85
 
-    def run_scene_only_generation(self) -> bool:
-        """Run SCENE-ONLY generation process for server environment - FIXED WITH INDEPENDENT THUMBNAIL"""
+    def save_scene_generation_report(self):
+        """Save enhanced scene generation report"""
+        output_dir = Path(self.current_output_dir)
+
+        report = {
+            "scene_generation_completed": datetime.now().isoformat(),
+            "topic_id": self.current_topic_id,
+            "topic": self.current_topic,
+            "api_calls_made": self.api_calls_made,
+            "successful_downloads": self.successful_downloads,
+            "character_references_used": len(self.character_references),
+            "scenes_dir": str(self.scenes_dir),
+            "thumbnail_dir": str(self.thumbnail_dir),
+            "historical_period": self.current_historical_period,
+            "generation_log": self.generation_log,
+            "claude_correction_enabled": self.claude_corrector.enabled,
+            "claude_corrections_made": sum(self.claude_corrector.correction_attempts.values()),
+            "claude_correction_attempts": dict(self.claude_corrector.correction_attempts),
+            "server_optimized": True,
+            "version": "2.0_claude_enhanced"
+        }
+
+        report_path = output_dir / "scene_generation_report.json"
+        with open(report_path, 'w', encoding='utf-8') as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+
+        self.log_step(f"✅ Enhanced scene generation report saved: {report_path}", "SUCCESS")
+
+    def test_api_connection(self) -> bool:
+        """Test PIAPI connection"""
+        self.log_step("🔍 Testing PIAPI connection")
+
+        test_prompt = "red apple on white table --ar 1:1 --v 6.1"
+
+        payload = {
+            "model": "midjourney",
+            "task_type": "imagine",
+            "input": {
+                "prompt": test_prompt,
+                "aspect_ratio": "1:1",
+                "process_mode": "relax"
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/task",
+                headers=self.headers,
+                json=payload,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                self.log_step("✅ API Connection OK", "SUCCESS", {"response": result})
+                return True
+            else:
+                self.log_step(f"❌ API Error: {response.status_code}", "ERROR")
+                return False
+
+        except Exception as e:
+            self.log_step(f"❌ Connection Test Failed: {e}", "ERROR")
+            return False
+
+    def run_enhanced_scene_generation(self) -> bool:
+        """Run enhanced scene generation with Claude AI correction"""
         print("🚀" * 50)
-        print("SERVER MIDJOURNEY SCENE GENERATOR v1.1 - INDEPENDENT THUMBNAIL")
+        print("ENHANCED MIDJOURNEY SCENE GENERATOR v2.0")
+        print("🧠 CLAUDE SONNET 4 PROMPT CORRECTION")
         print("🔗 Database integrated")
         print("🎬 SCENES GENERATION")
         print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
-        print("🎭 Character references integration")
-        print("🖥️ Production-ready automation")
+        print("🛡️ REAL-TIME PROMPT CORRECTION")
         print("🚀" * 50)
 
-        # Initialize success tracking
-        overall_success = False
-
-        # Step 0: Test API connection
+        # Test API connection
         if not self.test_api_connection():
             self.log_step("❌ API connection failed - aborting", "ERROR")
             return False
 
-        # Step 1: Get next project from database
+        # Get next project from database
         found, project_info = self.get_next_project_from_database()
         if not found:
             return False
 
         print(f"✅ Project found: {project_info['topic']}")
         print(f"📁 Output directory: {project_info['output_dir']}")
-        print(f"🏛️ Historical period: {project_info['historical_period']}")
+        print(f"🧠 Claude correction: {'✅ Enabled' if self.claude_corrector.enabled else '❌ Disabled'}")
 
         try:
-            # Step 2: Setup directories (scenes and thumbnail)
+            # Setup directories
             self.setup_scene_directories()
 
-            # Step 3: Load existing character references
+            # Load character references
             if not self.load_existing_character_references():
-                self.log_step("❌ No character references found - characters must be generated first", "ERROR")
+                self.log_step("❌ No character references found", "ERROR")
                 return False
 
             print(f"🎭 Character references loaded: {len(self.character_references)}")
-            for name, url in self.character_references.items():
-                print(f"   🎭 {name}: {url[:50]}...")
 
-            # Step 4: Load visual prompts (scene 99 filtered out)
+            # Load visual prompts
             visual_prompts = self.load_visual_prompts()
-            print(f"🎬 Scene prompts loaded: {len(visual_prompts)} (thumbnails excluded)")
+            print(f"🎬 Scene prompts loaded: {len(visual_prompts)}")
 
-            # Step 5: Generate scenes with smart retry and intelligent AI backup
-            print("\n🎬 GENERATING SCENES WITH INTELLIGENT RETRY SYSTEM...")
-            if self.intelligent_retry_enabled:
-                scenes_success = self.generate_scenes_with_intelligent_retry(visual_prompts, max_retry_rounds=15)
-            else:
-                scenes_success = self.generate_scenes_with_retry(visual_prompts, max_retry_rounds=10)
+            # Generate scenes with Claude correction
+            print("\n🎬 GENERATING SCENES WITH CLAUDE AI CORRECTION...")
+            scenes_success = self.generate_scenes_with_claude_correction(visual_prompts, max_retry_rounds=12)
 
-            # Step 6: Generate independent thumbnail
+            # Generate independent thumbnail
             print("\n🖼️ GENERATING INDEPENDENT THUMBNAIL...")
             if INDEPENDENT_THUMBNAIL_AVAILABLE:
                 try:
@@ -1558,57 +1302,44 @@ class ServerMidjourneySceneGenerator:
                 print("⚠️ Independent thumbnail generator not available")
                 thumbnail_success = False
 
-            # Step 7: Save generation report
+            # Save enhanced report
             self.save_scene_generation_report()
 
-            # Step 8: Update database
+            # Update database
             scenes_count = len([f for f in self.scenes_dir.glob("scene_*.png")]) if scenes_success else 0
 
             self.db_manager.mark_scene_generation_completed(
                 self.current_topic_id, scenes_count, thumbnail_success
             )
 
-            # Final success assessment - UPDATED LOGIC
+            # Final success assessment
             if scenes_success and thumbnail_success:
                 print("\n" + "🎉" * 50)
-                print("GENERATION COMPLETELY SUCCESSFUL!")
+                print("ENHANCED GENERATION COMPLETELY SUCCESSFUL!")
                 print("✅ ALL scenes generated + Independent thumbnail successful")
-                if self.intelligent_retry_system and self.intelligent_retry_system.claude_calls_made > 0:
-                    print(f"🧠 Claude AI helped with {len(self.intelligent_retry_system.intelligent_retries)} scenes")
-                print("🛡️ ALL PROMPTS AUTOMATICALLY SAFE FOR MIDJOURNEY")
-                print("🔧 INDEPENDENT THUMBNAIL SYSTEM WORKING")
+                print(f"🧠 Claude corrections used: {sum(self.claude_corrector.correction_attempts.values())}")
+                print("🛡️ REAL-TIME PROMPT CORRECTION WORKING")
                 print("🎉" * 50)
                 overall_success = True
             elif scenes_success:
                 print("\n" + "🎊" * 50)
-                print("SCENE GENERATION SUCCESSFUL!")
+                print("ENHANCED SCENE GENERATION SUCCESSFUL!")
                 print("✅ Scenes generated successfully")
-                if self.intelligent_retry_system and self.intelligent_retry_system.claude_calls_made > 0:
-                    print(f"🧠 Claude AI helped with {len(self.intelligent_retry_system.intelligent_retries)} scenes")
+                print(f"🧠 Claude corrections used: {sum(self.claude_corrector.correction_attempts.values())}")
                 print("❌ Independent thumbnail failed")
-                print("🔧 Scenes are primary - still considered success")
                 print("🎊" * 50)
-                overall_success = True  # Still success - scenes are primary
-            elif thumbnail_success:
-                print("\n" + "⚠️" * 50)
-                print("MIXED RESULTS!")
-                print("❌ Scene generation failed")
-                print("✅ Independent thumbnail successful")
-                print("⚠️ Scenes are primary requirement")
-                print("⚠️" * 50)
-                overall_success = False  # Scenes are primary requirement
+                overall_success = True
             else:
                 print("\n" + "❌" * 50)
-                print("GENERATION FAILED!")
-                print("❌ Both scenes and thumbnail failed")
-                print("Check logs for details")
+                print("ENHANCED GENERATION FAILED!")
+                print("❌ Scene generation failed despite Claude correction")
                 print("❌" * 50)
                 overall_success = False
 
             return overall_success
 
         except Exception as e:
-            self.log_step(f"❌ Scene generation failed: {e}", "ERROR")
+            self.log_step(f"❌ Enhanced scene generation failed: {e}", "ERROR")
             import traceback
             traceback.print_exc()
             return False
@@ -1616,27 +1347,26 @@ class ServerMidjourneySceneGenerator:
 
 if __name__ == "__main__":
     try:
-        print("🚀 SERVER MIDJOURNEY SCENE GENERATOR v1.1 - INTELLIGENT RETRY")
+        print("🚀 ENHANCED MIDJOURNEY SCENE GENERATOR v2.0")
+        print("🧠 CLAUDE SONNET 4 PROMPT CORRECTION")
         print("🔗 Database integration with character references")
         print("🎬 SCENES GENERATION")
         print("🖼️ INDEPENDENT THUMBNAIL GENERATION")
-        print("🧠 INTELLIGENT RETRY with Claude AI")
-        print("🖥️ Production-ready automation")
-        print("🔧 ALL LOCAL LOGIC RESTORED FOR QUALITY")
+        print("🛡️ REAL-TIME PROMPT CORRECTION")
         print("=" * 60)
 
         generator = ServerMidjourneySceneGenerator()
-        success = generator.run_scene_only_generation()
+        success = generator.run_enhanced_scene_generation()
 
         if success:
-            print("🎊 Scene generation completed successfully!")
+            print("🎊 Enhanced scene generation completed successfully!")
         else:
-            print("⚠️ Scene generation failed or no projects ready")
+            print("⚠️ Enhanced scene generation failed or no projects ready")
 
     except KeyboardInterrupt:
-        print("\n⏹️ Scene generation stopped by user")
+        print("\n⏹️ Enhanced scene generation stopped by user")
     except Exception as e:
-        print(f"💥 Scene generation failed: {e}")
-        CONFIG.logger.error(f"Scene generation failed: {e}")
+        print(f"💥 Enhanced scene generation failed: {e}")
+        CONFIG.logger.error(f"Enhanced scene generation failed: {e}")
         import traceback
         traceback.print_exc()
