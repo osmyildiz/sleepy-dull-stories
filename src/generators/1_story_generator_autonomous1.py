@@ -520,6 +520,10 @@ Transform {topic} into a TÓIBÍN masterpiece that will both engage listeners an
 
         try:
             self.api_call_count += 1
+            print(f"🔍 API Key: {CONFIG.api_key[:10]}...")
+            print(f"🔍 Model: {CONFIG.claude_config['model']}")
+            print(f"🔍 Prompt length: {len(master_plan_prompt)} chars")
+            print("📡 Sending to Claude...")
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
@@ -529,6 +533,7 @@ Transform {topic} into a TÓIBÍN masterpiece that will both engage listeners an
                 system="You are COLM TÓIBÍN, the master Irish literary author, working as a film director to create a detailed scene plan. Apply your signature literary genius: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and quiet recognition of human psychology. Create scenes that capture the 'hush you hear, the sighing of disappearance' - peaceful, contemplative, psychologically rich. Focus on daily life moments with extraordinary emotional depth.",
                 messages=[{"role": "user", "content": master_plan_prompt}]
             )
+            print("📡 Claude responded!")
 
             content = ""
             print("📡 Claude Director creating master scene plan...")
