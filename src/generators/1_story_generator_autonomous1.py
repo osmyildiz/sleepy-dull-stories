@@ -176,21 +176,22 @@ class DatabaseTopicManager:
 
     def mark_topic_completed(self, topic_id: int, scene_count: int, total_duration: float,
                              api_calls: int, total_cost: float, output_path: str):
-        """Mark topic as completed in database"""
+        """Mark topic as completed in database - FIXED"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
+        # FIX: Use correct column name and proper parameter binding
         cursor.execute('''
             UPDATE topics 
-            SET status = 'completed',
-                production_completed_at = CURRENT_TIMESTAMP,  # BU SATIR
+            SET status = ?,
+                production_completed_at = CURRENT_TIMESTAMP,
                 scene_count = ?,
                 total_duration_minutes = ?,
                 api_calls_used = ?,
                 total_cost = ?,
                 output_path = ?
             WHERE id = ?
-        ''', (scene_count, total_duration, api_calls, total_cost, output_path, topic_id))
+        ''', ('completed', scene_count, total_duration, api_calls, total_cost, output_path, topic_id))
 
         conn.commit()
         conn.close()
@@ -207,7 +208,7 @@ class ToibinStoryGenerator:
         print("✅ TÓIBÍN Quality Generator initialized")
 
     def log_step(self, description: str, status: str = "START", metadata: Dict = None):
-        """Log generation steps"""
+        """Log generation steps - FIXED"""
         entry = {
             "description": description,
             "status": status,
@@ -220,6 +221,8 @@ class ToibinStoryGenerator:
         self.generation_log.append(entry)
 
         icon = "🔄" if status == "START" else "✅" if status == "SUCCESS" else "❌"
+
+        # FIX: Use .4f format for float values instead of d
         print(f"{icon} {description} [API: {self.api_call_count}] [Cost: ${self.total_cost:.4f}]")
         CONFIG.logger.info(f"{description} - {status} - API: {self.api_call_count} - Cost: ${self.total_cost:.4f}")
 
