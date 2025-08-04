@@ -1543,7 +1543,6 @@ class AutomatedStoryGenerator:
 
     USE THE EXACT DURATIONS FROM THE PLAN ABOVE."""
 
-        stage1_prompt = self._add_word_count_optimization(stage1_prompt, scene_durations)
 
         try:
             self.api_call_count += 1
@@ -1593,9 +1592,8 @@ class AutomatedStoryGenerator:
 
     def _generate_stage2(self, topic: str, description: str, stage1_result: Dict) -> Dict[str, Any]:
         """
-        STAGE 2: COLM TÓIBÍN MASTER STYLE - Remaining stories with LITERARY CONTINUITY
-        FIX 1: Reduced prompt length to prevent API errors
-        FIX 2: Better word count targeting with precise calculations
+        STAGE 2: COLM TÓIBÍN MASTER STYLE - Stage 1 mantığıyla
+        FIX: Stage 1'deki başarılı yapıyı birebir kopyala
         """
 
         scene_plan = stage1_result.get('scene_plan', [])
@@ -1607,123 +1605,147 @@ class AutomatedStoryGenerator:
             self.log_step("Stage 2: No remaining stories needed", "SUCCESS")
             return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
-        self.log_step(f"Stage 2: TÓIBÍN CONTINUITY - {remaining_scenes} Stories")
+        self.log_step(f"Stage 2: TÓIBÍN MASTER CONTINUITY - {remaining_scenes} Stories")
 
-        # Get remaining scenes with precise word count targets
+        # Kalan sahneleri bul
         remaining_scene_plan = []
         for scene in scene_plan:
             if str(scene['scene_id']) not in stage1_result.get('stories', {}):
-                # Calculate precise word count target (140 words per minute)
-                duration_minutes = scene.get('duration_minutes', 4)
-                target_words = int(duration_minutes * 140)
-                scene['target_words'] = target_words
                 remaining_scene_plan.append(scene)
 
         if len(remaining_scene_plan) == 0:
             return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
-        # SHORTER, FOCUSED PROMPT to prevent API overload
-        stage2_prompt = f"""Complete sleep story "{topic}" with remaining {remaining_scenes} stories in COLM TÓIBÍN'S STYLE.
+        # STAGE 1'DEKİ PROMPT YAPISINI AYNEN KULLAN - SADECE İÇERİK DEĞİŞTİR
+        visual_safety_education = MIDJOURNEY_CONTENT_AWARENESS_PROMPT
+
+        # Kalan sahnelerin bilgileri
+        scenes_text = "\n".join([
+            f"Scene {scene['scene_id']}: {scene['title']} - {scene.get('duration_minutes', 4):.1f} minutes"
+            for scene in remaining_scene_plan
+        ])
+
+        # STAGE 1'DEKİ PROMPT FORMATINI BIREBIR KOPYALA
+        stage2_prompt = f"""Complete the remaining {remaining_scenes} stories for "{topic}" using COLM TÓIBÍN'S MASTERFUL STYLE.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
 
-    SCENES TO COMPLETE ({remaining_scenes} scenes):
-    {self._format_remaining_scenes(remaining_scene_plan)}
+    REMAINING SCENES TO COMPLETE:
+    {scenes_text}
 
-    🎭 TÓIBÍN STYLE REQUIREMENTS:
+    🎭 COLM TÓIBÍN WRITING MASTERY - CONTINUATION FROM STAGE 1:
 
-    ## WORD COUNT PRECISION (CRITICAL):
-    - Calculate EXACTLY: Duration × 140 words/minute
-    - 2min = 280 words | 3min = 420 words | 4min = 560 words | 5min = 700 words
-    - 6min = 840 words | 7min = 980 words | 8min = 1120 words
+    ## TÓIBÍN'S CORE GENIUS (maintain from Stage 1):
+    "In all Colm Tóibín's work there is a hush you hear, a kind of sighing of the disappearance of something that is so far gone there is no way of saying what it is. His characters, led by desires that they don't understand, often have vulnerabilities and strengths that are virtually the same."
 
-    ## TÓIBÍN MASTERY CONTINUATION:
-    - Same character voices/psychology from Stage 1
-    - "Hush you hear" - quiet, contemplative atmosphere
-    - "Fascination of commonplaces" - ordinary moments profound
+    ## CHARACTER CONSISTENCY FROM STAGE 1:
+    - Maintain exact same character personalities established in Stage 1
+    - Continue same internal thought patterns and dialogue styles
+    - Keep same relationship dynamics and emotional progression
+    - Use same historical setting and atmosphere
+
+    ## TÓIBÍN'S SIGNATURE STYLE ELEMENTS (continue):
+
+    ### 1. 🤫 THE POWER OF SILENCE & SUBTLETY:
+    - **"Sparseness of tone with superabundance of suggestion"**
+    - **"Style occupies gap between something and nothing"**
+    - What is NOT said is as important as what IS said
+    - Characters pause, hesitate, observe quietly
+    - Emotions simmer beneath surface politeness
+
+    ### 2. 🏛️ DAILY LIFE AS PROFOUND DRAMA:
+    - **"Not much happens but work is thick with human uncertainties"**
+    - Ordinary moments reveal character depths
+    - **"Fascination of commonplaces"** - everyday details matter
+    - Characters doing normal things: eating, walking, thinking
+    - Small gestures carry enormous emotional weight
+
+    ### 3. 🎭 CHARACTER PSYCHOLOGY MASTERY:
+    - **"Characters yearn for understanding and acceptance"**
+    - **"Led by desires they don't understand"**  
+    - Internal conflicts more important than external action
+    - **"Mixed motives and tacit exchanges"**
+    - Characters often lonely but dignified
+
+    ## COMPLETE STORIES FOR REMAINING SCENES:
+
+    Write complete stories for scenes {remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'} through {remaining_scene_plan[-1]['scene_id'] if remaining_scene_plan else 'Y'}.
+
+    Each story must:
+    - Match the duration specified in scene plan (calculate ~140 words per minute)
+    - Continue character consistency from Stage 1
+    - Use Tóibín's contemplative, understated style
     - Present tense, second person for sleep optimization
-    - Historical authenticity through small details
+    - Include [PAUSE] markers at natural breathing points
+    - End with peaceful resolution
 
-    ## OPENING VARIATIONS (Use different for each):
-    - "The evening settles differently now..."
-    - "She notices something has changed..."
-    - "The garden holds new shadows..."
-    - "This moment echoes earlier ones..."
-    - "A familiar weight returns..."
+    {visual_safety_education}
 
-    ## CHARACTER CONSISTENCY:
-    Maintain exact personalities/relationships from Stage 1:
-    - Same internal thought patterns
-    - Same dialogue styles
-    - Same relationship dynamics
-    - Emotional progression: observation → recognition → acceptance
-
-    ## CONTENT PATTERN:
-    1. Quiet observation (50-80 words)
-    2. Character activity (100-150 words) 
-    3. Internal reflection (80-120 words)
-    4. Environmental detail (60-100 words)
-    5. Human connection (80-120 words)
-    6. Peaceful resolution (60-100 words)
-
-    OUTPUT: Complete JSON with stories matching EXACT word counts.
-
+    OUTPUT FORMAT (Complete JSON - same as Stage 1):
     {{
       "stories": {{
-        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[EXACT {remaining_scene_plan[0].get('target_words', 560)} WORDS - Tóibín style story]"
+        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[COMPLETE Tóibín-style story maintaining Stage 1 continuity]",
+        "{remaining_scene_plan[1]['scene_id'] if len(remaining_scene_plan) > 1 else 'Y'}": "[COMPLETE Tóibín-style story with character consistency]"
       }},
       "stage2_stats": {{
         "stories_written": {remaining_scenes},
-        "word_count_precision": true,
-        "toibin_continuity": true
+        "scenes_covered": "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}-{remaining_scene_plan[-1]['scene_id'] if remaining_scene_plan else 'Y'}",
+        "toibin_continuity_maintained": true,
+        "character_consistency_achieved": true,
+        "total_word_count": "[calculated]"
       }}
     }}
 
-    Write each story to EXACT target word count. Count carefully."""
+    Channel COLM TÓIBÍN'S literary mastery to complete these remaining stories with the same quality and style as Stage 1."""
 
         try:
             self.api_call_count += 1
 
-            # SHORTER timeout to prevent hanging
+            # STAGE 1'DEKİ API CALL YAPISINI AYNEN KULLAN
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
                 max_tokens=CONFIG.claude_config["max_tokens"],
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
-                timeout=900,  # Reduced from 1800
-                system="Continue COLM TÓIBÍN style from Stage 1. CRITICAL: Match exact word counts (duration × 140). Maintain character consistency. Use contemplative, understated style.",
+                timeout=1800,  # Stage 1'deki gibi
+                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier. Continue the 'hush you hear' atmospheric quality and 'fascination of commonplaces' approach. These stories must feel seamlessly connected to Stage 1.",
                 messages=[{"role": "user", "content": stage2_prompt}]
             )
 
             content = ""
-            print("📡 Stage 2: Streaming OPTIMIZED...")
+            print("📡 Stage 2: Streaming with COLM TÓIBÍN MASTERY...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
-                    if len(content) % 3000 == 0:  # Less frequent logging
-                        print(f"   📚 Progress: {len(content):,} chars...")
+                    if len(content) % 5000 == 0:
+                        print(f"   📚 TÓIBÍN STYLE: {len(content):,} characters...")
 
-            print(f"✅ Stage 2 OPTIMIZED complete: {len(content):,} characters")
+            print(f"✅ Stage 2 TÓIBÍN MASTERY complete: {len(content):,} characters")
 
+            # STAGE 1'DEKİ COST CALCULATION AYNI
             input_tokens = len(stage2_prompt) // 4
             output_tokens = len(content) // 4
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
+            CONFIG.logger.info(f"Stage 2 Tóibín response length: {len(content)} characters - Cost: ${stage_cost:.4f}")
+
+            # STAGE 1'DEKİ PARSING AYNI
             parsed_result = self._parse_claude_response(content, "stage2")
 
-            self.log_step("Stage 2 OPTIMIZED Parsing", "SUCCESS", {
+            self.log_step("Stage 2 TÓIBÍN MASTERY Parsing", "SUCCESS", {
                 "stories_written": len(parsed_result.get('stories', {})),
-                "word_count_targeted": True,
+                "toibin_continuity_maintained": True,
+                "character_consistency_achieved": True,
                 "stage_cost": stage_cost
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 2 OPTIMIZED Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 2 optimized error: {e}")
+            self.log_step("Stage 2 TÓIBÍN MASTERY Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 2 Tóibín error: {e}")
             return {"stories": {}, "stage2_stats": {"error": str(e)}}
 
     def _format_remaining_scenes(self, scenes_list):
