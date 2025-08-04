@@ -83,6 +83,7 @@ class ServerConfig:
             "production_ready": True,
             "v7_optimized": True  # ✅ YENİ: V7 optimization flag
         }
+        self.api_key = self.get_midjourney_api_key()
 
     def get_midjourney_api_key(self):
         """Get Midjourney API key from multiple sources"""
@@ -835,9 +836,12 @@ class ServerMidjourneyVisualGenerator:
             self.log_step(f"❌ Download failed: {e}", "ERROR")
             return False
 
+    # SYNTAX HATALARININ DÜZELTMESİ
+    # generate_all_characters_parallel fonksiyonunu tamamen değiştirin
+
     def generate_all_characters_parallel(self, character_profiles: Dict):
-        """Generate all marketing characters with robust error handling"""
-        self.log_step("🎭 Starting robust parallel character generation")
+        """V7 ile optimize edilmiş karakter generation - SYNTAX FIXED"""
+        self.log_step("🎭 Starting V7 optimized character generation")
 
         main_characters = character_profiles.get("main_characters", [])
         marketing_characters = [char for char in main_characters if char.get("use_in_marketing", False)]
@@ -846,7 +850,7 @@ class ServerMidjourneyVisualGenerator:
             self.log_step("❌ No marketing characters found", "ERROR")
             return False
 
-        print(f"📊 Total characters to process: {len(marketing_characters)}")
+        print(f"📊 Total characters to process with V7: {len(marketing_characters)}")
 
         # Check existing characters first
         characters_to_generate = []
@@ -871,24 +875,27 @@ class ServerMidjourneyVisualGenerator:
                 characters_to_generate.append(character)
 
         print(f"   ✅ Existing characters: {len(existing_characters)}")
-        print(f"   🔄 Characters to generate: {len(characters_to_generate)}")
+        print(f"   🔄 Characters to generate with V7: {len(characters_to_generate)}")
 
         if not characters_to_generate:
             print("   🎉 All characters already exist!")
             return len(existing_characters) > 0
 
-        # Submit tasks for new characters only
+        # Submit V7 optimized tasks
         character_tasks = {}
         failed_submissions = []
 
         for character in characters_to_generate:
             char_name = character["name"]
+
+            # V7 optimized prompt generation
             v7_prompt = self.generate_character_prompt(character)
 
             print(f"   📝 V7 Prompt: {v7_prompt}")
             print(f"🎭 Submitting V7: {char_name}")
 
             task_id = self.submit_midjourney_task_v7(v7_prompt, aspect_ratio="2:3", char_name=char_name)
+
             if task_id:
                 character_tasks[char_name] = {
                     "task_id": task_id,
@@ -986,14 +993,15 @@ class ServerMidjourneyVisualGenerator:
         print(f"   🔄 Newly generated: {len(completed_characters)}")
         print(f"   📁 Previously existing: {len(existing_characters)}")
         print(f"   ❌ Failed submissions: {len(failed_submissions)}")
-        print(f"   ⏳ Timed out: {len(character_tasks)}")  # Remaining tasks that timed out
+        print(f"   ⏳ Timed out: {len(character_tasks)}")
 
         # Success if we have at least 50% of characters
         success_threshold = len(marketing_characters) * 0.5
         is_successful = successful_downloads >= success_threshold
 
-        self.log_step(f"✅ Character generation {'SUCCESS' if is_successful else 'PARTIAL'}: {successful_downloads}/{len(marketing_characters)}",
-                     "SUCCESS" if is_successful else "ERROR")
+        self.log_step(
+            f"✅ Character generation {'SUCCESS' if is_successful else 'PARTIAL'}: {successful_downloads}/{len(marketing_characters)}",
+            "SUCCESS" if is_successful else "ERROR")
 
         return is_successful
 
