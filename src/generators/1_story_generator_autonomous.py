@@ -1,8 +1,8 @@
 """
-Sleepy Dull Stories - COMPLETE Server-Ready Claude Story Generator
-UPDATED: All missing methods + Smart Algorithm + Database integration + Complete 5-stage pipeline + ALL LOCAL FEATURES
-Production-optimized with complete automation + Enhanced with all local JSON files
-FINAL VERSION: All local features integrated into server version
+Sleepy Dull Stories - COMPLETE Server-Ready Claude Story Generator with VALIDATION SYSTEM
+UPDATED: All missing methods + Smart Algorithm + Database integration + Complete 5-stage pipeline + ALL LOCAL FEATURES + VALIDATION & CORRECTION
+Production-optimized with complete automation + Enhanced with all local JSON files + Story Duration Validation
+FINAL VERSION: All local features integrated into server version + Auto-correction system
 """
 
 import os
@@ -132,7 +132,10 @@ class ServerConfig:
             "platform_metadata_export": True,
             "production_specs_detailed": True,
             "streaming_response": True,  # ✅ PROVEN CRITICAL
-            "long_timeout": True  # ✅ PROVEN CRITICAL
+            "long_timeout": True,  # ✅ PROVEN CRITICAL
+            "validation_enabled": True,  # 🆕 NEW: Enable validation system
+            "auto_correction": True,     # 🆕 NEW: Enable auto-correction
+            "target_tolerance": 0.2      # 🆕 NEW: ±20% tolerance for word count
         }
 
         # Get API key
@@ -216,9 +219,8 @@ try:
 except Exception as e:
     print(f"❌ Server configuration failed: {e}")
     sys.exit(1)
-# Midjourney Content Policy Awareness for Story Generator
-# Add this to story generator before visual prompt creation
 
+# Midjourney Content Policy Awareness for Story Generator
 MIDJOURNEY_CONTENT_AWARENESS_PROMPT = """
 ## 🎨 CRITICAL: MIDJOURNEY VISUAL GENERATION CONTENT POLICY AWARENESS
 
@@ -301,15 +303,390 @@ Your word choices directly impact generation success rate.
 """
 
 print("✅ Midjourney Content Policy Awareness (English) ready for integration!")
+
 # Import Anthropic after config
 try:
     from anthropic import Anthropic
-
     print("✅ Anthropic library imported")
 except ImportError:
     print("❌ Anthropic library not found")
     print("Install with: pip install anthropic")
     sys.exit(1)
+
+
+# 🆕 NEW: Story Validation and Correction System
+class StoryValidationSystem:
+    """Advanced story validation and auto-correction system"""
+
+    def __init__(self, claude_client, logger):
+        self.client = claude_client
+        self.logger = logger
+        self.validation_log = []
+        self.correction_count = 0
+
+    def log_validation_step(self, description: str, status: str = "START", metadata: Dict = None):
+        """Log validation steps"""
+        entry = {
+            "description": description,
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+        }
+        if metadata:
+            entry.update(metadata)
+        self.validation_log.append(entry)
+
+        icon = "🔍" if status == "START" else "✅" if status == "SUCCESS" else "⚠️" if status == "WARNING" else "❌"
+        print(f"{icon} VALIDATION: {description}")
+        self.logger.info(f"VALIDATION: {description} - Status: {status}")
+
+    def validate_stories_duration(self, stories: Dict, scene_plan: List[Dict]) -> Dict:
+        """Validate story durations and identify corrections needed"""
+
+        self.log_validation_step("Starting Story Duration Validation")
+
+        validation_results = {
+            'valid_stories': {},
+            'corrections_needed': [],
+            'validation_summary': {
+                'total_scenes': len(scene_plan),
+                'stories_provided': len(stories),
+                'valid_stories': 0,
+                'corrections_needed': 0,
+                'missing_stories': 0
+            }
+        }
+
+        target_words_per_minute = CONFIG.claude_config.get('target_words_per_minute', 140)
+        tolerance = CONFIG.claude_config.get('target_tolerance', 0.2)
+
+        missing_stories = []
+
+        for scene in scene_plan:
+            scene_id = str(scene['scene_id'])
+            target_duration = scene.get('duration_minutes', 4)
+            target_words = int(target_duration * target_words_per_minute)
+
+            # Check if story exists
+            if scene_id not in stories:
+                missing_stories.append({
+                    'scene_id': scene_id,
+                    'scene_title': scene.get('title', f'Scene {scene_id}'),
+                    'target_duration': target_duration,
+                    'target_words': target_words
+                })
+                continue
+
+            story_content = stories[scene_id]
+            actual_words = len(story_content.split())
+
+            # Calculate acceptable range
+            min_words = int(target_words * (1 - tolerance))
+            max_words = int(target_words * (1 + tolerance))
+
+            # Calculate deviation percentage
+            deviation = abs(actual_words - target_words) / target_words
+
+            if min_words <= actual_words <= max_words:
+                # Story is within acceptable range
+                validation_results['valid_stories'][scene_id] = story_content
+                validation_results['validation_summary']['valid_stories'] += 1
+                self.log_validation_step(
+                    f"Scene {scene_id} VALID: {actual_words} words (target: {target_words}, range: {min_words}-{max_words})",
+                    "SUCCESS"
+                )
+            else:
+                # Story needs correction
+                action = 'expand' if actual_words < min_words else 'trim'
+                validation_results['corrections_needed'].append({
+                    'scene_id': scene_id,
+                    'scene_title': scene.get('title', f'Scene {scene_id}'),
+                    'current_words': actual_words,
+                    'target_words': target_words,
+                    'min_words': min_words,
+                    'max_words': max_words,
+                    'deviation_percent': round(deviation * 100, 1),
+                    'action': action,
+                    'target_duration': target_duration,
+                    'original_story': story_content
+                })
+                validation_results['validation_summary']['corrections_needed'] += 1
+                self.log_validation_step(
+                    f"Scene {scene_id} NEEDS {action.upper()}: {actual_words} words (target: {target_words}, deviation: {deviation*100:.1f}%)",
+                    "WARNING"
+                )
+
+        # Handle missing stories
+        if missing_stories:
+            validation_results['validation_summary']['missing_stories'] = len(missing_stories)
+            validation_results['missing_stories'] = missing_stories
+            for missing in missing_stories:
+                self.log_validation_step(
+                    f"Scene {missing['scene_id']} MISSING: Story not generated",
+                    "WARNING"
+                )
+
+        # Summary
+        summary = validation_results['validation_summary']
+        self.log_validation_step(
+            f"Validation Complete: {summary['valid_stories']} valid, {summary['corrections_needed']} need correction, {summary['missing_stories']} missing",
+            "SUCCESS",
+            summary
+        )
+
+        return validation_results
+
+    def auto_correct_stories(self, validation_results: Dict, scene_plan: List[Dict]) -> Dict:
+        """Automatically correct stories that need adjustment"""
+
+        corrections_needed = validation_results.get('corrections_needed', [])
+        missing_stories = validation_results.get('missing_stories', [])
+
+        if not corrections_needed and not missing_stories:
+            self.log_validation_step("No corrections needed", "SUCCESS")
+            return validation_results['valid_stories']
+
+        self.log_validation_step(f"Starting Auto-Correction: {len(corrections_needed)} corrections, {len(missing_stories)} missing stories")
+
+        corrected_stories = validation_results['valid_stories'].copy()
+
+        # Handle corrections first
+        for correction in corrections_needed:
+            try:
+                corrected_story = self._correct_single_story(correction, scene_plan)
+                if corrected_story:
+                    corrected_stories[correction['scene_id']] = corrected_story
+                    self.correction_count += 1
+                    self.log_validation_step(
+                        f"Scene {correction['scene_id']} corrected: {correction['action']}ed to ~{correction['target_words']} words",
+                        "SUCCESS"
+                    )
+                else:
+                    # Keep original if correction fails
+                    corrected_stories[correction['scene_id']] = correction['original_story']
+                    self.log_validation_step(
+                        f"Scene {correction['scene_id']} correction failed, keeping original",
+                        "WARNING"
+                    )
+            except Exception as e:
+                corrected_stories[correction['scene_id']] = correction['original_story']
+                self.log_validation_step(
+                    f"Scene {correction['scene_id']} correction error: {str(e)}",
+                    "WARNING"
+                )
+
+        # Handle missing stories
+        for missing in missing_stories:
+            try:
+                generated_story = self._generate_missing_story(missing, scene_plan)
+                if generated_story:
+                    corrected_stories[missing['scene_id']] = generated_story
+                    self.correction_count += 1
+                    self.log_validation_step(
+                        f"Scene {missing['scene_id']} generated: ~{missing['target_words']} words",
+                        "SUCCESS"
+                    )
+                else:
+                    self.log_validation_step(
+                        f"Scene {missing['scene_id']} generation failed",
+                        "WARNING"
+                    )
+            except Exception as e:
+                self.log_validation_step(
+                    f"Scene {missing['scene_id']} generation error: {str(e)}",
+                    "WARNING"
+                )
+
+        self.log_validation_step(f"Auto-Correction Complete: {self.correction_count} stories corrected/generated", "SUCCESS")
+        return corrected_stories
+
+    def _correct_single_story(self, correction: Dict, scene_plan: List[Dict]) -> Optional[str]:
+        """Correct a single story's length"""
+
+        scene_id = correction['scene_id']
+        action = correction['action']
+        target_words = correction['target_words']
+        current_words = correction['current_words']
+        original_story = correction['original_story']
+
+        # Get scene context
+        scene_info = next((s for s in scene_plan if str(s['scene_id']) == scene_id), {})
+        scene_title = scene_info.get('title', f'Scene {scene_id}')
+        scene_description = scene_info.get('description', 'Historical scene')
+        scene_emotion = scene_info.get('emotion', 'peaceful')
+        scene_template = scene_info.get('template', 'atmospheric')
+
+        if action == 'expand':
+            prompt = f"""Expand this sleep story scene to exactly {target_words} words (currently {current_words} words).
+
+SCENE CONTEXT:
+- Scene {scene_id}: {scene_title}
+- Description: {scene_description}
+- Emotion: {scene_emotion}
+- Template: {scene_template}
+- Target: {target_words} words
+
+ORIGINAL STORY:
+{original_story}
+
+EXPANSION REQUIREMENTS:
+- Keep the EXACT same opening sentence
+- Maintain the same tone, style, and emotion
+- Add more sensory details and atmospheric descriptions
+- Expand character interactions and emotions if characters are present
+- Add more historical details and period-accurate elements
+- Include more [PAUSE] markers at natural breathing points
+- Target exactly {target_words} words (±10 words acceptable)
+- Keep the story sleep-optimized with gentle pacing
+- Do not change the core narrative or ending
+
+OUTPUT FORMAT: Expanded story only, no explanations or commentary."""
+
+        else:  # trim
+            prompt = f"""Trim this sleep story scene to exactly {target_words} words (currently {current_words} words).
+
+SCENE CONTEXT:
+- Scene {scene_id}: {scene_title}
+- Description: {scene_description}
+- Emotion: {scene_emotion}
+- Template: {scene_template}
+- Target: {target_words} words
+
+ORIGINAL STORY:
+{original_story}
+
+TRIMMING REQUIREMENTS:
+- Keep the EXACT same opening sentence
+- Maintain core narrative atmosphere and emotion
+- Remove less essential descriptive details
+- Keep all character interactions and dialogue intact
+- Preserve the most important sensory elements
+- Keep key [PAUSE] markers for natural flow
+- Target exactly {target_words} words (±10 words acceptable)
+- Maintain sleep-optimized pacing
+- Do not change the story's main events or ending
+
+OUTPUT FORMAT: Trimmed story only, no explanations or commentary."""
+
+        try:
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=4000,
+                temperature=0.3,
+                timeout=300,
+                system=f"You are a professional story editor specializing in sleep content. Your task is to {action} the story to meet exact word count requirements while maintaining all original qualities and sleep optimization.",
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            corrected_story = response.content[0].text.strip()
+
+            # Validate the correction
+            new_word_count = len(corrected_story.split())
+            if abs(new_word_count - target_words) <= target_words * 0.1:  # 10% tolerance for corrections
+                return corrected_story
+            else:
+                self.log_validation_step(
+                    f"Correction validation failed: got {new_word_count} words, target {target_words}",
+                    "WARNING"
+                )
+                return None
+
+        except Exception as e:
+            self.log_validation_step(f"Correction API call failed: {str(e)}", "WARNING")
+            return None
+
+    def _generate_missing_story(self, missing: Dict, scene_plan: List[Dict]) -> Optional[str]:
+        """Generate a missing story"""
+
+        scene_id = missing['scene_id']
+        target_words = missing['target_words']
+        target_duration = missing['target_duration']
+        scene_title = missing['scene_title']
+
+        # Get scene context
+        scene_info = next((s for s in scene_plan if str(s['scene_id']) == scene_id), {})
+        scene_description = scene_info.get('description', 'Historical scene')
+        scene_emotion = scene_info.get('emotion', 'peaceful')
+        scene_template = scene_info.get('template', 'atmospheric')
+        scene_location = scene_info.get('location', 'Ancient setting')
+        key_elements = scene_info.get('key_elements', [])
+        characters_mentioned = scene_info.get('characters_mentioned', [])
+
+        prompt = f"""Generate a complete sleep story for this missing scene.
+
+SCENE REQUIREMENTS:
+- Scene {scene_id}: {scene_title}
+- Location: {scene_location}
+- Description: {scene_description}
+- Emotion: {scene_emotion}
+- Template: {scene_template}
+- Duration: {target_duration} minutes
+- Target words: {target_words} words
+- Key Elements: {', '.join(key_elements) if key_elements else 'Atmospheric details'}
+- Characters: {', '.join(characters_mentioned) if characters_mentioned else 'Focus on atmosphere'}
+
+STORY REQUIREMENTS:
+- Create a unique, atmospheric opening (NEVER use "You find yourself")
+- Present tense, second person perspective
+- Rich sensory details (sight, sound, smell, touch, taste)
+- [PAUSE] markers at natural breathing points
+- Sleep-optimized language with gentle pacing
+- Historical accuracy with authentic period details
+- Target exactly {target_words} words (±20 words acceptable)
+- Maintain {scene_emotion} emotion throughout
+- Include character interactions if characters are mentioned
+- End with peaceful resolution
+
+OPENING STYLE OPTIONS (choose one):
+- Environmental: "The golden light filters through..."
+- Temporal: "As twilight settles over..."
+- Auditory: "Soft footsteps echo in..."
+- Sensory: "The gentle breeze carries..."
+- Visual: "Shadows dance across..."
+- Character-focused: "[Character name] pauses at..."
+
+OUTPUT FORMAT: Complete story only, no explanations or commentary."""
+
+        try:
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=6000,
+                temperature=0.7,
+                timeout=300,
+                system="You are a master storyteller specializing in sleep content. Generate atmospheric, historically accurate stories that promote peaceful sleep. Focus on rich sensory details and gentle pacing.",
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            generated_story = response.content[0].text.strip()
+
+            # Validate the generation
+            new_word_count = len(generated_story.split())
+            if abs(new_word_count - target_words) <= target_words * 0.2:  # 20% tolerance for new generations
+                return generated_story
+            else:
+                self.log_validation_step(
+                    f"Generation validation failed: got {new_word_count} words, target {target_words}",
+                    "WARNING"
+                )
+                return None
+
+        except Exception as e:
+            self.log_validation_step(f"Generation API call failed: {str(e)}", "WARNING")
+            return None
+
+    def get_validation_report(self) -> Dict:
+        """Get comprehensive validation report"""
+        return {
+            'validation_log': self.validation_log,
+            'corrections_made': self.correction_count,
+            'validation_enabled': CONFIG.claude_config.get('validation_enabled', False),
+            'auto_correction_enabled': CONFIG.claude_config.get('auto_correction', False),
+            'target_tolerance': CONFIG.claude_config.get('target_tolerance', 0.2),
+            'validation_summary': {
+                'total_validation_steps': len(self.validation_log),
+                'corrections_applied': self.correction_count,
+                'validation_success': len([log for log in self.validation_log if log['status'] == 'SUCCESS'])
+            }
+        }
 
 
 # Database Topic Management Integration
@@ -611,7 +988,7 @@ class CharacterExtractionSystem:
 
 
 class AutomatedStoryGenerator:
-    """Complete server-ready automated story generation with FIXED Smart Algorithm + ALL LOCAL FEATURES"""
+    """Complete server-ready automated story generation with VALIDATION SYSTEM + FIXED Smart Algorithm + ALL LOCAL FEATURES"""
 
     def __init__(self):
         """Initialize story generator for server environment"""
@@ -622,8 +999,12 @@ class AutomatedStoryGenerator:
 
         try:
             self.client = Anthropic(api_key=CONFIG.api_key)
-            CONFIG.logger.info("✅ Story generator initialized successfully")
-            print("✅ Story generator initialized with Smart Algorithm + Budget Tracking + ALL LOCAL FEATURES")
+
+            # 🆕 NEW: Initialize validation system
+            self.validation_system = StoryValidationSystem(self.client, CONFIG.logger)
+
+            CONFIG.logger.info("✅ Story generator with validation system initialized successfully")
+            print("✅ Story generator initialized with Smart Algorithm + Budget Tracking + ALL LOCAL FEATURES + VALIDATION SYSTEM")
         except Exception as e:
             CONFIG.logger.error(f"❌ Story generator initialization failed: {e}")
             print(f"❌ Story generator initialization failed: {e}")
@@ -735,131 +1116,19 @@ class AutomatedStoryGenerator:
             'natural_variation': True
         }
 
-    def generate_hook_subscribe_scenes(self, scene_plan: List[Dict], hook_content: str, subscribe_content: str) -> Dict:
-        """Generate background scenes for hook and subscribe with precise timing"""
-
-        self.log_step("Hook & Subscribe Scene Selection")
-
-        # Select 10 atmospheric scenes for hook (0-30s)
-        hook_scenes = []
-        atmospheric_scenes = [s for s in scene_plan if
-                              s.get('template') == 'atmospheric' or s.get('emotion') == 'peaceful'][:10]
-
-        for i, scene in enumerate(atmospheric_scenes):
-            hook_scenes.append({
-                "scene_id": scene['scene_id'],
-                "scene_title": scene['title'],
-                "start_time": i * 3,
-                "end_time": (i * 3) + 3,
-                "duration": 3,
-                "visual_prompt": f"Atmospheric cinematic view of {scene['location']}, golden hour lighting, peaceful and mysterious mood",
-                "timing_note": f"Display during hook seconds {i * 3}-{(i * 3) + 3}",
-                "sync_importance": "HIGH - Must align with hook narration rhythm"
-            })
-
-        # Select 10 community scenes for subscribe (30-60s)
-        subscribe_scenes = []
-        community_scenes = [s for s in scene_plan if
-                            s.get('template') == 'character_focused' or len(s.get('characters_mentioned', [])) > 0][:10]
-
-        for i, scene in enumerate(community_scenes):
-            subscribe_scenes.append({
-                "scene_id": scene['scene_id'],
-                "scene_title": scene['title'],
-                "start_time": i * 3,
-                "end_time": (i * 3) + 3,
-                "duration": 3,
-                "visual_prompt": f"Welcoming community view of {scene['location']}, warm lighting, inviting atmosphere",
-                "timing_note": f"Display during subscribe seconds {i * 3}-{(i * 3) + 3}",
-                "sync_importance": "HIGH - Must feel warm and community-building"
-            })
-
-        return {
-            "hook_scenes": hook_scenes,
-            "subscribe_scenes": subscribe_scenes,
-            "scene_story_alignment": {
-                "rule": "When story mentions scene X, immediately display scene X",
-                "critical": "Scene mention = Scene display",
-                "timing": "Instant visual sync with narrative"
-            },
-            "production_notes": {
-                "hook_timing": "Use hook_scenes during golden hook narration (0-30s)",
-                "subscribe_timing": "Use subscribe_scenes during subscribe request (30-60s)",
-                "visual_sync": "Each scene should blend seamlessly with spoken content",
-                "fallback_strategy": "If scene unavailable, use next scene in sequence"
-            }
-        }
-
-    # MEVCUT FONKSİYONDAN SONRA:
-    def generate_hook_subscribe_visual_prompts(self, scene_plan: List[Dict], hook_content: str, subscribe_content: str,
-                                               visual_style_notes: Dict) -> Dict:
-        """Hook & Subscribe için GÖRSEL PROMPTLARI oluştur"""
-
-        self.log_step("Hook & Subscribe Visual Prompt Generation")
-
-        # Basit fallback - API çağrısı yapmadan
-        atmospheric_scenes = [s for s in scene_plan if s.get('template') == 'atmospheric'][:10]
-        character_scenes = [s for s in scene_plan if s.get('template') == 'character_focused'][:10]
-
-        hook_visuals = []
-        for i, scene in enumerate(atmospheric_scenes):
-            hook_visuals.append({
-                "sequence_id": i + 1,
-                "timing": f"{i * 3}-{(i * 3) + 3} seconds",
-                "source_scene": f"Scene {scene['scene_id']}",
-                "visual_prompt": f"Cinematic atmospheric view of {scene.get('location')}, golden hour lighting, mysterious but peaceful mood",
-                "cinematic_style": "Wide shot, warm lighting",
-                "transition_note": "Slow dissolve"
-            })
-
-        subscribe_visuals = []
-        for i, scene in enumerate(character_scenes):
-            subscribe_visuals.append({
-                "sequence_id": i + 1,
-                "timing": f"{30 + (i * 3)}-{30 + (i * 3) + 3} seconds",
-                "source_scene": f"Scene {scene['scene_id']}",
-                "visual_prompt": f"Welcoming view of {scene.get('location')}, warm lighting, community atmosphere",
-                "community_element": "Warm, inviting feel",
-                "engagement_factor": "Encourages subscription"
-            })
-
-        return {
-            "hook_visual_prompts": hook_visuals,
-            "subscribe_visual_prompts": subscribe_visuals
-        }
-
-    def _generate_scene_chapters(self, scene_plan: List[Dict]) -> List[Dict]:
-        """Generate YouTube chapter markers for scenes"""
-        chapters = []
-        current_time = 60  # Start after hook and subscribe (60 seconds)
-
-        for scene in scene_plan:
-            duration_seconds = int(scene.get('duration_minutes', 4) * 60)
-
-            chapters.append({
-                "time": f"{current_time // 60}:{current_time % 60:02d}",
-                "title": f"Scene {scene['scene_id']}: {scene.get('title', 'Unknown')}"[:100],
-                "duration_seconds": duration_seconds,
-                "emotion": scene.get('emotion', 'peaceful'),
-                "template": scene.get('template', 'atmospheric')
-            })
-
-            current_time += duration_seconds
-
-        return chapters
-
     def generate_complete_story_with_characters(self, topic: str, description: str, clickbait_title: str = None,
                                                 font_design: str = None) -> Dict[str, Any]:
         """
-        COMPLETE 5-STAGE APPROACH WITH FIXED SMART ALGORITHM + ALL LOCAL FEATURES:
+        COMPLETE 5-STAGE APPROACH WITH VALIDATION SYSTEM + FIXED SMART ALGORITHM + ALL LOCAL FEATURES:
         Stage 1: Smart Planning + Hook + Subscribe + First Half stories
         Stage 2: Remaining stories (second half)
+        Stage 2.5: 🆕 NEW: Validation and Auto-correction of all stories
         Stage 3: Character extraction and analysis
         Stage 4: Intelligent thumbnail generation
         Stage 5: Hook & Subscribe scene selection + Complete JSON outputs
         """
 
-        self.log_step("Complete Story Generation with Smart Random Durations + ALL LOCAL FEATURES")
+        self.log_step("Complete Story Generation with VALIDATION SYSTEM + Smart Random Durations + ALL LOCAL FEATURES")
 
         try:
             # STAGE 1: Smart Planning + First Half
@@ -885,8 +1154,19 @@ class AutomatedStoryGenerator:
             stage2_result = self._generate_stage2(topic, description, stage1_result)
             time.sleep(1)
 
-            # STAGE 3: Character Extraction
-            character_result = self._extract_characters(topic, description, stage1_result, stage2_result)
+            # 🆕 STAGE 2.5: VALIDATION AND AUTO-CORRECTION
+            if CONFIG.claude_config.get('validation_enabled', True):
+                validation_result = self._validate_and_correct_stories(stage1_result, stage2_result, scene_plan)
+                time.sleep(1)
+            else:
+                print("⚠️ Validation system disabled, skipping validation stage")
+                validation_result = {
+                    'validated_stories': {**stage1_result.get('stories', {}), **stage2_result.get('stories', {})},
+                    'validation_report': {'validation_enabled': False}
+                }
+
+            # STAGE 3: Character Extraction (using validated stories)
+            character_result = self._extract_characters(topic, description, stage1_result, validation_result)
             time.sleep(1)
 
             # STAGE 4: Intelligent Thumbnail Generation
@@ -902,28 +1182,32 @@ class AutomatedStoryGenerator:
                 stage1_result.get('subscribe_section', {}).get('content', '')
             )
 
-            # COMBINE: Merge all stages
+            # COMBINE: Merge all stages (using validated stories)
             combined_result = self._combine_all_stages(
-                stage1_result, stage2_result, character_result, thumbnail_result, hook_subscribe_result, topic,
+                stage1_result, validation_result, character_result, thumbnail_result, hook_subscribe_result, topic,
                 description
             )
 
-            # Add smart generation stats
+            # Add smart generation + validation stats
             combined_result['generation_stats'].update({
                 'smart_algorithm': True,
                 'random_scene_count': total_scenes,
                 'natural_duration_variation': True,
-                'duration_range': f"{min(durations):.1f}-{max(durations):.1f} minutes" if durations else "N/A"
+                'duration_range': f"{min(durations):.1f}-{max(durations):.1f} minutes" if durations else "N/A",
+                'validation_system_enabled': CONFIG.claude_config.get('validation_enabled', True),
+                'auto_correction_enabled': CONFIG.claude_config.get('auto_correction', True),
+                'validation_report': validation_result.get('validation_report', {})
             })
 
-            self.log_step("Complete Smart Generation Pipeline Finished", "SUCCESS", {
+            self.log_step("Complete Smart Generation Pipeline with Validation Finished", "SUCCESS", {
                 "total_scenes": len(combined_result.get('scene_plan', [])),
                 "total_stories": len(combined_result.get('stories', {})),
                 "characters_extracted": len(combined_result.get('main_characters', [])),
                 "thumbnail_generated": combined_result.get('generation_stats', {}).get('thumbnail_generated', False),
-                "hook_subscribe_generated": combined_result.get('generation_stats', {}).get('hook_subscribe_generated',
-                                                                                            False),
+                "hook_subscribe_generated": combined_result.get('generation_stats', {}).get('hook_subscribe_generated', False),
                 "smart_algorithm_used": True,
+                "validation_enabled": CONFIG.claude_config.get('validation_enabled', True),
+                "stories_corrected": validation_result.get('validation_report', {}).get('corrections_made', 0),
                 "api_calls_total": self.api_call_count,
                 "total_cost": self.total_cost
             })
@@ -934,6 +1218,52 @@ class AutomatedStoryGenerator:
             self.log_step("Generation Failed", "ERROR")
             CONFIG.logger.error(f"Generation failed: {e}")
             raise
+
+    def _validate_and_correct_stories(self, stage1_result: Dict, stage2_result: Dict, scene_plan: List[Dict]) -> Dict:
+        """🆕 NEW: Stage 2.5 - Validate and auto-correct all stories"""
+
+        self.log_step("Stage 2.5: Story Validation and Auto-Correction")
+
+        # Combine all stories from both stages
+        all_stories = {}
+        all_stories.update(stage1_result.get('stories', {}))
+        all_stories.update(stage2_result.get('stories', {}))
+
+        # Validate stories against scene plan
+        validation_results = self.validation_system.validate_stories_duration(all_stories, scene_plan)
+
+        # Auto-correct if enabled
+        if CONFIG.claude_config.get('auto_correction', True):
+            corrected_stories = self.validation_system.auto_correct_stories(validation_results, scene_plan)
+        else:
+            corrected_stories = validation_results['valid_stories']
+            print("⚠️ Auto-correction disabled, using only valid stories")
+
+        # Get validation report
+        validation_report = self.validation_system.get_validation_report()
+
+        # Update API call count (validation system makes additional calls)
+        if hasattr(self.validation_system, 'correction_count'):
+            # Each correction/generation is approximately 1 API call
+            additional_calls = self.validation_system.correction_count
+            self.api_call_count += additional_calls
+
+            # Estimate additional cost (corrections are smaller, ~$0.01 each)
+            additional_cost = additional_calls * 0.01
+            self.total_cost += additional_cost
+
+        self.log_step("Story Validation and Auto-Correction", "SUCCESS", {
+            "stories_validated": len(all_stories),
+            "stories_corrected": validation_report.get('corrections_made', 0),
+            "final_story_count": len(corrected_stories),
+            "validation_enabled": True
+        })
+
+        return {
+            'validated_stories': corrected_stories,
+            'validation_report': validation_report,
+            'validation_results': validation_results
+        }
 
     def _generate_stage1(self, topic: str, description: str) -> Dict[str, Any]:
         """STAGE 1: ENHANCED Smart planning with powerful prompts + first half stories"""
@@ -964,11 +1294,70 @@ class AutomatedStoryGenerator:
 
     STAGE 1 REQUIREMENTS:
     You must provide ALL planning elements + first {first_half} stories in complete detail.
+    
+    ## 🎭 KRISTIN HANNAH STORYTELLING MASTERY - COMPREHENSIVE STYLE GUIDE
 
-    ## 1. GOLDEN HOOK (30 seconds, ~90 words)
-    - Atmospheric opening that sets the scene
-    - Gentle intrigue but calming
-    - Cinematic visual details
+    ### HANNAH'S PROVEN WRITING DNA (Based on The Nightingale, Four Winds, Great Alone):
+    - WISE NARRATOR VOICE: Elderly perspective reflecting on historical trauma with life-earned wisdom
+    - EMOTIONAL PRECISION LANGUAGE: "Lost. It makes it sound as if I misplaced them..." - precise corrections
+    - MEMORY-DRIVEN STRUCTURE: Present tense reflection, past tense for historical events
+    - FEMALE RESILIENCE FOCUS: Strength emerging from impossible circumstances
+    - EXTENSIVE RESEARCH DEPTH: Period-authentic details woven naturally into narrative
+    - CHARACTER-DRIVEN PLOT: Personal growth drives story, not external events
+    
+    ### HANNAH'S SIGNATURE TECHNIQUES:
+    1. OPENING VARIETY (Rotate across stories - NEVER repeat exact formulas):
+       - Wisdom opener: "If I have learned anything in [time period], it is this: [insight]"
+       - Memory trigger: "I find myself thinking about [historical event/people I lost]..."
+       - Generational contrast: "Today's [people] want [modern thing]. I come from [different era]..."
+       - Loss reflection: "[People/things] I lost. Lost. It makes it sound as if I misplaced..."
+       - Time perspective: "The past has a clarity I can no longer see in the present..."
+       - Experience authority: "Having lived through [event], I know that [wisdom]..."
+    
+    2. SENTENCE RHYTHM MASTERY:
+       - Short declarative sentences for emotional impact: "They are gone."
+       - Repetitive emotional refrains: "Lost...lost...but not lost. They are gone."
+       - Building emotional crescendos through repetition and pacing
+       - End paragraphs with profound simple truths
+       - Mix flowing descriptions with sharp emotional stops
+    
+    3. EMOTIONAL AUTHENTICITY PATTERNS:
+       - "Grief settles into our DNA and remains forever part of us"
+       - "In love we find who we want to be; in war/crisis we find who we are"
+       - "I come from a quieter generation. We understand the value of forgetting"
+       - Focus on unsung female heroes in historical moments
+       - "Women get on with it" - practical resilience theme
+
+    ### HANNAH'S RESEARCH-DRIVEN AUTHENTICITY:
+    - Historical details from "months of research" depth (Hannah's own method)
+    - Period-accurate sensory details (clothing, food, sounds, smells)
+    - Authentic social customs and behavioral patterns
+    - Real historical events woven naturally into personal stories
+    - Environmental storytelling through historical accuracy
+    
+    ### NARRATIVE VOICE CONSISTENCY RULES:
+    - ALWAYS elderly narrator who has "lived through" or "learned from" events
+    - ALWAYS present tense for reflection, past tense for story events
+    - ALWAYS focus on human moments within grand historical sweep
+    - ALWAYS demonstrate how crisis reveals true character
+    - ALWAYS end with wisdom earned through experience
+    
+    ### FORBIDDEN ELEMENTS (Ensure Claude NEVER does these):
+    - Identical opening sentences across multiple stories
+    - Generic historical narrative without personal emotional core
+    - Modern language or concepts in historical settings
+    - Rushed character development without earned emotional moments
+    - Surface-level historical details without authentic research depth
+    
+    ## 1. GOLDEN HOOK (30 seconds, ~90 words) - KRISTIN HANNAH WISDOM OPENING
+    - APPLY HANNAH'S OPENING VARIETY: Select different approach from list above for each story
+    - ELDERLY NARRATOR VOICE: Must sound like someone who lived through/learned from events
+    - EMOTIONAL FORESHADOWING: "Last peaceful day" theme with Hannah's bittersweet wisdom
+    - DISASTER AWARENESS: Narrator knows what's coming, characters don't
+    - PRECISE LANGUAGE: Use Hannah's emotional correction technique ("Lost...but not lost")
+    - SLEEP TRANSITION: End with gentle invitation to witness these final peaceful hours
+    - AUTHENTIC WISDOM: Sound like Hannah's narrators - lived experience, not generic knowledge
+    - UNIQUE EACH TIME: Never repeat exact opening formulas across stories
 
     ## 2. SUBSCRIBE SECTION (30 seconds, ~70 words) 
     - Natural community invitation
@@ -1089,13 +1478,15 @@ class AutomatedStoryGenerator:
     }}
 
     ## STORYTELLING EXCELLENCE CHALLENGE:
-    Write {first_half} completely different, masterful stories. Each must have:
-    - **UNIQUE atmospheric opening** (no repeated phrases, no "You find yourself")
-    - **Perfect word count** for scene duration
-    - **Rich character development** with meaningful interactions
-    - **Historical authenticity** with accurate period details
-    - **Sleep-optimized pacing** with gentle rhythm
-    - **Sensory immersion** that transports readers
+    Write {first_half} completely different, masterful stories using KRISTIN HANNAH'S PROVEN METHODS:
+    - **HANNAH'S OPENING VARIETY** - Different pattern from the 6 options above for each story
+    - **ELDERLY NARRATOR VOICE** - Sound like Hannah's wise, experienced narrators
+    - **EMOTIONAL PRECISION** - Use Hannah's specific language patterns and corrections
+    - **RESEARCH-LEVEL AUTHENTICITY** - Period details with Hannah's depth and accuracy
+    - **FEMALE RESILIENCE FOCUS** - Show strength emerging from impossible circumstances
+    - **DISASTER FORESHADOWING** - Narrator awareness of coming tragedy, characters' innocent hope
+    - **MEMORY-DRIVEN PACING** - Present reflection, past events, building emotional crescendos
+    - **SENSORY AUTHENTICITY** - Historically accurate sights, sounds, smells, textures
 
     Demonstrate your expertise as a MASTER STORYTELLER. SHOWCASE YOUR MASTERY with creative, unique openings for each scene. The phrase "You find yourself" is banned. Instead, craft atmospheric beginnings that vary in style and immediately immerse the reader.
 
@@ -1110,8 +1501,7 @@ class AutomatedStoryGenerator:
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
                 timeout=1800,
-                system="You are a MASTER STORYTELLER and automated content creator. Stage 1: Create complete planning + first half atmospheric stories with rich character interactions. Focus on memorable, distinct characters. SHOWCASE YOUR STORYTELLING MASTERY with unique, creative openings for each scene. The phrase 'You find yourself' is forbidden - instead, craft atmospheric beginnings that immediately immerse the reader with variety and expertise.",
-                messages=[{"role": "user", "content": stage1_prompt}]
+                system="You are KRISTIN HANNAH - the bestselling master of historical fiction. Your writing has sold 25+ million copies worldwide. Apply your proven techniques from The Nightingale, The Four Winds, and The Great Alone. Use your signature elderly narrator voice with lived wisdom, emotional precision language, and research-authentic historical details. Each opening must use a different pattern from your repertoire - never repeat exact formulas. Focus on female resilience, disaster foreshadowing, and the bittersweet beauty of last peaceful moments. Write with the depth and authenticity that made you a global phenomenon.",                messages=[{"role": "user", "content": stage1_prompt}]
             )
 
             content = ""
@@ -1192,18 +1582,22 @@ class AutomatedStoryGenerator:
 
     ## MASTER STORYTELLING REQUIREMENTS (ENHANCED FROM LOCAL VERSION):
 
-    ### 🎨 OPENING MASTERY (CRITICAL):
-    - **FORBIDDEN:** Never use "You find yourself" - this phrase is completely banned
-    - **REQUIRED:** Create unique, atmospheric openings for each scene
-    - **VARIETY:** Use different opening styles:
-      * Environmental: "The golden light filters through..."
-      * Temporal: "As twilight settles over..."
-      * Auditory: "Soft footsteps echo in..."
-      * Sensory: "The gentle breeze carries..."
-      * Visual: "Shadows dance across..."
-      * Character-focused: "[Character name] pauses at the threshold..."
-      * Action-based: "The wooden door creaks open..."
-      * Emotional: "A sense of peace settles..."
+    ## KRISTIN HANNAH STORYTELLING MASTERY (CONTINUED FROM STAGE 1):
+
+    ### 🎭 HANNAH'S OPENING VARIETY (NEVER REPEAT EXACT FORMULAS):
+    - **WISDOM CONTINUATION:** "Having witnessed [event], I learned that [insight]..."
+    - **MEMORY DEEPENING:** "The image that haunts me most is [specific moment]..."
+    - **GENERATIONAL WISDOM:** "Young people today cannot imagine [historical reality]..."
+    - **EMOTIONAL CORRECTION:** "[Something] happened. Happened - as if it were simple fate..."
+    - **TIME REFLECTION:** "Looking back, I see how [moment] contained [hidden meaning]..."
+    - **EXPERIENCE AUTHORITY:** "Those who lived through [event] know [truth others don't]..."
+    
+    ### 🎨 HANNAH'S NARRATIVE VOICE CONSISTENCY:
+    - **ELDERLY NARRATOR:** Continue same wise, experienced voice from Stage 1
+    - **EMOTIONAL PRECISION:** Use Hannah's specific correction patterns
+    - **DISASTER AWARENESS:** Narrator knows outcome, characters remain hopeful
+    - **FEMALE STRENGTH:** Show resilience emerging from impossible circumstances
+    - **RESEARCH AUTHENTICITY:** Period-accurate details with Hannah's depth
 
     ### 📝 WORD COUNT PRECISION:
     - 2-3 minute scenes: 300-450 words
@@ -1258,18 +1652,17 @@ class AutomatedStoryGenerator:
       }}
     }}
 
-    ## STORYTELLING EXCELLENCE CHALLENGE:
-    Write {remaining_scenes} completely different, masterful stories. Each must have:
-    - **UNIQUE atmospheric opening** (no repeated phrases, no "You find yourself")
-    - **Perfect word count** for scene duration
-    - **Rich character development** with meaningful interactions
-    - **Historical authenticity** with accurate period details
-    - **Sleep-optimized pacing** with gentle rhythm
-    - **Sensory immersion** that transports readers
-
-    Demonstrate your expertise as a MASTER STORYTELLER. Create stories that are so well-crafted and atmospheric that listeners naturally drift into peaceful sleep while being transported to another time and place.
-
-    REMEMBER: Each story opening must be completely different and showcase your storytelling range! Continue character development from Stage 1 with consistency."""
+    ## KRISTIN HANNAH EXCELLENCE CHALLENGE:
+    Continue your bestselling mastery across {remaining_scenes} stories using your proven methods:
+    - **HANNAH'S OPENING VARIETY** - Different wisdom/memory/reflection pattern for each story
+    - **VOICE CONSISTENCY** - Same elderly narrator from Stage 1 with lived experience
+    - **EMOTIONAL AUTHENTICITY** - Your signature correction patterns and precise language
+    - **HISTORICAL DEPTH** - Research-level authenticity that made your novels credible
+    - **FEMALE RESILIENCE** - Continue themes of strength through impossible circumstances
+    - **DISASTER FORESHADOWING** - Maintain narrator's tragic knowledge vs characters' hope
+    - **CHARACTER CONTINUITY** - Develop Stage 1 characters with your trademark depth
+    
+    Write with the same emotional precision and historical authenticity that made The Nightingale a global phenomenon. Each opening must demonstrate your mastery while never repeating exact formulas from previous stories or Stage 1."""
 
         try:
             self.api_call_count += 1
@@ -1280,8 +1673,7 @@ class AutomatedStoryGenerator:
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
                 timeout=1800,
-                system="You are a MASTER STORYTELLER with expertise in sleep content creation. Stage 2: Complete the remaining stories with rich character development and consistent character interactions from Stage 1. DEMONSTRATE YOUR STORYTELLING EXPERTISE with inventive, atmospheric openings for each scene. Never use 'You find yourself' - create unique beginnings that set mood and place with variety and mastery.",
-                messages=[{"role": "user", "content": stage2_prompt}]
+                system="You are KRISTIN HANNAH continuing your masterwork. Maintain your signature elderly narrator voice and emotional precision from Stage 1. Each remaining story must use a different opening pattern from your proven repertoire. Continue the female resilience themes and disaster foreshadowing established earlier. Apply the same research-authentic historical details and memory-driven narrative structure that made your novels bestsellers. Keep character development consistent with Stage 1 while varying your opening approaches.",                messages=[{"role": "user", "content": stage2_prompt}]
             )
 
             content = ""
@@ -1314,17 +1706,68 @@ class AutomatedStoryGenerator:
             CONFIG.logger.error(f"Stage 2 enhanced error: {e}")
             return {"stories": {}, "stage2_stats": {"error": str(e)}}
 
-    def _extract_characters(self, topic: str, description: str, stage1_result: Dict, stage2_result: Dict) -> Dict[
-        str, Any]:
-        """STAGE 3: Extract main characters + YouTube optimization + REGENERATE VISUAL PROMPTS"""
+    def generate_hook_subscribe_scenes(self, scene_plan: List[Dict], hook_content: str, subscribe_content: str) -> Dict:
+        """Generate background scenes for hook and subscribe with precise timing"""
+
+        self.log_step("Hook & Subscribe Scene Selection")
+
+        # Select 10 atmospheric scenes for hook (0-30s)
+        hook_scenes = []
+        atmospheric_scenes = [s for s in scene_plan if
+                              s.get('template') == 'atmospheric' or s.get('emotion') == 'peaceful'][:10]
+
+        for i, scene in enumerate(atmospheric_scenes):
+            hook_scenes.append({
+                "scene_id": scene['scene_id'],
+                "scene_title": scene['title'],
+                "start_time": i * 3,
+                "end_time": (i * 3) + 3,
+                "duration": 3,
+                "visual_prompt": f"Atmospheric cinematic view of {scene['location']}, golden hour lighting, peaceful and mysterious mood",
+                "timing_note": f"Display during hook seconds {i * 3}-{(i * 3) + 3}",
+                "sync_importance": "HIGH - Must align with hook narration rhythm"
+            })
+
+        # Select 10 community scenes for subscribe (30-60s)
+        subscribe_scenes = []
+        community_scenes = [s for s in scene_plan if
+                            s.get('template') == 'character_focused' or len(s.get('characters_mentioned', [])) > 0][:10]
+
+        for i, scene in enumerate(community_scenes):
+            subscribe_scenes.append({
+                "scene_id": scene['scene_id'],
+                "scene_title": scene['title'],
+                "start_time": i * 3,
+                "end_time": (i * 3) + 3,
+                "duration": 3,
+                "visual_prompt": f"Welcoming community view of {scene['location']}, warm lighting, inviting atmosphere",
+                "timing_note": f"Display during subscribe seconds {i * 3}-{(i * 3) + 3}",
+                "sync_importance": "HIGH - Must feel warm and community-building"
+            })
+
+        return {
+            "hook_scenes": hook_scenes,
+            "subscribe_scenes": subscribe_scenes,
+            "scene_story_alignment": {
+                "rule": "When story mentions scene X, immediately display scene X",
+                "critical": "Scene mention = Scene display",
+                "timing": "Instant visual sync with narrative"
+            },
+            "production_notes": {
+                "hook_timing": "Use hook_scenes during golden hook narration (0-30s)",
+                "subscribe_timing": "Use subscribe_scenes during subscribe request (30-60s)",
+                "visual_sync": "Each scene should blend seamlessly with spoken content",
+                "fallback_strategy": "If scene unavailable, use next scene in sequence"
+            }
+        }
+
+    def _extract_characters(self, topic: str, description: str, stage1_result: Dict, validation_result: Dict) -> Dict[str, Any]:
+        """STAGE 3: Extract main characters + YouTube optimization + REGENERATE VISUAL PROMPTS (using validated stories)"""
 
         self.character_system.log_extraction_step("Character Extraction and Production Optimization")
 
-        # Combine all story content for analysis
-        all_stories = {}
-        all_stories.update(stage1_result.get('stories', {}))
-        all_stories.update(stage2_result.get('stories', {}))
-
+        # Use validated stories instead of raw stage results
+        all_stories = validation_result.get('validated_stories', {})
         scene_plan = stage1_result.get('scene_plan', [])
 
         # Create character extraction prompt
@@ -1555,8 +1998,7 @@ Plus full YouTube optimization and production specifications."""
                 temperature=0.3,
                 stream=True,
                 timeout=900,
-                system="You are an expert character analyst and production optimization specialist. Extract main characters with comprehensive analysis including character arcs, symbolism, visual contrast, and marketing potential. Create complete production package with deep character psychology.",
-                messages=[{"role": "user", "content": character_prompt}]
+                system="You are analyzing stories written in KRISTIN HANNAH's style. Focus on Hannah's signature female characters - resilient women who discover strength through crisis. Look for characters with Hannah's trademark emotional depth, authentic historical context, and the kind of compelling personal journeys that made The Nightingale and The Four Winds bestsellers. Extract characters who embody Hannah's themes of survival, sacrifice, and the untold stories of women in history.",                messages=[{"role": "user", "content": character_prompt}]
             )
 
             # Collect streaming response
@@ -1624,7 +2066,6 @@ Plus full YouTube optimization and production specifications."""
             print(f"❌ Character extraction error: {e}")
             return {"main_characters": [], "character_stats": {"error": str(e)}}
 
-    # 1. REPLACE: _regenerate_visual_prompts_with_characters
     def _regenerate_visual_prompts_with_characters(self, scene_plan: List[Dict], characters: List[Dict],
                                                    scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
         """Generate ENHANCED DRAMATIC visual prompts with better storytelling"""
@@ -1833,7 +2274,6 @@ Plus full YouTube optimization and production specifications."""
 
         return prompts
 
-    # 2. REPLACE: _generate_intelligent_thumbnail
     def _generate_intelligent_thumbnail(self, topic: str, description: str, character_result: Dict,
                                         clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
         """Generate DRAMATICALLY ENHANCED thumbnail with better storytelling and composition"""
@@ -2040,91 +2480,15 @@ Plus full YouTube optimization and production specifications."""
                 }
             }
 
-    def _extract_visual_prompts_from_text(self, content: str) -> List[Dict]:
-        """Extract visual prompts from text when JSON parsing fails"""
-        prompts = []
-        for i in range(1, 41):
-            prompt_data = {
-                "scene_number": i,
-                "title": f"Scene {i}",
-                "characters_present": [],
-                "character_reference_needed": False,
-                "prompt": f"Ancient scene, historically accurate, atmospheric lighting",
-                "enhanced_prompt": f"[ATMOSPHERIC SCENE] Ancient scene, historically accurate, atmospheric lighting",
-                "duration_minutes": 4,
-                "emotion": "peaceful",
-                "characters_in_scene": []
-            }
-            prompts.append(prompt_data)
-        return prompts
-
-    def _create_fallback_visual_prompts(self, scene_plan: List[Dict], characters: List[Dict],
-                                        scene_character_map: Dict) -> List[Dict]:
-        """Fallback: Create visual prompts directly from scene plan and character data"""
-        prompts = []
-
-        for scene in scene_plan:
-            scene_id = scene['scene_id']
-            scene_characters = scene_character_map.get(str(scene_id), [])
-
-            character_refs = []
-            character_names = []
-
-            for scene_char in scene_characters:
-                char_name = scene_char if isinstance(scene_char, str) else scene_char.get('name', '')
-                character_names.append(char_name)
-
-                full_char = next((c for c in characters if c['name'] == char_name), None)
-                if full_char:
-                    character_refs.append({
-                        'name': full_char['name'],
-                        'description': full_char['physical_description'],
-                        'importance': full_char['importance_score']
-                    })
-
-            location = scene.get('location', 'Ancient setting')
-            description = scene.get('description', 'Peaceful scene')
-            emotion = scene.get('emotion', 'peaceful')
-
-            if character_names:
-                char_list = ', '.join(character_names)
-                prompt = f"[CHARACTERS: {char_list}] {location}, {description}, historically accurate, {emotion} atmosphere"
-                enhanced_prompt = f"[CHARACTERS: {char_list}] {location}, {description}, historically accurate, {emotion} atmosphere"
-                char_ref_needed = True
-            else:
-                prompt = f"[ATMOSPHERIC SCENE - NO CHARACTERS] {location}, {description}, historically accurate, {emotion} atmosphere"
-                enhanced_prompt = prompt
-                char_ref_needed = False
-
-            prompt_data = {
-                "scene_number": scene_id,
-                "title": scene.get('title', f"Scene {scene_id}"),
-                "location": location,
-                "characters_present": character_names,
-                "character_reference_needed": char_ref_needed,
-                "prompt": prompt,
-                "enhanced_prompt": enhanced_prompt,
-                "duration_minutes": scene.get('duration_minutes', 4),
-                "emotion": emotion,
-                "template": scene.get('template', 'atmospheric'),
-                "characters_in_scene": character_refs
-            }
-
-            prompts.append(prompt_data)
-
-        return prompts
-
-    def _combine_all_stages(self, stage1: Dict, stage2: Dict, character_data: Dict, thumbnail_data: Dict,
+    def _combine_all_stages(self, stage1: Dict, validation_result: Dict, character_data: Dict, thumbnail_data: Dict,
                             hook_subscribe_data: Dict, topic: str, description: str) -> Dict[str, Any]:
-        """Combine all five stages into final result - USING REGENERATED VISUAL PROMPTS + THUMBNAIL + ALL LOCAL FEATURES"""
+        """Combine all five stages into final result - USING VALIDATED STORIES + REGENERATED VISUAL PROMPTS + THUMBNAIL + ALL LOCAL FEATURES"""
 
         self.log_step(
-            "Combining All Stages with Regenerated Visual Prompts + Thumbnail + Hook/Subscribe + ALL LOCAL FEATURES")
+            "Combining All Stages with VALIDATED STORIES + Regenerated Visual Prompts + Thumbnail + Hook/Subscribe + ALL LOCAL FEATURES")
 
-        # Merge stories
-        all_stories = {}
-        all_stories.update(stage1.get('stories', {}))
-        all_stories.update(stage2.get('stories', {}))
+        # Use validated stories from validation system
+        all_stories = validation_result.get('validated_stories', {})
 
         # Use REGENERATED visual prompts
         if 'regenerated_visual_prompts' in character_data:
@@ -2148,13 +2512,13 @@ Plus full YouTube optimization and production specifications."""
         # Generate scene chapters for YouTube
         scene_chapters = self._generate_scene_chapters(stage1.get('scene_plan', []))
 
-        # Compile complete story text
+        # Compile complete story text using validated stories
         complete_story = self._compile_complete_story({
             **stage1,
             'stories': all_stories
         })
 
-        # Final result with ALL ENHANCEMENTS + ALL LOCAL FEATURES
+        # Final result with ALL ENHANCEMENTS + ALL LOCAL FEATURES + VALIDATION SYSTEM
         result = {
             "hook_section": stage1.get("golden_hook", {}),
             "subscribe_section": stage1.get("subscribe_section", {}),
@@ -2163,7 +2527,7 @@ Plus full YouTube optimization and production specifications."""
             "complete_story": complete_story,
             "visual_prompts": enhanced_visual_prompts,  # INCLUDES THUMBNAIL
             "voice_directions": stage1.get("voice_directions", []),
-            "stories": all_stories,
+            "stories": all_stories,  # 🆕 VALIDATED STORIES
 
             # CHARACTER DATA
             "main_characters": character_data.get('main_characters', []),
@@ -2183,11 +2547,19 @@ Plus full YouTube optimization and production specifications."""
             # PRODUCTION DATA
             "production_specifications": character_data.get('production_specifications', {}),
 
+            # 🆕 VALIDATION DATA
+            "validation_report": validation_result.get('validation_report', {}),
+            "validation_results": validation_result.get('validation_results', {}),
+
             "generation_stats": {
                 "api_calls_used": self.api_call_count,
                 "total_cost": self.total_cost,
                 "five_stage_approach": True,
                 "smart_algorithm": True,
+                "validation_system_enabled": CONFIG.claude_config.get('validation_enabled', True),
+                "auto_correction_enabled": CONFIG.claude_config.get('auto_correction', True),
+                "stories_validated": len(all_stories),
+                "stories_corrected": validation_result.get('validation_report', {}).get('corrections_made', 0),
                 "visual_prompts_regenerated": 'regenerated_visual_prompts' in character_data,
                 "thumbnail_generated": bool(thumbnail_data.get('thumbnail_prompt')),
                 "hook_subscribe_generated": bool(hook_subscribe_data.get('hook_scenes')),
@@ -2199,7 +2571,7 @@ Plus full YouTube optimization and production specifications."""
                 "scenes_planned": len(stage1.get("scene_plan", [])),
                 "stories_written": len(all_stories),
                 "stage1_stories": len(stage1.get('stories', {})),
-                "stage2_stories": len(stage2.get('stories', {})),
+                "stage2_stories": len(all_stories) - len(stage1.get('stories', {})),
                 "characters_extracted": len(character_data.get('main_characters', [])),
                 "production_ready": len(all_stories) >= 25,
                 "total_duration_minutes": sum(
@@ -2207,15 +2579,17 @@ Plus full YouTube optimization and production specifications."""
                 "automated_production_ready": True,
                 "server_optimized": True,
                 "complete_pipeline": True,
-                "all_local_features_integrated": True
+                "all_local_features_integrated": True,
+                "validation_and_correction_integrated": True
             },
             "generation_log": self.generation_log,
             "character_extraction_log": self.character_system.extraction_log,
+            "validation_log": self.validation_system.validation_log,  # 🆕 NEW
             "topic": topic,
             "description": description,
             "generated_at": datetime.now().isoformat(),
             "model_used": CONFIG.claude_config["model"],
-            "enhancement_status": "complete_5_stage_pipeline_with_smart_algorithm_and_all_optimizations_plus_all_local_features"
+            "enhancement_status": "complete_5_stage_pipeline_with_validation_system_smart_algorithm_and_all_optimizations_plus_all_local_features"
         }
 
         return result
@@ -2257,6 +2631,26 @@ Plus full YouTube optimization and production specifications."""
             enhanced_prompts.append(enhanced_prompt)
 
         return enhanced_prompts
+
+    def _generate_scene_chapters(self, scene_plan: List[Dict]) -> List[Dict]:
+        """Generate YouTube chapter markers for scenes"""
+        chapters = []
+        current_time = 60  # Start after hook and subscribe (60 seconds)
+
+        for scene in scene_plan:
+            duration_seconds = int(scene.get('duration_minutes', 4) * 60)
+
+            chapters.append({
+                "time": f"{current_time // 60}:{current_time % 60:02d}",
+                "title": f"Scene {scene['scene_id']}: {scene.get('title', 'Unknown')}"[:100],
+                "duration_seconds": duration_seconds,
+                "emotion": scene.get('emotion', 'peaceful'),
+                "template": scene.get('template', 'atmospheric')
+            })
+
+            current_time += duration_seconds
+
+        return chapters
 
     def _compile_complete_story(self, story_data: Dict) -> str:
         """Compile all components into final story text"""
@@ -2470,13 +2864,13 @@ def complete_topic_in_database(topic_id: int, scene_count: int, total_duration: 
 
 def save_production_outputs(output_dir: str, result: Dict, story_topic: str, topic_id: int,
                             api_calls: int, total_cost: float):
-    """Save complete production outputs - UPDATED SERVER VERSION WITH ALL LOCAL FEATURES + NEW FILES"""
+    """Save complete production outputs - UPDATED SERVER VERSION WITH ALL LOCAL FEATURES + VALIDATION REPORT"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     saved_files = []
 
     try:
-        # 1. Complete story text
+        # 1. Complete story text (using validated stories)
         story_path = output_path / "complete_story.txt"
         with open(story_path, "w", encoding="utf-8") as f:
             f.write(result["complete_story"])
@@ -2489,7 +2883,8 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             "scene_chapters": result.get("scene_chapters", []),
             "total_scenes": len(result.get("scene_plan", [])),
             "total_duration_minutes": sum(scene.get('duration_minutes', 4) for scene in result.get("scene_plan", [])),
-            "smart_algorithm_used": result.get("generation_stats", {}).get("smart_algorithm", False)
+            "smart_algorithm_used": result.get("generation_stats", {}).get("smart_algorithm", False),
+            "validation_system_used": result.get("generation_stats", {}).get("validation_system_enabled", False)
         }
         with open(plan_path, "w", encoding="utf-8") as f:
             json.dump(scene_data, f, indent=2, ensure_ascii=False)
@@ -2526,9 +2921,29 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             json.dump(character_data, f, indent=2, ensure_ascii=False)
         saved_files.append("character_profiles.json")
 
-        # 6. Platform metadata (FROM LOCAL VERSION - MORE COMPREHENSIVE THAN youtube_metadata.json)
-        platform_path = output_path / "platform_metadata.json"
-        youtube_data = result.get("youtube_optimization", {})
+        # 🆕 6. VALIDATION REPORT (NEW FILE)
+        validation_report = result.get("validation_report", {})
+        if validation_report and validation_report.get('validation_enabled', False):
+            validation_path = output_path / "validation_report.json"
+            validation_data = {
+                "validation_report": validation_report,
+                "validation_results": result.get("validation_results", {}),
+                "validation_log": result.get("validation_log", []),
+                "validation_summary": {
+                    "validation_enabled": True,
+                    "auto_correction_enabled": result.get("generation_stats", {}).get("auto_correction_enabled", False),
+                    "stories_validated": result.get("generation_stats", {}).get("stories_validated", 0),
+                    "stories_corrected": result.get("generation_stats", {}).get("stories_corrected", 0),
+                    "target_tolerance": CONFIG.claude_config.get('target_tolerance', 0.2),
+                    "target_words_per_minute": CONFIG.claude_config.get('target_words_per_minute', 140)
+                }
+            }
+            with open(validation_path, "w", encoding="utf-8") as f:
+                json.dump(validation_data, f, indent=2, ensure_ascii=False)
+            saved_files.append("validation_report.json")
+
+        # Rest of the files remain the same...
+        # [Continue with platform_metadata.json, youtube_metadata.json, etc.]
 
         # Get main character for thumbnail concept
         main_characters = result.get("main_characters", [])
@@ -2539,6 +2954,10 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
         scene_plan = result.get('scene_plan', [])
         total_duration = sum(scene.get('duration_minutes', 4) for scene in scene_plan)
         total_hours = int(total_duration / 60)
+
+        # 7. Platform metadata (FROM LOCAL VERSION - MORE COMPREHENSIVE THAN youtube_metadata.json)
+        platform_path = output_path / "platform_metadata.json"
+        youtube_data = result.get("youtube_optimization", {})
 
         # Create comprehensive platform metadata
         platform_data = {
@@ -2648,7 +3067,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             json.dump(platform_data, f, indent=2, ensure_ascii=False)
         saved_files.append("platform_metadata.json")
 
-        # 7. YouTube metadata (SIMPLIFIED VERSION FOR BACKWARD COMPATIBILITY)
+        # 8. YouTube metadata (SIMPLIFIED VERSION FOR BACKWARD COMPATIBILITY)
         youtube_path = output_path / "youtube_metadata.json"
         youtube_metadata = {
             "clickbait_titles": youtube_data.get("clickbait_titles", platform_data["title_options"]),
@@ -2663,7 +3082,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             json.dump(youtube_metadata, f, indent=2, ensure_ascii=False)
         saved_files.append("youtube_metadata.json")
 
-        # 8. Thumbnail data with composition strategy
+        # 9. Thumbnail data with composition strategy
         thumbnail_data = result.get("thumbnail_data", {})
         if thumbnail_data.get("thumbnail_prompt"):
             thumbnail_path = output_path / "thumbnail_generation.json"
@@ -2671,7 +3090,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 json.dump(thumbnail_data, f, indent=2, ensure_ascii=False)
             saved_files.append("thumbnail_generation.json")
 
-        # 9. Hook & Subscribe scenes
+        # 10. Hook & Subscribe scenes
         hook_subscribe_data = result.get("hook_subscribe_scenes", {})
         if hook_subscribe_data:
             hook_subscribe_path = output_path / "hook_subscribe_scenes.json"
@@ -2679,15 +3098,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 json.dump(hook_subscribe_data, f, indent=2, ensure_ascii=False)
             saved_files.append("hook_subscribe_scenes.json")
 
-        # 9.5. Hook & Subscribe Visual Prompts (YENİ - 16. DOSYA)
-        hook_subscribe_visuals = result.get("hook_subscribe_visual_prompts", {})
-        if hook_subscribe_visuals:
-            hook_subscribe_visual_path = output_path / "hook_subscribe_visual_prompts.json"
-            with open(hook_subscribe_visual_path, "w", encoding="utf-8") as f:
-                json.dump(hook_subscribe_visuals, f, indent=2, ensure_ascii=False)
-            saved_files.append("hook_subscribe_visual_prompts.json")
-
-        # 10. Production specifications (DETAILED FROM SERVER + LOCAL IMPROVEMENTS)
+        # 11. Production specifications
         production_specs = result.get("production_specifications", {})
         if production_specs:
             production_path = output_path / "production_specifications.json"
@@ -2695,7 +3106,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 json.dump(production_specs, f, indent=2, ensure_ascii=False)
             saved_files.append("production_specifications.json")
 
-        # 11. AUTOMATION_SPECS.JSON (FROM LOCAL VERSION - ENHANCED)
+        # 12. AUTOMATION_SPECS.JSON
         automation_path = output_path / "automation_specs.json"
         automation_data = {
             "audio_production": production_specs.get("audio_production", {}),
@@ -2703,13 +3114,18 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             "quality_control": production_specs.get("quality_control", {}),
             "automation_specifications": production_specs.get("automation_specifications", {}),
             "precise_timing_breakdown": production_specs.get("precise_timing_breakdown", {}),
+            "validation_system": {
+                "enabled": result.get("generation_stats", {}).get("validation_system_enabled", False),
+                "stories_corrected": result.get("generation_stats", {}).get("stories_corrected", 0),
+                "validation_tolerance": CONFIG.claude_config.get('target_tolerance', 0.2)
+            },
             "implementation_ready": True
         }
         with open(automation_path, "w", encoding="utf-8") as f:
             json.dump(automation_data, f, indent=2, ensure_ascii=False)
         saved_files.append("automation_specs.json")
 
-        # 12. Audio generation prompts (ENHANCED FROM SERVER VERSION)
+        # 13. Audio generation prompts
         audio_prompts = []
 
         # Hook audio
@@ -2776,13 +3192,13 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             json.dump(audio_prompts, f, indent=2, ensure_ascii=False)
         saved_files.append("audio_generation_prompts.json")
 
-        # 13. ALL_STORIES.JSON (FROM LOCAL VERSION)
+        # 14. ALL_STORIES.JSON (validated stories)
         stories_path = output_path / "all_stories.json"
         with open(stories_path, "w", encoding="utf-8") as f:
             json.dump(result["stories"], f, indent=2, ensure_ascii=False)
         saved_files.append("all_stories.json")
 
-        # 14. Video composition instructions (FROM SERVER VERSION - ENHANCED)
+        # 15. Video composition instructions
         production_video = production_specs.get("video_assembly", {})
         video_specs = production_video.get("video_specifications", {})
 
@@ -2835,7 +3251,12 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 "video_codec": "h264",
                 "total_duration": f"{sum(scene.get('duration_minutes', 4) for scene in result.get('scene_plan', [])) + 1} minutes"
             },
-            "chapters": result.get("scene_chapters", [])
+            "chapters": result.get("scene_chapters", []),
+            "validation_notes": {
+                "stories_validated": result.get("generation_stats", {}).get("validation_system_enabled", False),
+                "stories_corrected": result.get("generation_stats", {}).get("stories_corrected", 0),
+                "duration_accuracy": "Enhanced with validation system"
+            }
         }
 
         video_path = output_path / "video_composition_instructions.json"
@@ -2843,7 +3264,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             json.dump(video_composition, f, indent=2, ensure_ascii=False)
         saved_files.append("video_composition_instructions.json")
 
-        # 15. Generation report (COMPREHENSIVE - COMBINING BOTH VERSIONS)
+        # 16. Generation report (COMPREHENSIVE WITH VALIDATION)
         report_path = output_path / "generation_report.json"
         production_report = {
             "topic": story_topic,
@@ -2854,15 +3275,15 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
             "server_optimized": True,
             "five_stage_approach": True,
             "smart_algorithm_used": result.get("generation_stats", {}).get("smart_algorithm", False),
-            "all_local_features_integrated": result.get("generation_stats", {}).get("all_local_features_integrated",
-                                                                                    False),
+            "validation_system_enabled": result.get("generation_stats", {}).get("validation_system_enabled", False),
+            "all_local_features_integrated": result.get("generation_stats", {}).get("all_local_features_integrated", False),
             "complete_pipeline": True,
             "stats": result["generation_stats"],
             "cost_analysis": {
                 "total_api_calls": api_calls,
                 "total_cost": total_cost,
                 "cost_per_scene": total_cost / len(result.get("scene_plan", [1])),
-                "cost_efficiency": "Claude 4 optimized"
+                "cost_efficiency": "Claude 4 optimized with validation system"
             },
             "quality_metrics": {
                 "scenes_planned": len(result.get("scene_plan", [])),
@@ -2873,7 +3294,17 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 "production_specs": bool(result.get("production_specifications", {}).get("audio_production")),
                 "thumbnail_composition": bool(result.get("thumbnail_data", {}).get("thumbnail_prompt")),
                 "platform_metadata_complete": True,
-                "hook_subscribe_generated": bool(result.get("hook_subscribe_scenes", {}).get("hook_scenes"))
+                "hook_subscribe_generated": bool(result.get("hook_subscribe_scenes", {}).get("hook_scenes")),
+                "validation_system_used": result.get("generation_stats", {}).get("validation_system_enabled", False),
+                "stories_validated": result.get("generation_stats", {}).get("stories_validated", 0),
+                "stories_corrected": result.get("generation_stats", {}).get("stories_corrected", 0)
+            },
+            "validation_summary": {
+                "enabled": result.get("generation_stats", {}).get("validation_system_enabled", False),
+                "stories_corrected": result.get("generation_stats", {}).get("stories_corrected", 0),
+                "target_tolerance": CONFIG.claude_config.get('target_tolerance', 0.2),
+                "auto_correction": CONFIG.claude_config.get('auto_correction', True),
+                "validation_log_entries": len(result.get("validation_log", []))
             },
             "files_saved": saved_files,
             "next_steps": [
@@ -2882,7 +3313,8 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 "3. Generate thumbnail (scene 99) using visual_generation_prompts.json",
                 "4. Generate audio using audio_generation_prompts.json with production specifications",
                 "5. Compose video using video_composition_instructions.json with chapters",
-                "6. Upload to YouTube using platform_metadata.json with full SEO optimization"
+                "6. Upload to YouTube using platform_metadata.json with full SEO optimization",
+                "7. Review validation_report.json for quality assurance"
             ],
             "automation_readiness": {
                 "character_extraction": "✅ Complete",
@@ -2891,14 +3323,15 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 "platform_metadata": "✅ Complete",
                 "composition_strategy": "✅ Complete",
                 "api_ready_format": "✅ Complete",
-                "all_local_features": "✅ Complete"
+                "all_local_features": "✅ Complete",
+                "validation_system": "✅ Complete with auto-correction"
             }
         }
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(production_report, f, indent=2, ensure_ascii=False)
         saved_files.append("generation_report.json")
 
-        print(f"✅ Complete production files saved (15 TOTAL - ALL LOCAL + SERVER FEATURES): {saved_files}")
+        print(f"✅ Complete production files saved ({len(saved_files)} TOTAL - ALL LOCAL + SERVER FEATURES + VALIDATION): {saved_files}")
         CONFIG.logger.info(f"Files saved to: {output_dir}")
 
         # Mark topic as completed in database
@@ -2915,11 +3348,11 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
 
 
 def print_production_summary(result: Dict, story_topic: str, output_path: str, generation_time: float):
-    """Print complete production generation summary with all new features - UPDATED FOR 15 FILES + ALL LOCAL FEATURES"""
+    """Print complete production generation summary with validation system features"""
     stats = result["generation_stats"]
 
     print("\n" + "🚀" * 60)
-    print("COMPLETE AUTOMATED STORY GENERATOR - ALL LOCAL + SERVER FEATURES INTEGRATED!")
+    print("COMPLETE AUTOMATED STORY GENERATOR WITH VALIDATION SYSTEM!")
     print("🚀" * 60)
 
     print(f"📚 Topic: {story_topic}")
@@ -2930,19 +3363,35 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print(f"🎲 Smart Algorithm: {'✅ ACTIVE' if stats.get('smart_algorithm') else '❌ OFF'}")
     print(f"🎯 5-Stage Approach: {'✅ ACTIVE' if stats.get('five_stage_approach') else '❌ OFF'}")
     print(f"🔗 All Local Features: {'✅ INTEGRATED' if stats.get('all_local_features_integrated') else '❌ MISSING'}")
+    print(f"🛡️  Validation System: {'✅ ACTIVE' if stats.get('validation_system_enabled') else '❌ OFF'}")
+    print(f"🔧 Auto-Correction: {'✅ ACTIVE' if stats.get('auto_correction_enabled') else '❌ OFF'}")
 
-    print(f"\n📊 CLAUDE 4 PRODUCTION PERFORMANCE:")
+    print(f"\n📊 CLAUDE 4 + VALIDATION PERFORMANCE:")
     print(f"🔥 Total API Calls: {stats['api_calls_used']}")
     print(f"💰 Total Cost: ${result.get('total_cost', 0):.4f}")
     print(f"⏱️  Total Generation Time: {generation_time:.1f}s")
     print(f"🎬 Scenes Planned: {stats['scenes_planned']}")
     print(f"📝 Stories Written: {stats['stories_written']}")
+    print(f"✅ Stories Validated: {stats.get('stories_validated', 'N/A')}")
+    print(f"🔧 Stories Corrected: {stats.get('stories_corrected', 0)}")
     print(f"👥 Characters Extracted: {stats['characters_extracted']}")
     print(f"🖼️  Thumbnail Generated: {'✅ YES' if stats.get('thumbnail_generated') else '❌ NO'}")
     print(f"📺 YouTube Optimization: {'✅ YES' if stats.get('youtube_optimization_generated') else '❌ NO'}")
     print(f"🏭 Production Specs: {'✅ YES' if stats.get('production_specifications_generated') else '❌ NO'}")
     print(f"🎭 Hook & Subscribe: {'✅ YES' if stats.get('hook_subscribe_generated') else '❌ NO'}")
     print(f"🎥 Visual Prompts (with thumbnail): {stats.get('visual_prompts_with_thumbnail', 0)}")
+
+    # Validation system stats
+    if stats.get('validation_system_enabled'):
+        print(f"\n🛡️  VALIDATION SYSTEM RESULTS:")
+        validation_report = result.get('validation_report', {})
+        print(f"📊 Target Tolerance: ±{CONFIG.claude_config.get('target_tolerance', 0.2)*100:.0f}%")
+        print(f"📏 Words per Minute: {CONFIG.claude_config.get('target_words_per_minute', 140)}")
+        print(f"✅ Stories Validated: {stats.get('stories_validated', 0)}")
+        print(f"🔧 Stories Auto-Corrected: {stats.get('stories_corrected', 0)}")
+        if stats.get('stories_corrected', 0) > 0:
+            print(f"💡 Duration accuracy improved through auto-correction!")
+        print(f"📋 Validation Log Entries: {len(result.get('validation_log', []))}")
 
     # Smart generation stats
     if stats.get('smart_algorithm'):
@@ -2958,39 +3407,9 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
             total_duration = sum(durations)
             print(f"📈 Total Duration: {total_duration:.1f} minutes ({total_duration / 60:.1f} hours)")
             print(f"📊 Average Scene: {total_duration / len(durations):.1f} minutes")
-            print(f"🎯 Duration Accuracy: Smart algorithm ensures natural variation")
+            print(f"🎯 Duration Accuracy: Smart algorithm + validation system ensures precision")
 
-    # YOUTUBE OPTIMIZATION
-    youtube_opt = result.get("youtube_optimization", {})
-    if youtube_opt:
-        print(f"\n📺 YOUTUBE OPTIMIZATION:")
-        print(f"🎯 Clickbait Titles: {len(youtube_opt.get('clickbait_titles', []))}")
-        print(f"🏷️  SEO Tags: {len(youtube_opt.get('tags', []))}")
-        print(f"📚 Chapters: {len(result.get('scene_chapters', []))}")
-        print(f"📝 Description: {'✅ Complete' if youtube_opt.get('video_description') else '❌ Missing'}")
-        print(f"🔌 API Ready Format: {'✅ Complete' if youtube_opt.get('api_ready_format') else '❌ Missing'}")
-
-    # PRODUCTION SPECIFICATIONS
-    production_specs = result.get("production_specifications", {})
-    if production_specs:
-        print(f"\n🏭 PRODUCTION SPECIFICATIONS:")
-        print(f"🎵 Audio Production: {'✅ Complete' if production_specs.get('audio_production') else '❌ Missing'}")
-        print(f"🎬 Video Assembly: {'✅ Complete' if production_specs.get('video_assembly') else '❌ Missing'}")
-        print(f"✅ Quality Control: {'✅ Complete' if production_specs.get('quality_control') else '❌ Missing'}")
-        print(
-            f"🤖 Automation Specs: {'✅ Complete' if production_specs.get('automation_specifications') else '❌ Missing'}")
-
-    # THUMBNAIL COMPOSITION
-    thumbnail_data = result.get("thumbnail_data", {})
-    if thumbnail_data:
-        print(f"\n🖼️  THUMBNAIL COMPOSITION STRATEGY:")
-        thumbnail_stats = thumbnail_data.get("thumbnail_stats", {})
-        print(f"🎯 Character Approach: {thumbnail_stats.get('character_approach', 'N/A')}")
-        print(f"👁️  Visual Style Matched: {'✅ YES' if thumbnail_stats.get('visual_style_matched') else '❌ NO'}")
-        print(f"📱 Clickbait Optimized: {'✅ YES' if thumbnail_stats.get('clickbait_optimized') else '❌ NO'}")
-        print(f"💤 Sleep Content Appropriate: {'✅ YES' if thumbnail_stats.get('sleep_content_appropriate') else '❌ NO'}")
-
-    # CHARACTER ANALYSIS
+    # Character analysis
     characters = result.get("main_characters", [])
     if characters:
         print(f"\n👥 MAIN CHARACTERS:")
@@ -3002,67 +3421,55 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print(f"\n📊 Story Completion: {completion_rate:.1f}%")
 
     if completion_rate >= 80:
-        print(f"\n🎉 MASSIVE SUCCESS!")
-        print(f"✅ Complete story + character + YouTube + production + thumbnail system")
-        print(f"✅ ALL LOCAL FEATURES INTEGRATED!")
-        print(f"✅ Ready for FULL AUTOMATION")
-        print(f"🚀 Zero manual work needed!")
+        print(f"\n🎉 MASSIVE SUCCESS WITH VALIDATION!")
+        print(f"✅ Complete story + character + YouTube + production + thumbnail + validation system")
+        print(f"✅ ALL LOCAL FEATURES + VALIDATION SYSTEM INTEGRATED!")
+        print(f"✅ Ready for FULL AUTOMATION with quality assurance")
+        print(f"🚀 Zero manual work needed with automatic error correction!")
     elif completion_rate >= 60:
-        print(f"\n✅ EXCELLENT PROGRESS!")
-        print(f"⚡ Ready for automated pipeline")
-        print(f"🎯 Production deployment recommended")
+        print(f"\n✅ EXCELLENT PROGRESS WITH VALIDATION!")
+        print(f"⚡ Ready for automated pipeline with quality assurance")
+        print(f"🎯 Production deployment recommended with validation")
     else:
         print(f"\n⚠️ PARTIAL SUCCESS")
-        print(f"🔍 Review generation_report.json for issues")
+        print(f"🔍 Review generation_report.json and validation_report.json for issues")
 
-    print("\n📄 GENERATED FILES (15 TOTAL - ALL LOCAL + SERVER FEATURES COMBINED):")
-    print("1. 📖 complete_story.txt - Full story text")
+    print(f"\n📄 GENERATED FILES ({len(saved_files if 'saved_files' in locals() else [])} TOTAL - ALL FEATURES + VALIDATION):")
+    print("1. 📖 complete_story.txt - Full story text (validated)")
     print("2. 🎬 scene_plan.json - Smart scene structure + chapters")
     print("3. 🖼️  visual_generation_prompts.json - Scenes + Thumbnail (99)")
     print("4. 🎵 voice_directions.json - TTS guidance")
     print("5. 👥 character_profiles.json - Character data with generation instructions")
-    print("6. 🌍 platform_metadata.json - COMPREHENSIVE platform data + API ready format (FROM LOCAL)")
-    print("7. 📺 youtube_metadata.json - YouTube-specific metadata (compatibility)")
-    print("8. 🖼️  thumbnail_generation.json - Thumbnail composition strategy")
-    print("9. 🎭 hook_subscribe_scenes.json - Background scenes for opening")
-    print("10. 🏭 production_specifications.json - Complete production specs")
-    print("11. 🤖 automation_specs.json - Automation-specific data (FROM LOCAL)")
-    print("12. 🎵 audio_generation_prompts.json - Enhanced TTS production")
-    print("13. 📚 all_stories.json - All stories in separate file (FROM LOCAL)")
-    print("14. 🎥 video_composition_instructions.json - Video timeline + chapters")
-    print("15. 📊 generation_report.json - Complete summary with all metrics")
+    print("6. 🛡️  validation_report.json - Validation system results (NEW)")
+    print("7. 🌍 platform_metadata.json - COMPREHENSIVE platform data + API ready format")
+    print("8. 📺 youtube_metadata.json - YouTube-specific metadata (compatibility)")
+    print("9. 🖼️  thumbnail_generation.json - Thumbnail composition strategy")
+    print("10. 🎭 hook_subscribe_scenes.json - Background scenes for opening")
+    print("11. 🏭 production_specifications.json - Complete production specs")
+    print("12. 🤖 automation_specs.json - Automation-specific data with validation")
+    print("13. 🎵 audio_generation_prompts.json - Enhanced TTS production")
+    print("14. 📚 all_stories.json - All validated stories in separate file")
+    print("15. 🎥 video_composition_instructions.json - Video timeline + chapters")
+    print("16. 📊 generation_report.json - Complete summary with validation metrics")
 
-    print(f"\n🆕 ALL LOCAL FEATURES SUCCESSFULLY INTEGRATED:")
-    print(f"✅ Enhanced platform_metadata.json with comprehensive data")
-    print(f"✅ Better automation specifications and structure")
-    print(f"✅ Improved API ready formats for all platforms")
-    print(f"✅ Complete character analysis with marketing potential")
-    print(f"✅ Smart scene generation with natural duration variation")
-    print(f"✅ Both platform_metadata.json AND youtube_metadata.json for compatibility")
-    print(f"✅ Full production pipeline with detailed specifications")
+    print(f"\n🆕 VALIDATION SYSTEM ADVANTAGES:")
+    print(f"✅ Automatic story duration validation")
+    print(f"✅ Auto-correction for stories that are too short/long")
+    print(f"✅ Target word count precision (±{CONFIG.claude_config.get('target_tolerance', 0.2)*100:.0f}% tolerance)")
+    print(f"✅ Missing story generation for incomplete scenes")
+    print(f"✅ Quality assurance with detailed validation logs")
+    print(f"✅ Consistent duration targeting for TTS optimization")
+    print(f"✅ Automatic retry and correction system")
+    print(f"✅ Budget-aware correction limiting")
 
-    print(f"\n💰 EFFICIENCY vs MANUAL WORK:")
-    print(f"💵 Cost: 5 API calls vs manual character definition + thumbnail design + platform optimization")
-    print(
-        f"⚡ Speed: Automatic character extraction + visual prompt regeneration + intelligent thumbnail + platform metadata")
-    print(
-        f"🔧 Consistency: Built-in character mapping + scene-visual alignment + thumbnail optimization + API-ready formats")
-    print(f"🎯 Scalability: Works for any story topic with platform-ready outputs")
-    print(f"🖼️  Intelligence: Smart character selection + comprehensive platform metadata")
+    print(f"\n💰 EFFICIENCY vs MANUAL WORK WITH VALIDATION:")
+    print(f"💵 Cost: 5-7 API calls vs manual story editing + duration checking")
+    print(f"⚡ Speed: Automatic validation + correction + character extraction + platform optimization")
+    print(f"🔧 Consistency: Built-in quality control + duration validation + character mapping")
+    print(f"🎯 Scalability: Works for any story topic with automatic quality assurance")
+    print(f"🛡️  Reliability: Validation system ensures consistent output quality")
 
-    print(f"\n🎨 FULL PRODUCTION PIPELINE:")
-    print(f"1. 📋 Use character_profiles.json for reference generation")
-    print(f"2. 🎭 Generate {len(characters)} character reference images")
-    print(f"3. 🖼️  Use visual_generation_prompts.json for scene generation (1-N)")
-    print(f"4. 🔗 Reference characters in scenes with character presence")
-    print(f"5. 🌟 Atmospheric-only rendering for non-character scenes")
-    print(f"6. 🎯 Generate thumbnail using scene_number 99")
-    print(f"7. 🎵 Generate audio using audio_generation_prompts.json")
-    print(f"8. 🎬 Compose video using video_composition_instructions.json")
-    print(f"9. 📺 Upload using platform_metadata.json API-ready format")
-    print(f"10. 📊 Monitor analytics using tracking guidelines")
-
-    print(f"\n🏆 COMPLETE AUTOMATION ADVANTAGES (ALL LOCAL + SERVER FEATURES):")
+    print(f"\n🏆 COMPLETE AUTOMATION ADVANTAGES (ALL FEATURES + VALIDATION):")
     print("✅ Dynamic character extraction for any topic")
     print("✅ Automatic consistency mapping")
     print("✅ Visual generation pipeline ready")
@@ -3071,30 +3478,35 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
     print("✅ INTELLIGENT THUMBNAIL GENERATION")
     print("✅ Character analysis for optimal thumbnail selection")
     print("✅ Clickbait optimization while maintaining sleep content feel")
-    print("✅ COMPREHENSIVE PLATFORM OPTIMIZATION (platform_metadata.json)")
+    print("✅ COMPREHENSIVE PLATFORM OPTIMIZATION")
     print("✅ Enhanced API-ready formats for all platforms")
     print("✅ Complete audio production specs with TTS optimization")
     print("✅ Video assembly automation with precise timing")
     print("✅ Quality control validation with smart algorithm")
     print("✅ Batch processing automation with database management")
     print("✅ Precise timing calculations with natural variation")
-    print("✅ Zero manual work needed - 15 complete files")
-    print("✅ Scalable to unlimited stories with platform optimization")
-    print("✅ FULL END-TO-END AUTOMATION WITH ALL LOCAL + SERVER FEATURES")
+    print("✅ 🆕 AUTOMATIC STORY VALIDATION AND CORRECTION")
+    print("✅ 🆕 DURATION ACCURACY ASSURANCE")
+    print("✅ 🆕 MISSING STORY AUTO-GENERATION")
+    print("✅ 🆕 QUALITY METRICS AND REPORTING")
+    print("✅ Zero manual work needed - 16 complete files with validation")
+    print("✅ Scalable to unlimited stories with quality assurance")
+    print("✅ FULL END-TO-END AUTOMATION WITH VALIDATION SYSTEM")
 
     print("🚀" * 60)
 
 
 def run_autonomous_mode():
-    """Run autonomous mode - continuously process pending topics"""
+    """Run autonomous mode with validation system - continuously process pending topics"""
     import sys
     from pathlib import Path
     sys.path.append(str(Path(__file__).parent.parent / 'database'))
     from autonomous_database_manager import AutonomousDatabaseManager
     import signal
 
-    print("🤖 AUTONOMOUS MODE STARTED")
+    print("🤖 AUTONOMOUS MODE WITH VALIDATION SYSTEM STARTED")
     print("🔄 Will process all pending topics continuously")
+    print("🛡️  Validation system enabled for quality assurance")
     print("⏹️ Press Ctrl+C to stop gracefully")
 
     # Initialize database manager
@@ -3125,7 +3537,7 @@ def run_autonomous_mode():
                 font_design = ""
 
                 print(f"\n🔄 Processing topic {topic_id}: {topic}")
-
+                print(f"🛡️  Validation system will ensure quality")
 
                 # Mark as started
                 db_manager.mark_story_generation_started(topic_id)
@@ -3133,10 +3545,10 @@ def run_autonomous_mode():
                     # Setup output directory
                     output_path = Path(CONFIG.paths['OUTPUT_DIR']) / str(topic_id)
 
-                    # Initialize generator
+                    # Initialize generator with validation
                     generator = AutomatedStoryGenerator()
 
-                    # Generate complete story
+                    # Generate complete story with validation
                     start_gen_time = time.time()
                     result = generator.generate_complete_story_with_characters(
                         topic, description, clickbait_title, font_design
@@ -3146,18 +3558,24 @@ def run_autonomous_mode():
                     # Add total cost
                     result['total_cost'] = generator.total_cost
 
-                    # Save all production outputs (ALL 15 FILES)
+                    # Save all production outputs (ALL 16 FILES WITH VALIDATION)
                     save_production_outputs(
                         str(output_path), result, topic, topic_id,
                         generator.api_call_count, generator.total_cost
                     )
 
-                    # Print summary
+                    # Print summary with validation stats
                     print_production_summary(result, topic, str(output_path), generation_time)
 
                     processed_count += 1
-                    print(f"\n✅ Topic {topic_id} completed successfully!")
+                    print(f"\n✅ Topic {topic_id} completed successfully with validation!")
                     print(f"📊 Progress: {processed_count} topics processed")
+
+                    # Show validation summary
+                    if result.get('generation_stats', {}).get('validation_system_enabled'):
+                        stories_corrected = result.get('generation_stats', {}).get('stories_corrected', 0)
+                        if stories_corrected > 0:
+                            print(f"🛡️  Validation System: {stories_corrected} stories auto-corrected for optimal duration")
 
                 except Exception as e:
                     print(f"❌ Error processing topic {topic_id}: {e}")
@@ -3186,9 +3604,10 @@ def run_autonomous_mode():
 
     # Shutdown summary
     runtime = time.time() - start_time
-    print(f"\n🏁 AUTONOMOUS MODE SHUTDOWN")
+    print(f"\n🏁 AUTONOMOUS MODE WITH VALIDATION SHUTDOWN")
     print(f"⏱️ Total runtime: {runtime / 3600:.1f} hours")
     print(f"✅ Topics processed: {processed_count}")
+    print(f"🛡️  Validation system ensured quality throughout")
     print("👋 Goodbye!")
 
 
@@ -3197,17 +3616,19 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == '--autonomous':
         run_autonomous_mode()
     else:
-        # Original single topic mode
+        # Original single topic mode with validation
         try:
-            print("🚀 COMPLETE AUTOMATED STORY GENERATOR - ALL LOCAL + SERVER FEATURES INTEGRATED")
-            print("⚡ Server-optimized with complete pipeline + ALL local features")
+            print("🚀 COMPLETE AUTOMATED STORY GENERATOR WITH VALIDATION SYSTEM")
+            print("⚡ Server-optimized with complete pipeline + ALL local features + VALIDATION")
             print("🎲 FIXED: Smart random scene count & duration generation")
             print("📊 FIXED: Database integration instead of CSV")
-            print("🎭 5-stage approach: Planning + Stories + Characters + Thumbnail + Hook/Subscribe")
-            print("📄 Complete JSON outputs for automation (15 files)")
+            print("🎭 5-stage approach: Planning + Stories + VALIDATION + Characters + Thumbnail + Hook/Subscribe")
+            print("🛡️  NEW: Automatic story validation and correction system")
+            print("🔧 NEW: Auto-correction for duration accuracy")
+            print("📄 Complete JSON outputs for automation (16 files)")
             print("🎯 RIGHT-side thumbnail positioning for text overlay")
-            print("✅ INTEGRATED: All local features + Enhanced server features")
-            print("🌍 COMPREHENSIVE: platform_metadata.json + youtube_metadata.json")
+            print("✅ INTEGRATED: All local features + Enhanced server features + Validation system")
+            print("🌍 COMPREHENSIVE: platform_metadata.json + youtube_metadata.json + validation_report.json")
             print("=" * 60)
 
             # Get next topic from database
@@ -3220,10 +3641,10 @@ if __name__ == "__main__":
             # Setup output directory
             output_path = Path(CONFIG.paths['OUTPUT_DIR']) / str(topic_id)
 
-            # Initialize generator
+            # Initialize generator with validation
             generator = AutomatedStoryGenerator()
 
-            # Generate complete story with ALL LOCAL + SERVER FEATURES
+            # Generate complete story with ALL LOCAL + SERVER FEATURES + VALIDATION
             start_time = time.time()
             result = generator.generate_complete_story_with_characters(
                 topic, description, clickbait_title, font_design
@@ -3233,31 +3654,40 @@ if __name__ == "__main__":
             # Add total cost to result
             result['total_cost'] = generator.total_cost
 
-            # Save outputs with ALL LOCAL + SERVER FEATURES
+            # Save outputs with ALL LOCAL + SERVER FEATURES + VALIDATION
             save_production_outputs(str(output_path), result, topic, topic_id,
                                     generator.api_call_count, generator.total_cost)
 
-            # Print comprehensive summary
+            # Print comprehensive summary with validation
             print_production_summary(result, topic, str(output_path), generation_time)
 
-            print("\n🚀 COMPLETE PRODUCTION PIPELINE FINISHED WITH ALL LOCAL + SERVER FEATURES!")
+            print("\n🚀 COMPLETE PRODUCTION PIPELINE WITH VALIDATION FINISHED!")
             print(f"✅ All files ready for: {output_path}")
             print(f"📊 Database topic management: WORKING")
             print(f"🎲 Smart algorithm scene generation: FIXED")
             print(f"📝 Story distribution: FIXED")
-            print(f"📚 all_stories.json: ADDED")
-            print(f"🤖 automation_specs.json: ADDED")
+            print(f"🛡️  Story validation system: ADDED")
+            print(f"🔧 Auto-correction system: ADDED")
+            print(f"📚 all_stories.json: VALIDATED")
+            print(f"🤖 automation_specs.json: ENHANCED WITH VALIDATION")
             print(f"🌍 platform_metadata.json: COMPREHENSIVE")
             print(f"🔌 api_ready_format: ENHANCED")
             print(f"🎭 character extraction: ADVANCED")
             print(f"🖼️  thumbnail generation: INTELLIGENT")
             print(f"🎬 video composition: AUTOMATED")
+            print(f"📋 validation_report.json: QUALITY ASSURANCE")
             print(f"💰 Total cost: ${result.get('total_cost', 0):.4f}")
-            print(f"🏆 SUCCESS: All local features integrated into server version!")
+
+            # Show validation results
+            if result.get('generation_stats', {}).get('validation_system_enabled'):
+                stories_corrected = result.get('generation_stats', {}).get('stories_corrected', 0)
+                stories_validated = result.get('generation_stats', {}).get('stories_validated', 0)
+                print(f"🛡️  Validation Results: {stories_validated} stories validated, {stories_corrected} auto-corrected")
+
+            print(f"🏆 SUCCESS: All local features + validation system integrated into server version!")
 
         except Exception as e:
             print(f"\n💥 COMPLETE GENERATOR ERROR: {e}")
             CONFIG.logger.error(f"Generation failed: {e}")
             import traceback
-
             traceback.print_exc()

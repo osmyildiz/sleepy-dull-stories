@@ -847,7 +847,7 @@ class ServerTTSGenerator:
             "hook": {
                 "scene_number": 0,
                 "title": "Golden Hook - Channel Introduction",
-                "direction": "DYNAMIC, mysterious, cinematic trailer style. Start with ENERGY and intrigue. Build dramatic tension. Create 'I MUST keep watching' feeling. Fast-paced storytelling with strategic pauses.",
+                "direction": "Energetic, mysterious, cinematic trailer style. Start with ENERGY and intrigue. Build dramatic tension. Create 'I MUST keep watching' feeling. Fast-paced storytelling with strategic pauses.",
                 "speaking_rate": 1.0,  # ✅ Normal hız (hızlı başlangıç)
                 "pitch": 0.3  # ✅ Daha yüksek enerji
             },
