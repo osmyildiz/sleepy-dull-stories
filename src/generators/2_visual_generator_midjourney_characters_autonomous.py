@@ -727,7 +727,7 @@ class ServerMidjourneyVisualGenerator:
         """V7 parametreleriyle task submission - ESKİ submit_midjourney_task'ın YENİ VERSİYONU"""
 
         # V7 parametrelerini prompt'a ekle
-        v7_params = f" --ar {aspect_ratio} --v 7 --quality 2 --stylize 100"
+        v7_params = f" --ar {aspect_ratio} --v 7 --stylize 100"
         full_prompt = prompt + v7_params
 
         # V7 parametrelerini koruyarak temizle
