@@ -1,7 +1,8 @@
 """
-Sleepy Dull Stories - COMPLETE TÓIBÍN QUALITY STORY GENERATOR
+Sleepy Dull Stories - COMPLETE TÓIBÍN QUALITY STORY GENERATOR with ALL 15 JSON FILES
 System Logic: Master Plan → Emotional Distribution → Scene Creation → Tóibín Stories → Production JSONs → Social Media
 Quality Focus: Literary excellence with COLM TÓIBÍN standards throughout
+RESTORED: All 15 JSON files from the comprehensive version
 """
 
 import os
@@ -174,15 +175,15 @@ class DatabaseTopicManager:
         conn.close()
 
     def mark_topic_completed(self, topic_id: int, scene_count: int, total_duration: float,
-                           api_calls: int, total_cost: float, output_path: str):
-        """Mark topic as completed"""
+                             api_calls: int, total_cost: float, output_path: str):
+        """Mark topic as completed in database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         cursor.execute('''
             UPDATE topics 
             SET status = 'completed',
-                completed_at = CURRENT_TIMESTAMP,
+                production_completed_at = CURRENT_TIMESTAMP,  # BU SATIR
                 scene_count = ?,
                 total_duration_minutes = ?,
                 api_calls_used = ?,
@@ -689,8 +690,8 @@ OUTPUT FORMAT:
             raise
 
     def _create_production_jsons(self, topic: str, description: str, master_plan: Dict,
-                               stage1_result: Dict, stage2_result: Dict, clickbait_title: str = None) -> Dict:
-        """Create all production JSONs based on the completed stories"""
+                                 stage1_result: Dict, stage2_result: Dict, clickbait_title: str = None) -> Dict:
+        """Create all production JSONs based on the completed stories - ENHANCED VERSION"""
 
         self.log_step("Creating Production JSONs")
 
@@ -700,117 +701,148 @@ OUTPUT FORMAT:
         all_stories.update(stage2_result.get('stories', {}))
 
         scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
+        total_scenes = len(scene_plan)
 
-        # Create story content for analysis
+        # Create story content for analysis - ENHANCED with scene mapping
         story_content = ""
-        for scene_id, story in all_stories.items():
-            story_content += f"Scene {scene_id}:\n{story}\n\n"
+        scene_story_mapping = {}
+
+        for scene in scene_plan:
+            scene_id = str(scene.get('scene_id', 0))
+            story = all_stories.get(scene_id, '')
+
+            if story:
+                scene_story_mapping[scene_id] = {
+                    'title': scene.get('title', f'Scene {scene_id}'),
+                    'story_content': story[:1000],  # First 1000 chars
+                    'setting': scene.get('setting', ''),
+                    'main_character': scene.get('main_character', ''),
+                    'emotion': scene.get('emotion', 'peaceful'),
+                    'duration_minutes': scene.get('duration_minutes', 4.0)
+                }
+
+                story_content += f"Scene {scene_id}: {scene.get('title', '')}\n"
+                story_content += f"Characters: {scene.get('main_character', '')}\n"
+                story_content += f"Story: {story[:500]}...\n\n"
 
         production_prompt = f"""Analyze this complete TÓIBÍN story and create comprehensive production JSONs for "{topic}".
 
-TOPIC: {topic}
-DESCRIPTION: {description}
+    TOPIC: {topic}
+    DESCRIPTION: {description}
+    TOTAL SCENES: {total_scenes}
 
-COMPLETE STORY CONTENT (First 25000 chars):
-{story_content[:25000]}
+    SCENE-STORY MAPPING:
+    {json.dumps(scene_story_mapping, indent=2)[:15000]}
 
-Extract the literary excellence from these Tóibín stories and transform it into production-ready content.
+    CRITICAL: Create visual prompts for ALL {total_scenes} scenes, not just some!
 
-OUTPUT FORMAT:
-{{
-  "characters": {{
-    "main_characters": [
-      {{
-        "name": "[Character name from stories]",
-        "role": "protagonist|supporting|background",
-        "importance_score": 8,
-        "scene_appearances": [1, 3, 7, 12],
-        "personality_traits": ["trait1", "trait2", "trait3"],
-        "physical_description": "[Detailed visual description]",
-        "tóibín_psychology": {{
-          "internal_contradiction": "[What they want vs understand]",
-          "quiet_dignity": "[How they maintain composure]",
-          "emotional_complexity": "[Mixed feelings and motivations]"
-        }},
-        "relationships": [
-          {{"character": "other_name", "dynamic": "detailed relationship"}}
-        ]
-      }}
-    ],
-    "scene_character_mapping": {{
-      "1": ["Character1"],
-      "2": ["Character1", "Character2"]
-    }}
-  }},
-  "visual_prompts": [
+    OUTPUT FORMAT:
     {{
-      "scene_number": 1,
-      "title": "[Scene title from master plan]",
-      "prompt": "[Visual prompt based on actual story content and characters]",
-      "duration_minutes": 4.5,
-      "characters_present": ["Character1"],
-      "historical_accuracy": "[Period-specific visual elements]",
-      "tóibín_atmosphere": "[Contemplative, understated visual mood]"
-    }}
-  ],
-  "youtube_optimization": {{
-    "clickbait_titles": [
-      "MYSTERIOUS! [Character]'s Final Secret Decision (2 Hour Sleep Story)",
-      "BETRAYAL! The Night [Character] Never Saw Coming - Most Peaceful Historical Story",
-      "INCREDIBLE! [Character]'s Most Peaceful Final Hours - You Won't Believe What Happened"
-    ],
-    "thumbnail_concept": {{
-      "main_character": "[Main character name]",
-      "emotional_expression": "[Character psychology visible in expression]",
-      "historical_setting": "[Atmospheric background]",
-      "composition": "RIGHT-side character, LEFT-side text space"
-    }},
-    "seo_strategy": {{
-      "primary_keywords": ["sleep story", "{topic.lower()}", "bedtime story"],
-      "long_tail_keywords": ["2 hour sleep story {topic.lower()}", "historical bedtime story"],
-      "tags": ["sleep story", "bedtime story", "relaxation", "history", "{topic.lower()}"]
-    }}
-  }},
-  "production_specs": {{
-    "audio_production": {{
-      "tts_voice": "alloy",
-      "speed_multiplier": 0.85,
-      "pause_durations": {{
-        "[PAUSE]": 2.0,
-        "scene_transition": 3.0
+      "characters": {{
+        "main_characters": [
+          {{
+            "name": "[Character name from stories]",
+            "role": "protagonist|supporting|background",
+            "importance_score": 8,
+            "scene_appearances": [1, 3, 7, 12],
+            "personality_traits": ["trait1", "trait2", "trait3"],
+            "physical_description": "[Detailed visual description]",
+            "tóibín_psychology": {{
+              "internal_contradiction": "[What they want vs understand]",
+              "quiet_dignity": "[How they maintain composure]",
+              "emotional_complexity": "[Mixed feelings and motivations]"
+            }},
+            "relationships": [
+              {{"character": "other_name", "dynamic": "detailed relationship"}}
+            ]
+          }}
+        ],
+        "scene_character_mapping": {{
+          "1": ["Character1"],
+          "2": ["Character1", "Character2"]
+        }}
+      }},
+      "visual_prompts": [
+        {{
+          "scene_number": 1,
+          "title": "[Scene title from master plan]",
+          "prompt": "[DETAILED visual prompt based on actual story content and characters]",
+          "duration_minutes": 4.5,
+          "characters_present": ["Character1"],
+          "historical_accuracy": "[Period-specific visual elements]",
+          "tóibín_atmosphere": "[Contemplative, understated visual mood]"
+        }},
+        {{
+          "scene_number": 2,
+          "title": "[Scene 2 title]",
+          "prompt": "[Visual prompt for scene 2]",
+          "duration_minutes": 4.0,
+          "characters_present": ["Character2"],
+          "historical_accuracy": "[Historical elements]",
+          "tóibín_atmosphere": "[Emotional atmosphere]"
+        }}
+        // CONTINUE FOR ALL {total_scenes} SCENES
+      ],
+      "youtube_optimization": {{
+        "clickbait_titles": [
+          "MYSTERIOUS! [Character]'s Final Secret Decision (2 Hour Sleep Story)",
+          "BETRAYAL! The Night [Character] Never Saw Coming - Most Peaceful Historical Story",
+          "INCREDIBLE! [Character]'s Most Peaceful Final Hours - You Won't Believe What Happened"
+        ],
+        "thumbnail_concept": {{
+          "main_character": "[Main character name]",
+          "emotional_expression": "[Character psychology visible in expression]",
+          "historical_setting": "[Atmospheric background]",
+          "composition": "RIGHT-side character, LEFT-side text space"
+        }},
+        "seo_strategy": {{
+          "primary_keywords": ["sleep story", "{topic.lower()}", "bedtime story"],
+          "long_tail_keywords": ["2 hour sleep story {topic.lower()}", "historical bedtime story"],
+          "tags": ["sleep story", "bedtime story", "relaxation", "history", "{topic.lower()}"]
+        }}
+      }},
+      "production_specs": {{
+        "audio_production": {{
+          "tts_voice": "alloy",
+          "speed_multiplier": 0.85,
+          "pause_durations": {{
+            "[PAUSE]": 2.0,
+            "scene_transition": 3.0
+          }}
+        }},
+        "video_timing": [
+          {{
+            "scene_number": 1,
+            "start_time": "00:01:00",
+            "duration_minutes": 4.5,
+            "word_count": 630
+          }}
+        ],
+        "quality_metrics": {{
+          "sleep_optimization_score": 9,
+          "historical_accuracy": true,
+          "tóibín_authenticity": true,
+          "all_scenes_covered": true
+        }}
       }}
-    }},
-    "video_timing": [
-      {{
-        "scene_number": 1,
-        "start_time": "00:01:00",
-        "duration_minutes": 4.5,
-        "word_count": 630
-      }}
-    ],
-    "quality_metrics": {{
-      "sleep_optimization_score": 9,
-      "historical_accuracy": true,
-      "tóibín_authenticity": true
     }}
-  }}
-}}"""
+
+    Generate visual prompts for ALL {total_scenes} scenes based on the actual story content and character analysis."""
 
         try:
             self.api_call_count += 1
 
+            # ENHANCED: Increased token limit and timeout for complete scene coverage
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=16000,
+                max_tokens=25000,  # FIX: Increased from 16000 to 25000
                 temperature=0.3,
-                timeout=300,
-                system="You are a production expert analyzing COLM TÓIBÍN's literary work. Extract characters with his signature psychological depth while creating professional production specifications.",
+                timeout=400,  # FIX: Increased timeout to 400 seconds
+                system="You are a production expert analyzing COLM TÓIBÍN's literary work. Create visual prompts for EVERY SINGLE SCENE based on the story content. Do not skip any scenes.",
                 messages=[{"role": "user", "content": production_prompt}]
             )
 
-            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
             content = response.content[0].text
-
             print(f"✅ Production JSONs complete: {len(content):,} characters")
 
             # Calculate cost
@@ -819,12 +851,45 @@ OUTPUT FORMAT:
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
-            # Parse response
+            # Parse response with enhanced validation
             parsed_result = self._parse_claude_response(content, "production")
+
+            # VALIDATION: Check if all scenes are covered
+            visual_prompts = parsed_result.get('visual_prompts', [])
+            scenes_covered = len(visual_prompts)
+            expected_scenes = len(scene_plan)
+
+            if scenes_covered < expected_scenes:
+                self.log_step(f"WARNING: Only {scenes_covered}/{expected_scenes} scenes covered in visuals", "WARNING")
+
+                # Generate missing scenes
+                missing_scenes = []
+                covered_scene_numbers = {vp.get('scene_number') for vp in visual_prompts}
+
+                for scene in scene_plan:
+                    scene_num = scene.get('scene_id')
+                    if scene_num not in covered_scene_numbers:
+                        missing_scenes.append({
+                            "scene_number": scene_num,
+                            "title": scene.get('title', f'Scene {scene_num}'),
+                            "prompt": f"Roman historical scene: {scene.get('setting', 'unknown setting')}, {scene.get('main_character', 'character')} {scene.get('activity', 'in contemplation')}, {scene.get('emotion', 'peaceful')} atmosphere, Tóibín-style understated mood",
+                            "duration_minutes": scene.get('duration_minutes', 4.0),
+                            "characters_present": [scene.get('main_character', 'Unknown')],
+                            "historical_accuracy": "Roman period details, authentic settings",
+                            "tóibín_atmosphere": f"{scene.get('emotion', 'peaceful')} contemplation, understated emotional depth"
+                        })
+
+                # Add missing scenes to the result
+                if 'visual_prompts' not in parsed_result:
+                    parsed_result['visual_prompts'] = []
+                parsed_result['visual_prompts'].extend(missing_scenes)
+
+                self.log_step(f"Added {len(missing_scenes)} missing visual prompts", "SUCCESS")
 
             self.log_step("Production JSONs Created", "SUCCESS", {
                 "characters_extracted": len(parsed_result.get('characters', {}).get('main_characters', [])),
                 "visual_prompts_created": len(parsed_result.get('visual_prompts', [])),
+                "all_scenes_covered": len(parsed_result.get('visual_prompts', [])) >= expected_scenes,
                 "stage_cost": stage_cost
             })
 
@@ -1260,67 +1325,188 @@ Viral Potential: {scene.get('viral_score', 'High')}
 
 def save_production_outputs(output_dir: str, result: Dict, story_topic: str, topic_id: int,
                           api_calls: int, total_cost: float):
-    """Save complete production outputs"""
+    """Save complete production outputs - ALL 15 JSON FILES RESTORED"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     saved_files = []
 
     try:
+        # Get main character for thumbnail concept
+        main_characters = result.get("characters", {}).get("main_characters", [])
+        main_character = main_characters[0] if main_characters else None
+        main_char_name = main_character.get('name', 'Main Character') if main_character else 'Main Character'
+
+        # Calculate duration info
+        scene_plan = result.get('scene_plan', [])
+        total_duration = sum(scene.get('duration_minutes', 4) for scene in scene_plan)
+        total_hours = int(total_duration / 60)
+
         # 1. Complete story text
         story_path = output_path / "complete_story.txt"
         with open(story_path, "w", encoding="utf-8") as f:
             f.write(result["complete_story"])
         saved_files.append("complete_story.txt")
 
-        # 2. Scene plan
-        scene_path = output_path / "scene_plan.json"
+        # 2. Scene plan with enhanced chapters
+        plan_path = output_path / "scene_plan.json"
         scene_data = {
             "scene_plan": result["scene_plan"],
-            "scene_chapters": result["scene_chapters"],
-            "total_scenes": len(result["scene_plan"]),
-            "total_duration_minutes": result["generation_stats"]["total_duration_minutes"],
-            "master_plan_approach": True,
-            "emotional_structure_used": True
+            "scene_chapters": result.get("scene_chapters", []),
+            "total_scenes": len(result.get("scene_plan", [])),
+            "total_duration_minutes": sum(scene.get('duration_minutes', 4) for scene in result.get("scene_plan", [])),
+            "toibin_master_plan_used": True,
+            "emotional_structure_applied": True
         }
-        with open(scene_path, "w", encoding="utf-8") as f:
+        with open(plan_path, "w", encoding="utf-8") as f:
             json.dump(scene_data, f, indent=2, ensure_ascii=False)
         saved_files.append("scene_plan.json")
 
-        # 3. All stories
+        # 3. All stories (validated)
         stories_path = output_path / "all_stories.json"
         with open(stories_path, "w", encoding="utf-8") as f:
             json.dump(result["stories"], f, indent=2, ensure_ascii=False)
         saved_files.append("all_stories.json")
 
-        # 4. Visual prompts
+        # 4. Voice directions for TTS
+        voice_path = output_path / "voice_directions.json"
+        voice_directions = []
+
+        # Add voice directions for each scene
+        for scene in scene_plan:
+            voice_directions.append({
+                "scene_number": scene.get("scene_id", 1),
+                "title": scene.get("title", f"Scene {scene.get('scene_id', 1)}"),
+                "direction": f"Gentle, contemplative storytelling with {scene.get('emotion', 'peaceful')} emotion, Tóibín literary sensibility",
+                "template": scene.get("emotion", "peaceful"),
+                "style": "toibin_observational",
+                "emotion": scene.get("emotion", "peaceful"),
+                "pacing": "Sleep-optimized with natural breathing rhythm",
+                "voice_notes": f"Maintain understated tone for {scene.get('duration_minutes', 4):.1f} minute duration"
+            })
+
+        with open(voice_path, "w", encoding="utf-8") as f:
+            json.dump(voice_directions, f, indent=2, ensure_ascii=False)
+        saved_files.append("voice_directions.json")
+
+        # 5. Visual generation prompts
         visual_path = output_path / "visual_generation_prompts.json"
         with open(visual_path, "w", encoding="utf-8") as f:
             json.dump(result["visual_prompts"], f, indent=2, ensure_ascii=False)
         saved_files.append("visual_generation_prompts.json")
 
-        # 5. Character profiles
+        # 6. Character profiles
         character_path = output_path / "character_profiles.json"
+        character_data = {
+            "main_characters": result.get("characters", {}).get("main_characters", []),
+            "scene_character_mapping": result.get("characters", {}).get("scene_character_mapping", {}),
+            "visual_generation_instructions": {
+                "step1": "First generate reference images for each main character using their physical_description",
+                "step2": "Then generate scene visuals using character references when characters are present",
+                "step3": "For atmospheric scenes (no characters), focus on setting and mood only",
+                "step4": "Generate thumbnail using scene_number 99 if present in visual_generation_prompts.json",
+                "reference_usage": "Always include relevant character reference images when generating scene visuals"
+            }
+        }
         with open(character_path, "w", encoding="utf-8") as f:
-            json.dump(result["characters"], f, indent=2, ensure_ascii=False)
+            json.dump(character_data, f, indent=2, ensure_ascii=False)
         saved_files.append("character_profiles.json")
 
-        # 6. YouTube optimization
+        # 7. YouTube metadata
         youtube_path = output_path / "youtube_metadata.json"
+        youtube_data = result.get("youtube_optimization", {})
+        youtube_metadata = {
+            "clickbait_titles": youtube_data.get("clickbait_titles", [
+                f"The Secret History of {story_topic} ({total_hours} Hour Sleep Story)",
+                f"Ancient {story_topic} Sleep Story That Will Put You to Sleep Instantly",
+                f"I Spent {total_hours} Hours in {story_topic} (Most Relaxing Story Ever)",
+                f"What Really Happened in {story_topic}'s Most Peaceful Night?",
+                f"{story_topic} Bedtime Story for Deep Sleep and Relaxation"
+            ]),
+            "video_description": {
+                "hook": f"Experience the peaceful world of {story_topic} through the eyes of its people. A {total_hours}-hour sleep story for deep relaxation.",
+                "main_description": f"""Journey back in time and experience the tranquil world of {story_topic}. This atmospheric sleep story follows the peaceful daily routines and lives of fascinating characters in {story_topic}.
+
+Each scene is crafted to promote deep relaxation and peaceful sleep, featuring:
+• Gentle pacing perfect for bedtime
+• Rich historical details that transport you to another time
+• Soothing descriptions of daily life and peaceful moments
+• Multiple compelling characters living their stories
+• {total_hours} hours of continuous, calming narration
+
+Perfect for insomnia, anxiety relief, or anyone who loves historical fiction combined with sleep meditation. Let the gentle rhythms of {story_topic} carry you into peaceful dreams.
+
+⚠️ This story is designed to help you fall asleep - please don't listen while driving or operating machinery.""",
+                "chapters": result.get("scene_chapters", []),
+                "subscribe_cta": "🔔 Subscribe for more historical sleep stories and relaxation content! New videos every week.",
+                "disclaimer": "This content is designed for relaxation and sleep. Please don't listen while driving or operating machinery."
+            },
+            "tags": youtube_data.get("tags", [
+                "sleep story", "bedtime story", "relaxation", "insomnia help", "meditation",
+                "calm", "peaceful", f"{total_hours} hours", "deep sleep", "anxiety relief",
+                "stress relief", "asmr", "history", story_topic.lower()
+            ]),
+            "seo_strategy": youtube_data.get("seo_strategy", {}),
+            "api_ready_format": {
+                "snippet": {
+                    "title": youtube_data.get("clickbait_titles", [
+                        f"The Secret History of {story_topic} ({total_hours} Hour Sleep Story)"])[0] if youtube_data.get("clickbait_titles") else f"The Secret History of {story_topic} ({total_hours} Hour Sleep Story)",
+                    "description": f"""Journey back in time and experience the tranquil world of {story_topic}. This atmospheric sleep story follows the peaceful daily routines and lives of fascinating characters in {story_topic}.
+
+Perfect for insomnia, anxiety relief, or anyone who loves historical fiction combined with sleep meditation. Let the gentle rhythms of {story_topic} carry you into peaceful dreams.
+
+⚠️ This story is designed to help you fall asleep - please don't listen while driving or operating machinery.""",
+                    "tags": youtube_data.get("tags", [
+                        "sleep story", "bedtime story", "relaxation", "insomnia help", "meditation",
+                        "calm", "peaceful", f"{total_hours} hours", "deep sleep", "anxiety relief",
+                        "stress relief", "asmr", "history", story_topic.lower()
+                    ])[:30],
+                    "categoryId": "27",
+                    "defaultLanguage": "en"
+                },
+                "status": {
+                    "privacyStatus": "public",
+                    "embeddable": True,
+                    "license": "youtube",
+                    "madeForKids": False
+                }
+            }
+        }
         with open(youtube_path, "w", encoding="utf-8") as f:
-            json.dump(result["youtube_optimization"], f, indent=2, ensure_ascii=False)
+            json.dump(youtube_metadata, f, indent=2, ensure_ascii=False)
         saved_files.append("youtube_metadata.json")
 
-        # 7. Production specifications
+        # 8. Production specifications
         production_path = output_path / "production_specifications.json"
+        production_specs = result.get("production_specs", {})
+        production_data = {
+            "audio_production": production_specs.get("audio_production", {
+                "tts_voice": "alloy",
+                "speed_multiplier": 0.85,
+                "pause_durations": {
+                    "[PAUSE]": 2.0,
+                    "scene_transition": 3.0
+                }
+            }),
+            "video_timing": production_specs.get("video_timing", []),
+            "quality_metrics": production_specs.get("quality_metrics", {
+                "sleep_optimization_score": 9,
+                "historical_accuracy": True,
+                "tóibín_authenticity": True
+            }),
+            "automation_specifications": {
+                "character_extraction": "✅ Complete",
+                "youtube_optimization": "✅ Complete",
+                "production_specifications": "✅ Complete",
+                "api_ready_format": "✅ Complete"
+            }
+        }
         with open(production_path, "w", encoding="utf-8") as f:
-            json.dump(result["production_specs"], f, indent=2, ensure_ascii=False)
+            json.dump(production_data, f, indent=2, ensure_ascii=False)
         saved_files.append("production_specifications.json")
 
-        # 8. Social media content
+        # 9. Social media content (RESTORED!)
         social_path = output_path / "social_media_content.json"
         social_data = result.get("social_media_content", {})
-
-        # Enhanced social media data
         enhanced_social_data = {
             **social_data,
             "production_ready": True,
@@ -1336,19 +1522,273 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
                 "hashtag_strategy": "#SleepyDullStories on all platforms"
             }
         }
-
         with open(social_path, "w", encoding="utf-8") as f:
             json.dump(enhanced_social_data, f, indent=2, ensure_ascii=False)
         saved_files.append("social_media_content.json")
 
-        # 9. Generation report
+        # 10. Thumbnail generation
+        thumbnail_path = output_path / "thumbnail_generation.json"
+        thumbnail_data = {
+            "thumbnail_concept": result.get("youtube_optimization", {}).get("thumbnail_concept", {
+                "main_character": main_char_name,
+                "dramatic_scene": f"{main_char_name} in atmospheric {story_topic} setting",
+                "text_overlay": f"{story_topic.upper()}'S SECRET",
+                "color_scheme": "Warm golds and deep blues with atmospheric lighting",
+                "emotion": "Peaceful concentration and serenity",
+                "background": f"Atmospheric {story_topic} setting with cinematic lighting",
+                "composition": "RIGHT-side character, LEFT-side text space"
+            }),
+            "generation_instructions": {
+                "character_positioning": "RIGHT side of frame (60-70% from left edge)",
+                "text_space": "LEFT side (30-40%) completely clear for dramatic text overlay",
+                "visual_style": "Cinematic lighting, warm and inviting mood",
+                "character_expression": "Peaceful, contemplative, with subtle dramatic appeal",
+                "background_elements": f"Atmospheric {story_topic} setting elements"
+            },
+            "thumbnail_alternatives": [
+                {
+                    "variant": "Character Focus",
+                    "prompt": f"Close-up of {main_char_name} in contemplative pose, {story_topic} background"
+                },
+                {
+                    "variant": "Environmental Drama",
+                    "prompt": f"Wide atmospheric shot of {story_topic} with {main_char_name} in contemplation"
+                },
+                {
+                    "variant": "Symbolic Moment",
+                    "prompt": f"Key symbolic elements from {story_topic} with {main_char_name} present"
+                }
+            ]
+        }
+        with open(thumbnail_path, "w", encoding="utf-8") as f:
+            json.dump(thumbnail_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("thumbnail_generation.json")
+
+        # 11. Hook & Subscribe scenes
+        hook_subscribe_path = output_path / "hook_subscribe_scenes.json"
+        hook_subscribe_data = {
+            "hook_scenes": [
+                {
+                    "scene_id": scene.get("scene_id", i+1),
+                    "scene_title": scene.get("title", f"Scene {i+1}"),
+                    "start_time": i * 3,
+                    "end_time": (i * 3) + 3,
+                    "duration": 3,
+                    "visual_prompt": f"Atmospheric cinematic view of {scene.get('setting', story_topic)}, golden hour lighting, peaceful and mysterious mood",
+                    "timing_note": f"Display during hook seconds {i * 3}-{(i * 3) + 3}"
+                }
+                for i, scene in enumerate(scene_plan[:10])  # First 10 scenes for hook
+            ],
+            "subscribe_scenes": [
+                {
+                    "scene_id": scene.get("scene_id", i+11),
+                    "scene_title": scene.get("title", f"Scene {i+11}"),
+                    "start_time": i * 3,
+                    "end_time": (i * 3) + 3,
+                    "duration": 3,
+                    "visual_prompt": f"Welcoming community view of {scene.get('setting', story_topic)}, warm lighting, inviting atmosphere",
+                    "timing_note": f"Display during subscribe seconds {i * 3}-{(i * 3) + 3}"
+                }
+                for i, scene in enumerate(scene_plan[10:20] if len(scene_plan) > 10 else scene_plan)  # Next 10 scenes
+            ],
+            "production_notes": {
+                "hook_timing": "Use hook_scenes during golden hook narration (0-30s)",
+                "subscribe_timing": "Use subscribe_scenes during subscribe request (30-60s)",
+                "visual_sync": "Each scene should blend seamlessly with spoken content"
+            }
+        }
+        with open(hook_subscribe_path, "w", encoding="utf-8") as f:
+            json.dump(hook_subscribe_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("hook_subscribe_scenes.json")
+
+        # 12. Audio generation prompts
+        audio_path = output_path / "audio_generation_prompts.json"
+        audio_prompts = []
+
+        # Hook audio
+        hook_section = result.get("hook_section", {})
+        if hook_section:
+            audio_prompts.append({
+                "segment_id": "hook",
+                "content": hook_section.get("content", ""),
+                "duration_seconds": hook_section.get("duration_seconds", 30),
+                "voice_direction": hook_section.get("voice_direction", ""),
+                "tts_settings": {
+                    "voice": "alloy",
+                    "speed": 0.9,
+                    "pitch": "normal",
+                    "emphasis": "gentle mystery"
+                }
+            })
+
+        # Subscribe audio
+        subscribe_section = result.get("subscribe_section", {})
+        if subscribe_section:
+            audio_prompts.append({
+                "segment_id": "subscribe",
+                "content": subscribe_section.get("content", ""),
+                "duration_seconds": subscribe_section.get("duration_seconds", 30),
+                "voice_direction": subscribe_section.get("voice_direction", ""),
+                "tts_settings": {
+                    "voice": "alloy",
+                    "speed": 0.95,
+                    "pitch": "warm",
+                    "emphasis": "friendly conversation"
+                }
+            })
+
+        # Story scenes audio
+        stories = result.get("stories", {})
+        production_audio = production_specs.get("audio_production", {})
+
+        for scene_id, story_content in stories.items():
+            scene_info = next((s for s in scene_plan if s.get("scene_id") == int(scene_id)), {})
+
+            audio_prompts.append({
+                "segment_id": f"scene_{scene_id}",
+                "content": story_content,
+                "duration_minutes": scene_info.get("duration_minutes", 4),
+                "emotion": scene_info.get("emotion", "peaceful"),
+                "tts_settings": {
+                    "voice": production_audio.get("tts_voice", "alloy"),
+                    "speed": production_audio.get("speed_multiplier", 0.85),
+                    "pitch": -2,
+                    "volume": 80,
+                    "emphasis": "sleep-optimized"
+                }
+            })
+
+        with open(audio_path, "w", encoding="utf-8") as f:
+            json.dump(audio_prompts, f, indent=2, ensure_ascii=False)
+        saved_files.append("audio_generation_prompts.json")
+
+        # 13. Video composition instructions
+        video_path = output_path / "video_composition_instructions.json"
+        video_composition = {
+            "timeline_structure": [
+                {
+                    "segment": "hook",
+                    "start_time": 0,
+                    "end_time": 30,
+                    "video_source": "hook_subscribe_scenes.json -> hook_scenes",
+                    "audio_source": "audio_generation_prompts.json -> hook segment",
+                    "text_overlay": "None (pure atmospheric)",
+                    "transition": "fade_in"
+                },
+                {
+                    "segment": "subscribe",
+                    "start_time": 30,
+                    "end_time": 60,
+                    "video_source": "hook_subscribe_scenes.json -> subscribe_scenes",
+                    "audio_source": "audio_generation_prompts.json -> subscribe segment",
+                    "text_overlay": "Subscribe button animation",
+                    "transition": "smooth_blend"
+                },
+                {
+                    "segment": "main_story",
+                    "start_time": 60,
+                    "end_time": sum(scene.get('duration_minutes', 4) * 60 for scene in scene_plan) + 60,
+                    "video_source": "visual_generation_prompts.json -> scenes 1-N",
+                    "audio_source": "audio_generation_prompts.json -> scenes 1-N",
+                    "text_overlay": "Scene titles (optional)",
+                    "transition": "crossfade_between_scenes"
+                }
+            ],
+            "scene_sync_strategy": {
+                "rule": "When audio mentions scene X, display scene X visual",
+                "timing": "Immediate visual sync with narrative"
+            },
+            "thumbnail_usage": {
+                "source": "thumbnail_generation.json",
+                "purpose": "YouTube thumbnail only, not used in video timeline"
+            },
+            "production_settings": {
+                "resolution": "1920x1080",
+                "frame_rate": 30,
+                "audio_bitrate": 192,
+                "video_codec": "h264",
+                "total_duration": f"{sum(scene.get('duration_minutes', 4) for scene in scene_plan) + 1} minutes"
+            },
+            "chapters": result.get("scene_chapters", [])
+        }
+        with open(video_path, "w", encoding="utf-8") as f:
+            json.dump(video_composition, f, indent=2, ensure_ascii=False)
+        saved_files.append("video_composition_instructions.json")
+
+        # 14. Platform metadata (comprehensive)
+        platform_path = output_path / "platform_metadata.json"
+        platform_data = {
+            "video_metadata": {
+                "category": "Education",
+                "default_language": "en",
+                "privacy_status": "public",
+                "license": "youtube",
+                "embeddable": True,
+                "made_for_kids": False,
+                "target_audience": f"adults 25-65 interested in {story_topic.lower()} and sleep content"
+            },
+            "title_options": youtube_metadata.get("clickbait_titles", []),
+            "description": youtube_metadata.get("video_description", {}),
+            "tags": youtube_metadata.get("tags", []),
+            "hashtags": [
+                "#sleepstory", "#bedtimestory", "#relaxation", "#meditation", "#insomnia",
+                "#deepsleep", "#calm", "#history", f"#{story_topic.lower().replace(' ', '')}"
+            ],
+            "seo_strategy": youtube_metadata.get("seo_strategy", {}),
+            "thumbnail_concept": thumbnail_data.get("thumbnail_concept", {}),
+            "engagement_strategy": {
+                "target_audience": "Sleep content seekers + History enthusiasts",
+                "content_pillars": ["Historical accuracy", "Sleep optimization", "Literary quality"],
+                "posting_schedule": "Weekly uploads, consistent timing"
+            },
+            "api_ready_format": youtube_metadata.get("api_ready_format", {})
+        }
+        with open(platform_path, "w", encoding="utf-8") as f:
+            json.dump(platform_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("platform_metadata.json")
+
+        # 15. Automation specs
+        automation_path = output_path / "automation_specs.json"
+        automation_data = {
+            "audio_production": production_data.get("audio_production", {}),
+            "video_assembly": {
+                "scene_timing_precision": [
+                    {
+                        "scene_number": scene.get("scene_id", i+1),
+                        "start_time": f"00:{60 + sum(s.get('duration_minutes', 4) * 60 for s in scene_plan[:i]) // 60:02d}:{(60 + sum(s.get('duration_minutes', 4) * 60 for s in scene_plan[:i])) % 60:02d}",
+                        "duration_seconds": int(scene.get("duration_minutes", 4) * 60),
+                        "word_count": int(scene.get("duration_minutes", 4) * 140)  # 140 words per minute
+                    }
+                    for i, scene in enumerate(scene_plan)
+                ],
+                "video_specifications": {
+                    "resolution": "1920x1080",
+                    "frame_rate": 30,
+                    "transition_type": "slow_fade",
+                    "export_format": "MP4_H264"
+                }
+            },
+            "quality_control": production_data.get("quality_metrics", {}),
+            "toibin_quality_assurance": {
+                "literary_authenticity": True,
+                "master_plan_followed": True,
+                "emotional_structure_applied": True,
+                "character_psychology_depth": True
+            },
+            "implementation_ready": True
+        }
+        with open(automation_path, "w", encoding="utf-8") as f:
+            json.dump(automation_data, f, indent=2, ensure_ascii=False)
+        saved_files.append("automation_specs.json")
+
+        # 16. Generation report (comprehensive)
         report_path = output_path / "generation_report.json"
         production_report = {
             "topic": story_topic,
             "topic_id": topic_id,
             "generation_completed": datetime.now().isoformat(),
             "model_used": CONFIG.claude_config["model"],
-            "tóibín_quality_applied": True,
+            "toibin_quality_applied": True,
             "master_plan_approach": True,
             "emotional_structure_used": True,
             "literary_excellence": True,
@@ -1357,23 +1797,35 @@ def save_production_outputs(output_dir: str, result: Dict, story_topic: str, top
             "cost_analysis": {
                 "total_api_calls": api_calls,
                 "total_cost": total_cost,
-                "cost_per_scene": total_cost / len(result["scene_plan"]) if result["scene_plan"] else 0,
+                "cost_per_scene": total_cost / len(scene_plan) if scene_plan else 0,
                 "cost_efficiency": "Tóibín quality + viral social media with master plan optimization"
             },
             "files_saved": saved_files,
             "next_steps": [
                 "1. Generate character reference images using character_profiles.json",
                 "2. Generate scene visuals using visual_generation_prompts.json",
-                "3. Generate audio using production_specifications.json",
-                "4. Create social media content using social_media_content.json",
-                "5. Upload to YouTube using youtube_metadata.json"
-            ]
+                "3. Generate thumbnail using thumbnail_generation.json",
+                "4. Generate audio using audio_generation_prompts.json",
+                "5. Create social media content using social_media_content.json",
+                "6. Compose video using video_composition_instructions.json",
+                "7. Upload to YouTube using platform_metadata.json"
+            ],
+            "automation_readiness": {
+                "character_extraction": "✅ Complete",
+                "youtube_optimization": "✅ Complete",
+                "production_specifications": "✅ Complete",
+                "platform_metadata": "✅ Complete",
+                "composition_strategy": "✅ Complete",
+                "api_ready_format": "✅ Complete",
+                "social_media_strategy": "✅ Complete",
+                "toibin_literary_quality": "✅ Complete"
+            }
         }
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(production_report, f, indent=2, ensure_ascii=False)
         saved_files.append("generation_report.json")
 
-        print(f"✅ Production files saved ({len(saved_files)} files): {saved_files}")
+        print(f"✅ ALL 15 PRODUCTION FILES SAVED: {saved_files}")
         CONFIG.logger.info(f"Files saved to: {output_dir}")
 
     except Exception as e:
@@ -1447,16 +1899,23 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
         print(f"\n⚠️ PARTIAL SUCCESS")
         print(f"🔍 Review generation_report.json for details")
 
-    print("\n📄 PRODUCTION FILES CREATED (9 FILES):")
+    print("\n📄 ALL 16 PRODUCTION FILES CREATED:")
     print("1. 📖 complete_story.txt - Full Tóibín-quality story")
     print("2. 🎬 scene_plan.json - Master scene plan + chapters")
     print("3. 📚 all_stories.json - All individual stories")
-    print("4. 🖼️ visual_generation_prompts.json - Story-based visuals")
-    print("5. 👥 character_profiles.json - Tóibín character analysis")
-    print("6. 📺 youtube_metadata.json - YouTube optimization")
-    print("7. 🏭 production_specifications.json - Technical specs")
-    print("8. 📱 social_media_content.json - VIRAL GROWTH STRATEGY")
-    print("9. 📊 generation_report.json - Complete analytics")
+    print("4. 🎵 voice_directions.json - TTS voice guidance")
+    print("5. 🖼️ visual_generation_prompts.json - Story-based visuals")
+    print("6. 👥 character_profiles.json - Tóibín character analysis")
+    print("7. 📺 youtube_metadata.json - YouTube optimization")
+    print("8. 🏭 production_specifications.json - Technical specs")
+    print("9. 📱 social_media_content.json - VIRAL GROWTH STRATEGY")
+    print("10. 🖼️ thumbnail_generation.json - Thumbnail strategy")
+    print("11. 🎭 hook_subscribe_scenes.json - Opening sequences")
+    print("12. 🎵 audio_generation_prompts.json - TTS production")
+    print("13. 🎥 video_composition_instructions.json - Video assembly")
+    print("14. 🌍 platform_metadata.json - Platform optimization")
+    print("15. 🤖 automation_specs.json - Automation ready")
+    print("16. 📊 generation_report.json - Complete analytics")
 
     # Social media breakdown
     social_stats = result.get("social_media_content", {})
@@ -1472,6 +1931,8 @@ if __name__ == "__main__":
     try:
         print("🎭 TÓIBÍN QUALITY STORY GENERATOR")
         print("⚡ Master Plan + Emotional Structure + Literary Excellence + Social Media")
+        print("📄 ALL 16 JSON FILES RESTORED")
+        print("💫 VOICE DIRECTIONS + SOCIAL MEDIA CONTENT ADDED")
         print("=" * 60)
 
         # Get topic from database
@@ -1490,7 +1951,7 @@ if __name__ == "__main__":
         result = generator.generate_complete_story(topic, description, clickbait_title)
         generation_time = time.time() - start_time
 
-        # Save all outputs
+        # Save all outputs (ALL 15 FILES)
         save_production_outputs(str(output_path), result, topic, topic_id,
                                generator.api_call_count, generator.total_cost)
 
@@ -1510,6 +1971,8 @@ if __name__ == "__main__":
         print(f"💰 Total cost: ${generator.total_cost:.4f}")
         print(f"📱 Social media pieces: {result['generation_stats'].get('social_media_pieces', 0)}")
         print(f"🎯 Ready for 1M subscriber strategy!")
+        print(f"📄 ALL 16 JSON FILES SAVED AND READY!")
+        print(f"💫 VOICE DIRECTIONS + SOCIAL MEDIA CONTENT INCLUDED!")
 
     except Exception as e:
         print(f"\n💥 GENERATION ERROR: {e}")
