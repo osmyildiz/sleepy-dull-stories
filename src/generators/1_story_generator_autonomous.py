@@ -352,7 +352,10 @@ class StoryValidationSystem:
                 'stories_provided': len(stories),
                 'valid_stories': 0,
                 'corrections_needed': 0,
-                'missing_stories': 0
+                'missing_stories': 0,
+                "validation_enabled": True,  # ✅ EKLEYİN
+                "auto_correction": True,  # ✅ EKLEYİN
+                "target_tolerance": 0.15
             }
         }
 
@@ -1005,7 +1008,8 @@ class AutomatedStoryGenerator:
             self.validation_system = StoryValidationSystem(self.client, CONFIG.logger)
 
             CONFIG.logger.info("✅ Story generator with validation system initialized successfully")
-            print("✅ Story generator initialized with Smart Algorithm + Budget Tracking + ALL LOCAL FEATURES + VALIDATION SYSTEM")
+            print(
+                "✅ Story generator initialized with Smart Algorithm + Budget Tracking + ALL LOCAL FEATURES + VALIDATION SYSTEM")
         except Exception as e:
             CONFIG.logger.error(f"❌ Story generator initialization failed: {e}")
             print(f"❌ Story generator initialization failed: {e}")
@@ -1267,7 +1271,15 @@ class AutomatedStoryGenerator:
         }
 
     def _generate_stage1(self, topic: str, description: str) -> Dict[str, Any]:
-        """STAGE 1: ENHANCED Smart planning with powerful prompts + first half stories"""
+        """
+        STAGE 1: COLM TÓIBÍN MASTER STYLE - Smart planning + first half stories
+
+        TÓIBÍN'S GENIUS:
+        - "Hush you hear, sighing of disappearance"
+        - Daily life thick with human uncertainties
+        - Silence between something and nothing
+        - Characters led by desires they don't understand
+        """
 
         # Generate smart scene structure
         visual_safety_education = MIDJOURNEY_CONTENT_AWARENESS_PROMPT
@@ -1276,12 +1288,92 @@ class AutomatedStoryGenerator:
         scene_durations = smart_structure['scene_durations']
         first_half = total_scenes // 2
 
-        self.log_step(f"Stage 1: ENHANCED Smart Planning + First {first_half} Stories (Total: {total_scenes} scenes)")
+        self.log_step(
+            f"Stage 1: TÓIBÍN MASTER STYLE Planning + First {first_half} Stories (Total: {total_scenes} scenes)")
 
-        stage1_prompt = f"""Create the complete foundation for a 2-hour sleep story about "{topic}".
+        stage1_prompt = f"""Create the complete foundation for a 2-hour sleep story about "{topic}" using COLM TÓIBÍN'S MASTERFUL STYLE.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
+
+    🎭 COLM TÓIBÍN WRITING MASTERY - THE COMPLETE GUIDE:
+
+    ## TÓIBÍN'S CORE GENIUS:
+    "In all Colm Tóibín's work there is a hush you hear, a kind of sighing of the disappearance of something that is so far gone there is no way of saying what it is. His characters, led by desires that they don't understand, often have vulnerabilities and strengths that are virtually the same."
+
+    ## TÓIBÍN'S SIGNATURE STYLE ELEMENTS:
+
+    ### 1. 🤫 THE POWER OF SILENCE & SUBTLETY:
+    - **"Sparseness of tone with superabundance of suggestion"**
+    - **"Style occupies gap between something and nothing"**
+    - What is NOT said is as important as what IS said
+    - Characters pause, hesitate, observe quietly
+    - Emotions simmer beneath surface politeness
+
+    **EXAMPLE TÓIBÍN APPROACH:**
+    ❌ "Marcus was devastated by the news"
+    ✅ "Marcus nodded. He placed his cup carefully on the marble table. Outside, a bird called once, then fell silent."
+
+    ### 2. 🏛️ DAILY LIFE AS PROFOUND DRAMA:
+    - **"Not much happens but work is thick with human uncertainties"**
+    - Ordinary moments reveal character depths
+    - **"Fascination of commonplaces"** - everyday details matter
+    - Characters doing normal things: eating, walking, thinking
+    - Small gestures carry enormous emotional weight
+
+    **TÓIBÍN SCENE BUILDING:**
+    - Start with simple activity (character pouring wine)
+    - Add internal observation (they remember something)
+    - Include environmental detail (sound of fountain)
+    - Let silence do the work (pause, breath, reflection)
+
+    ### 3. 🎭 CHARACTER PSYCHOLOGY MASTERY:
+    - **"Characters yearn for understanding and acceptance"**
+    - **"Led by desires they don't understand"**  
+    - Internal conflicts more important than external action
+    - **"Mixed motives and tacit exchanges"**
+    - Characters often lonely but dignified
+
+    ### 4. 📝 TÓIBÍN'S SENTENCE ARCHITECTURE:
+    - **Short, precise observations**
+    - **Longer, flowing contemplative passages**
+    - **"Quiet, vivid epiphanies of belonging and estrangement"**
+    - Rhythm mimics human thought patterns
+    - Present tense immediacy mixed with memory
+
+    **TÓIBÍN SENTENCE EXAMPLES:**
+    - "The light had changed. He noticed this as he walked."
+    - "There was something in her voice, something he recognized but could not name."
+    - "The house felt different now, as though it were holding its breath."
+
+    ## 🎯 YOUR TÓIBÍN-STYLE SLEEP STORIES REQUIREMENTS:
+
+    ### OPENING STYLE MASTERY (Each scene different):
+    1. **Quiet Observation:** "The evening settles differently today."
+    2. **Character Action:** "She moves through the garden slowly."  
+    3. **Environmental Shift:** "Something in the light has changed."
+    4. **Internal Recognition:** "He knows this feeling, this weight."
+    5. **Sensory Awareness:** "The sound reaches him gradually."
+    6. **Memory Trigger:** "The scent brings back something distant."
+    7. **Present Moment:** "This is how afternoons end here."
+    8. **Emotional Recognition:** "A familiar sadness touches the edges."
+
+    ### SCENE DEVELOPMENT PATTERN:
+    ```
+    1. QUIET BEGINNING (simple activity/observation)
+    2. INTERNAL LAYER (character's thoughts/feelings)  
+    3. ENVIRONMENTAL DETAIL (place, time, atmosphere)
+    4. HUMAN CONNECTION (other characters, relationships)
+    5. DEEPER RECOGNITION (emotional insight/acceptance)
+    6. PEACEFUL RESOLUTION (gentle acceptance/closure)
+    ```
+
+    ### CHARACTER INTERACTION STYLE:
+    - **Understated dialogue:** Characters say less than they feel
+    - **Gesture communication:** Nods, pauses, small actions
+    - **Shared silence:** Comfortable quiet between people
+    - **Unspoken understanding:** Characters reading each other
+    - **Gentle observation:** Watching others with kindness
 
     SMART STORY STRUCTURE:
     - Total scenes: {total_scenes} (NATURAL VARIATION - random count 28-45)
@@ -1293,203 +1385,161 @@ class AutomatedStoryGenerator:
     SCENE DURATION PLAN:
     {', '.join([f'Scene {i + 1}: {dur}min' for i, dur in enumerate(scene_durations)])}
 
-    STAGE 1 REQUIREMENTS:
-    You must provide ALL planning elements + first {first_half} stories in complete detail.
-    
-    ## 🎭 KRISTIN HANNAH STORYTELLING MASTERY - COMPREHENSIVE STYLE GUIDE
+    ## 1. GOLDEN HOOK (30 seconds, ~90 words) - TÓIBÍN STYLE
+    Create atmospheric opening with TÓIBÍN'S QUIET MASTERY:
+    - Start with subtle observation about the day/place
+    - Include sense of something just beyond perception
+    - **"Hush you hear, sighing of disappearance"** quality
+    - Gentle melancholy but deeply peaceful
+    - Historical setting established through small details
+    - Invitation to witness quiet human moments
 
-    ### HANNAH'S PROVEN WRITING DNA (Based on The Nightingale, Four Winds, Great Alone):
-    - WISE NARRATOR VOICE: Elderly perspective reflecting on historical trauma with life-earned wisdom
-    - EMOTIONAL PRECISION LANGUAGE: "Lost. It makes it sound as if I misplaced them..." - precise corrections
-    - MEMORY-DRIVEN STRUCTURE: Present tense reflection, past tense for historical events
-    - FEMALE RESILIENCE FOCUS: Strength emerging from impossible circumstances
-    - EXTENSIVE RESEARCH DEPTH: Period-authentic details woven naturally into narrative
-    - CHARACTER-DRIVEN PLOT: Personal growth drives story, not external events
-    
-    ### HANNAH'S SIGNATURE TECHNIQUES:
-    1. OPENING VARIETY (Rotate across stories - NEVER repeat exact formulas):
-       - Wisdom opener: "If I have learned anything in [time period], it is this: [insight]"
-       - Memory trigger: "I find myself thinking about [historical event/people I lost]..."
-       - Generational contrast: "Today's [people] want [modern thing]. I come from [different era]..."
-       - Loss reflection: "[People/things] I lost. Lost. It makes it sound as if I misplaced..."
-       - Time perspective: "The past has a clarity I can no longer see in the present..."
-       - Experience authority: "Having lived through [event], I know that [wisdom]..."
-    
-    2. SENTENCE RHYTHM MASTERY:
-       - Short declarative sentences for emotional impact: "They are gone."
-       - Repetitive emotional refrains: "Lost...lost...but not lost. They are gone."
-       - Building emotional crescendos through repetition and pacing
-       - End paragraphs with profound simple truths
-       - Mix flowing descriptions with sharp emotional stops
-    
-    3. EMOTIONAL AUTHENTICITY PATTERNS:
-       - "Grief settles into our DNA and remains forever part of us"
-       - "In love we find who we want to be; in war/crisis we find who we are"
-       - "I come from a quieter generation. We understand the value of forgetting"
-       - Focus on unsung female heroes in historical moments
-       - "Women get on with it" - practical resilience theme
-
-    ### HANNAH'S RESEARCH-DRIVEN AUTHENTICITY:
-    - Historical details from "months of research" depth (Hannah's own method)
-    - Period-accurate sensory details (clothing, food, sounds, smells)
-    - Authentic social customs and behavioral patterns
-    - Real historical events woven naturally into personal stories
-    - Environmental storytelling through historical accuracy
-    
-    ### NARRATIVE VOICE CONSISTENCY RULES:
-    - ALWAYS elderly narrator who has "lived through" or "learned from" events
-    - ALWAYS present tense for reflection, past tense for story events
-    - ALWAYS focus on human moments within grand historical sweep
-    - ALWAYS demonstrate how crisis reveals true character
-    - ALWAYS end with wisdom earned through experience
-    
-    ### FORBIDDEN ELEMENTS (Ensure Claude NEVER does these):
-    - Identical opening sentences across multiple stories
-    - Generic historical narrative without personal emotional core
-    - Modern language or concepts in historical settings
-    - Rushed character development without earned emotional moments
-    - Surface-level historical details without authentic research depth
-    
-    ## 1. GOLDEN HOOK (30 seconds, ~90 words) - KRISTIN HANNAH WISDOM OPENING
-    - APPLY HANNAH'S OPENING VARIETY: Select different approach from list above for each story
-    - ELDERLY NARRATOR VOICE: Must sound like someone who lived through/learned from events
-    - EMOTIONAL FORESHADOWING: "Last peaceful day" theme with Hannah's bittersweet wisdom
-    - DISASTER AWARENESS: Narrator knows what's coming, characters don't
-    - PRECISE LANGUAGE: Use Hannah's emotional correction technique ("Lost...but not lost")
-    - SLEEP TRANSITION: End with gentle invitation to witness these final peaceful hours
-    - AUTHENTIC WISDOM: Sound like Hannah's narrators - lived experience, not generic knowledge
-    - UNIQUE EACH TIME: Never repeat exact opening formulas across stories
-
-    ## 2. SUBSCRIBE SECTION (30 seconds, ~70 words) 
-    - Natural community invitation
-    - Warm, friendly tone (not corporate)
+    ## 2. SUBSCRIBE SECTION (30 seconds, ~70 words) - WARM COMMUNITY
+    - Natural, non-corporate invitation
+    - **"Join us for more quiet moments from history"**
+    - Tóibín-like warmth and literary sensibility
 
     ## 3. COMPLETE SCENE PLAN (Exactly {total_scenes} scenes with SMART DURATIONS)
-    Each scene must use the exact duration from the plan above:
+    Each scene duration from plan above:
 
     {chr(10).join([f"Scene {i + 1}: {scene_durations[i]:.1f} minutes" for i in range(total_scenes)])}
 
-    Scene structure requirements:
-    - Template rotation: atmospheric, character_focused, historical_detail, sensory_journey
-    - Style rotation: observational, immersive, documentary, poetic, cinematic
-    - Emotion progression: 1-30% peaceful, 31-60% curiosity, 61-80% concern, 81-100% resolution
-    - Key characters mentioned in descriptions
+    Scene structure requirements for TÓIBÍN STYLE:
+    - Focus on ORDINARY MOMENTS with extraordinary emotional depth
+    - **"Fascination of commonplaces"** approach
+    - Characters doing daily activities with internal complexity
+    - Template rotation: contemplative, character_study, daily_ritual, emotional_recognition
+    - Emotion progression: quiet observation → gentle recognition → deeper understanding → peaceful acceptance
 
-    ## 4. FIRST {first_half} COMPLETE STORIES (Scenes 1-{first_half})
-    Each story must be 300-900 words (based on scene duration) with:
+    ## 4. FIRST {first_half} COMPLETE STORIES (Scenes 1-{first_half}) - TÓIBÍN MASTERY
 
-    ### 🎨 OPENING MASTERY (CRITICAL):
-    - **FORBIDDEN:** Never use "You find yourself" - this phrase is completely banned
-    - **REQUIRED:** Create unique, atmospheric openings for each scene
-    - **VARIETY:** Use different opening styles:
-      * Environmental: "The golden light filters through..."
-      * Temporal: "As twilight settles over..."
-      * Auditory: "Soft footsteps echo in..."
-      * Sensory: "The gentle breeze carries..."
-      * Visual: "Shadows dance across..."
-      * Character-focused: "[Character name] pauses at..."
-      * Action-based: "The wooden door creaks open..."
-      * Emotional: "A sense of peace settles..."
+    ### 🎭 TÓIBÍN'S OPENING MASTERY:
+    Each opening must demonstrate different aspect of his genius:
 
-    ### 📝 PRECISION REQUIREMENTS:
-    - Present tense, second person perspective
-    - Rich sensory details (sight, sound, smell, touch, taste)
-    - [PAUSE] markers for TTS at natural breathing points
-    - Sleep-optimized language with gentle pacing
-    - Historical accuracy with authentic period details
-    - Clear character interactions and development
-    - Word count matched to scene duration (~150 words/minute)
+    1. **Quiet Environmental Shift:** "The light settles differently over the courtyard this evening."
+    2. **Character's Simple Action:** "Marcus pauses at the fountain, listening."
+    3. **Internal Recognition:** "Something in the day feels familiar, though she cannot say what."
+    4. **Atmospheric Observation:** "The garden holds its breath in the late afternoon heat."
+    5. **Memory Echo:** "This reminds him of something, some other evening."
+    6. **Present Moment Awareness:** "She knows this feeling, this particular weight of waiting."
+    7. **Sensory Gateway:** "The scent of olive oil and herbs drifts from the kitchen."
+    8. **Emotional Recognition:** "A gentle sadness touches the edges of the gathering."
 
-    ### 🎯 STORYTELLING EXCELLENCE:
-    - Each opening must be completely different
-    - Demonstrate mastery across multiple opening styles
-    - Build atmospheric immersion from first sentence
-    - Natural flow that leads listeners into peaceful sleep
+    ### 📝 TÓIBÍN'S SLEEP-OPTIMIZED WRITING:
+    - **Present tense, second person** (but filtered through Tóibín's contemplative lens)
+    - **"Sparseness with superabundance of suggestion"**
+    - **Rich sensory details** but understated, not overwhelming
+    - **[PAUSE] markers** at natural breathing/thinking points
+    - **Historical accuracy** through small, authentic details
+    - **Character psychology** - internal lives more than external action
+    - **Word count matched to duration** (~150 words/minute)
+
+    ### 🎯 CONTENT THEMES (TÓIBÍN SPECIALTIES):
+    - **Daily rituals** (meals, prayers, work, conversations)
+    - **Family relationships** (especially parent/child, spouse dynamics)
+    - **Quiet social moments** (gatherings, shared meals, walks)
+    - **Internal contemplation** (characters thinking, remembering, observing)
+    - **Gentle human connection** (understanding without words)
+    - **"Mixed motives and tacit exchanges"** between characters
+    - **Sense of time passing** (seasons, life stages, historical change)
 
     {visual_safety_education}
 
     ## 5. BASIC VISUAL PROMPTS (All {total_scenes} scenes)
-    - Simple AI image generation prompts
-    - Focus on location and atmosphere
-    - Character presence noted but details added later
+    - TÓIBÍN-INSPIRED: Focus on intimate, domestic, contemplative scenes
+    - Characters in quiet moments of daily life
+    - Historical settings that feel lived-in, not grand
+    - Warm, natural lighting suggesting introspection
 
-    ## 6. VOICE DIRECTIONS (All {total_scenes} scenes)
-    - TTS guidance for each scene
-    - Pace, mood, emphasis
+    ## 6. VOICE DIRECTIONS (All {total_scenes} scenes) - TÓIBÍN TONE
+    - **"Gentle, contemplative storytelling"**
+    - **"Literary sensibility with warm human connection"**
+    - **"Understated emotion, profound undertones"**
+    - **"Irish literary tradition - thoughtful, observational"**
 
     OUTPUT FORMAT (Complete JSON):
     {{
       "golden_hook": {{
-        "content": "[90-word atmospheric opening]",
+        "content": "[90-word Tóibín-style atmospheric opening with quiet observation]",
         "duration_seconds": 30,
-        "voice_direction": "Gentle, mysterious but calming tone"
+        "voice_direction": "Gentle, literary, contemplative - like Tóibín reading his own work"
       }},
       "subscribe_section": {{
-        "content": "[70-word community invitation]",
+        "content": "[70-word warm literary community invitation]",
         "duration_seconds": 30,
-        "voice_direction": "Warm, friendly conversational tone"
+        "voice_direction": "Warm, literary, non-commercial - book club invitation feeling"
       }},
       "scene_plan": [
         {{
           "scene_id": 1,
-          "title": "[Scene title]",
-          "location": "[Historical location]", 
+          "title": "[Tóibín-style scene title focusing on quiet moment]",
+          "location": "[Historical location - intimate, not grand]", 
           "duration_minutes": {scene_durations[0] if scene_durations else 4},
-          "template": "atmospheric",
-          "narrative_style": "observational",
-          "emotion": "peaceful",
-          "sensory_focus": "sight",
-          "description": "[What happens - include character names if present]",
-          "key_elements": ["element1", "element2", "element3"],
-          "characters_mentioned": ["character1", "character2"]
+          "template": "contemplative",
+          "narrative_style": "observational_internal",
+          "emotion": "quiet_recognition",
+          "sensory_focus": "understated_multiple",
+          "description": "[Daily activity with internal depth - include character names]",
+          "key_elements": ["quiet_activity", "internal_thought", "environmental_detail"],
+          "characters_mentioned": ["character1", "character2"],
+          "toibin_elements": ["silence_between_words", "ordinary_moment_profound", "character_psychology"]
         }}
       ],
       "stories": {{
-        "1": "[COMPLETE story for scene 1 with MASTERFUL unique opening]",
-        "2": "[COMPLETE story for scene 2 with DIFFERENT opening style]"
+        "1": "[COMPLETE Tóibín-style story - quiet observation opening, internal depth, historical authenticity]",
+        "2": "[COMPLETE Tóibín-style story - different opening approach, character psychology focus]"
       }},
       "visual_prompts": [
         {{
           "scene_number": 1,
           "title": "[Scene title]",
-          "prompt": "[Basic AI image prompt]",
+          "prompt": "[Tóibín-inspired: intimate daily life scene, warm lighting, contemplative mood]",
           "duration_minutes": {scene_durations[0] if scene_durations else 4},
-          "emotion": "peaceful"
+          "emotion": "quiet_contemplation"
         }}
       ],
       "voice_directions": [
         {{
           "scene_number": 1,
           "title": "[Scene title]", 
-          "direction": "[TTS guidance]",
-          "template": "atmospheric",
-          "style": "observational"
+          "direction": "[Literary storytelling - contemplative pace, understated emotion, Irish literary sensibility]",
+          "template": "contemplative",
+          "style": "toibin_observational"
         }}
       ],
       "stage1_stats": {{
         "scenes_planned": {total_scenes},
         "stories_written": {first_half},
-        "enhanced_prompts_used": true,
-        "master_storytelling": true,
-        "opening_variety_enforced": true,
+        "toibin_style_applied": true,
+        "quiet_mastery_demonstrated": true,
+        "daily_life_focus": true,
+        "character_psychology_depth": true,
         "total_word_count": "[calculated]",
         "characters_introduced": "[count]",
         "ready_for_stage2": true
       }}
     }}
 
-    ## STORYTELLING EXCELLENCE CHALLENGE:
-    Write {first_half} completely different, masterful stories using KRISTIN HANNAH'S PROVEN METHODS:
-    - **HANNAH'S OPENING VARIETY** - Different pattern from the 6 options above for each story
-    - **ELDERLY NARRATOR VOICE** - Sound like Hannah's wise, experienced narrators
-    - **EMOTIONAL PRECISION** - Use Hannah's specific language patterns and corrections
-    - **RESEARCH-LEVEL AUTHENTICITY** - Period details with Hannah's depth and accuracy
-    - **FEMALE RESILIENCE FOCUS** - Show strength emerging from impossible circumstances
-    - **DISASTER FORESHADOWING** - Narrator awareness of coming tragedy, characters' innocent hope
-    - **MEMORY-DRIVEN PACING** - Present reflection, past events, building emotional crescendos
-    - **SENSORY AUTHENTICITY** - Historically accurate sights, sounds, smells, textures
+    ## COLM TÓIBÍN MASTERY CHALLENGE:
+    Write {first_half} stories that demonstrate TÓIBÍN'S GENIUS:
 
-    Demonstrate your expertise as a MASTER STORYTELLER. SHOWCASE YOUR MASTERY with creative, unique openings for each scene. The phrase "You find yourself" is banned. Instead, craft atmospheric beginnings that vary in style and immediately immerse the reader.
+    **REQUIRED ELEMENTS FOR EACH STORY:**
+    - ✅ **UNIQUE QUIET OPENING** (8 different approaches shown above)
+    - ✅ **"Fascination of commonplaces"** - ordinary moments made profound
+    - ✅ **Character psychology depth** - internal lives richly explored
+    - ✅ **"Sparseness with superabundance"** - say less, suggest more
+    - ✅ **Historical authenticity** through small, telling details  
+    - ✅ **Sleep-optimized pacing** with natural breathing rhythm
+    - ✅ **"Hush you hear"** quality - peaceful, contemplative atmosphere
+
+    **TÓIBÍN'S SIGNATURE QUALITIES TO DEMONSTRATE:**
+    - **Silence as communication** - what characters don't say
+    - **"Mixed motives and tacit exchanges"** - complex relationships
+    - **"Quiet, vivid epiphanies"** - moments of recognition
+    - **Daily activities** as windows into character souls
+    - **Understated emotion** that resonates deeply
+
+    Channel COLM TÓIBÍN'S literary mastery. Create stories that feel like they belong in his celebrated works - intimate, psychologically rich, quietly profound, and deeply human.
 
     USE THE EXACT DURATIONS FROM THE PLAN ABOVE."""
 
@@ -1502,44 +1552,53 @@ class AutomatedStoryGenerator:
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
                 timeout=1800,
-                system="You are KRISTIN HANNAH - the bestselling master of historical fiction. Your writing has sold 25+ million copies worldwide. Apply your proven techniques from The Nightingale, The Four Winds, and The Great Alone. Use your signature elderly narrator voice with lived wisdom, emotional precision language, and research-authentic historical details. Each opening must use a different pattern from your repertoire - never repeat exact formulas. Focus on female resilience, disaster foreshadowing, and the bittersweet beauty of last peaceful moments. Write with the depth and authenticity that made you a global phenomenon.",                messages=[{"role": "user", "content": stage1_prompt}]
+                system="You are COLM TÓIBÍN, the celebrated Irish master of literary fiction. Apply your signature style: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and the quiet recognition of human psychology. Your stories capture the 'hush you hear, the sighing of disappearance' - peaceful, contemplative, psychologically rich. Focus on daily life moments with extraordinary emotional depth. Create sleep content with your literary mastery.",
+                messages=[{"role": "user", "content": stage1_prompt}]
             )
 
             content = ""
-            print("📡 Stage 1: Streaming Claude 4 response with ENHANCED PROMPTS...")
+            print("📡 Stage 1: Streaming with COLM TÓIBÍN MASTERY...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
                     if len(content) % 5000 == 0:
-                        print(f"   📊 Stage 1 ENHANCED: {len(content):,} characters...")
+                        print(f"   📚 TÓIBÍN STYLE: {len(content):,} characters...")
 
-            print(f"✅ Stage 1 ENHANCED complete: {len(content):,} characters")
+            print(f"✅ Stage 1 TÓIBÍN MASTERY complete: {len(content):,} characters")
 
             input_tokens = len(stage1_prompt) // 4
             output_tokens = len(content) // 4
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
-            CONFIG.logger.info(f"Stage 1 ENHANCED response length: {len(content)} characters - Cost: ${stage_cost:.4f}")
+            CONFIG.logger.info(f"Stage 1 Tóibín response length: {len(content)} characters - Cost: ${stage_cost:.4f}")
 
             parsed_result = self._parse_claude_response(content, "stage1")
 
-            self.log_step("Stage 1 ENHANCED Parsing", "SUCCESS", {
+            self.log_step("Stage 1 TÓIBÍN MASTERY Parsing", "SUCCESS", {
                 "scenes_planned": len(parsed_result.get('scene_plan', [])),
                 "stories_written": len(parsed_result.get('stories', {})),
-                "enhanced_prompts_used": True,
+                "toibin_style_applied": True,
                 "stage_cost": stage_cost
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 1 ENHANCED Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 1 enhanced error: {e}")
+            self.log_step("Stage 1 TÓIBÍN MASTERY Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 1 Tóibín error: {e}")
             raise
 
     def _generate_stage2(self, topic: str, description: str, stage1_result: Dict) -> Dict[str, Any]:
-        """STAGE 2: ENHANCED Remaining stories with POWERFUL PROMPTS from local version"""
+        """
+        STAGE 2: COLM TÓIBÍN MASTER STYLE - Remaining stories with LITERARY CONTINUITY
+
+        TÓIBÍN'S CONSISTENCY:
+        - Maintain character psychology established in Stage 1
+        - Continue "quiet recognition" emotional progression
+        - Deepen "fascination of commonplaces" approach
+        - Evolve "hush you hear" atmosphere throughout
+        """
 
         scene_plan = stage1_result.get('scene_plan', [])
         stories_written = len(stage1_result.get('stories', {}))
@@ -1550,7 +1609,7 @@ class AutomatedStoryGenerator:
             self.log_step("Stage 2: No remaining stories needed", "SUCCESS")
             return {"stories": {}, "stage2_stats": {"stories_written": 0, "note": "All stories completed in stage 1"}}
 
-        self.log_step(f"Stage 2: ENHANCED {remaining_scenes} Stories with POWERFUL PROMPTS")
+        self.log_step(f"Stage 2: TÓIBÍN MASTER CONTINUITY - {remaining_scenes} Stories")
 
         remaining_scene_plan = []
         for scene in scene_plan:
@@ -1569,11 +1628,12 @@ class AutomatedStoryGenerator:
     Emotion: {scene['emotion']} | Sensory Focus: {scene['sensory_focus']}
     Description: {scene['description']}
     Key Elements: {', '.join(scene.get('key_elements', []))}
-    Characters: {', '.join(scene.get('characters_mentioned', []))}"""
+    Characters: {', '.join(scene.get('characters_mentioned', []))}
+    Tóibín Elements: {', '.join(scene.get('toibin_elements', []))}"""
             for scene in remaining_scene_plan
         ])
 
-        stage2_prompt = f"""Complete the sleep story for "{topic}" by writing the remaining {remaining_scenes} stories.
+        stage2_prompt = f"""Complete the sleep story for "{topic}" by writing the remaining {remaining_scenes} stories in COLM TÓIBÍN'S MASTERFUL STYLE.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
@@ -1581,89 +1641,146 @@ class AutomatedStoryGenerator:
     SCENES TO COMPLETE:
     {scenes_text}
 
-    ## MASTER STORYTELLING REQUIREMENTS (ENHANCED FROM LOCAL VERSION):
+    🎭 COLM TÓIBÍN MASTER CONTINUITY - STAGE 2 REQUIREMENTS:
 
-    ## KRISTIN HANNAH STORYTELLING MASTERY (CONTINUED FROM STAGE 1):
+    ## MAINTAIN STAGE 1 TÓIBÍN EXCELLENCE:
+    Continue the literary mastery established in Stage 1:
+    - **Same "hush you hear" atmospheric quality**
+    - **Character consistency** - same personalities, relationships, internal patterns
+    - **"Sparseness with superabundance"** - restrained language with deep suggestion
+    - **"Fascination of commonplaces"** - ordinary moments made profound
+    - **Emotional progression** - deepen the quiet recognition from Stage 1
 
-    ### 🎭 HANNAH'S OPENING VARIETY (NEVER REPEAT EXACT FORMULAS):
-    - **WISDOM CONTINUATION:** "Having witnessed [event], I learned that [insight]..."
-    - **MEMORY DEEPENING:** "The image that haunts me most is [specific moment]..."
-    - **GENERATIONAL WISDOM:** "Young people today cannot imagine [historical reality]..."
-    - **EMOTIONAL CORRECTION:** "[Something] happened. Happened - as if it were simple fate..."
-    - **TIME REFLECTION:** "Looking back, I see how [moment] contained [hidden meaning]..."
-    - **EXPERIENCE AUTHORITY:** "Those who lived through [event] know [truth others don't]..."
-    
-    ### 🎨 HANNAH'S NARRATIVE VOICE CONSISTENCY:
-    - **ELDERLY NARRATOR:** Continue same wise, experienced voice from Stage 1
-    - **EMOTIONAL PRECISION:** Use Hannah's specific correction patterns
-    - **DISASTER AWARENESS:** Narrator knows outcome, characters remain hopeful
-    - **FEMALE STRENGTH:** Show resilience emerging from impossible circumstances
-    - **RESEARCH AUTHENTICITY:** Period-accurate details with Hannah's depth
+    ## TÓIBÍN'S ADVANCED OPENING MASTERY (STAGE 2 VARIETY):
+
+    Since Stage 1 used 8 opening approaches, Stage 2 must demonstrate NEW variations:
+
+    ### 9. **Temporal Shift Recognition:** "The afternoon feels different now, heavier somehow."
+    ### 10. **Character Relationship Moment:** "She watches him from across the courtyard, understanding."
+    ### 11. **Environmental Psychology:** "The garden seems to hold their secrets in its shadows."
+    ### 12. **Internal Weather:** "Something has shifted in the house's rhythm."
+    ### 13. **Collective Awareness:** "They all sense it, though none speaks of it."
+    ### 14. **Memory Confluence:** "This moment echoes others, from before."
+    ### 15. **Seasonal Recognition:** "Autumn arrives early in small signs."
+    ### 16. **Emotional Geography:** "The dining room carries the weight of unspoken words."
+
+    ## TÓIBÍN'S CHARACTER CONTINUITY MASTERY:
+
+    ### CHARACTER CONSISTENCY RULES:
+    - **Same internal voices** - characters think in same patterns as Stage 1
+    - **Relationship evolution** - deepen connections established earlier
+    - **"Mixed motives and tacit exchanges"** - continue complex character dynamics
+    - **Emotional memory** - characters carry forward Stage 1 experiences
+    - **Speech patterns** - maintain same dialogue styles and rhythms
+
+    ### CHARACTER DEVELOPMENT PROGRESSION:
+    ```
+    STAGE 1: Introduction + establishment of internal patterns
+    STAGE 2: Deepening + evolution + quiet recognitions
+    EMOTIONAL ARC: Peaceful observation → Growing awareness → Gentle acceptance
+    ```
+
+    ## TÓIBÍN'S SLEEP STORY REQUIREMENTS (ADVANCED):
 
     ### 📝 WORD COUNT PRECISION:
-    - 2-3 minute scenes: 300-450 words
-    - 4-5 minute scenes: 600-750 words  
-    - 6-7 minute scenes: 750-1050 words
-    - 8+ minute scenes: 1050+ words
-    - Base rate: ~150 words per minute for sleep content
+    - 2-3 minute scenes: 280-420 words (2-3 × 140)
+    - 4-5 minute scenes: 560-700 words (4-5 × 140)  
+    - 6-7 minute scenes: 840-980 words (6-7 × 140)
+    - 8+ minute scenes: 1120+ words (8+ × 140)
+    - Base rate: ~140 words per minute for sleep content
 
-    ### 🎭 CHARACTER INTEGRATION:
-    - When characters mentioned: Include meaningful interactions
-    - Show character personalities through actions and dialogue
-    - Build emotional connections between characters
-    - Progress character arcs throughout scenes
+    ### 🎭 TÓIBÍN'S CHARACTER INTEGRATION (ADVANCED):
+    - **"Characters led by desires they don't understand"** - show internal conflicts
+    - **Understated dialogue** - more gesture than words
+    - **Shared silences** - comfortable quiet between people
+    - **Observational moments** - characters watching each other with kindness
+    - **Emotional archaeology** - characters understanding through small signs
 
-    ### 🌙 SLEEP OPTIMIZATION:
-    - Present tense, second person perspective
-    - Rich sensory details (sight, sound, smell, touch, taste)
-    - [PAUSE] markers at natural breathing points
-    - Gentle pacing with flowing rhythm
-    - Peaceful resolution for each scene
-    - Avoid jarring or startling elements
+    ### 🌙 TÓIBÍN'S SLEEP OPTIMIZATION:
+    - **Present tense, second person** (but filtered through literary consciousness)
+    - **"Quiet, vivid epiphanies"** - moments of gentle recognition
+    - **Natural breathing rhythm** - sentences that flow like thought
+    - **Peaceful resolution** - each scene ends with acceptance/understanding
+    - **"Hush you hear"** quality - that distinctive Tóibín silence
 
-    ### 🏛️ HISTORICAL ACCURACY:
-    - Research-accurate period details
-    - Authentic materials, tools, and practices
-    - Accurate social customs and behaviors  
-    - Period-appropriate dialogue and thoughts
-    - Detailed environmental descriptions
+    ### 🏛️ TÓIBÍN'S HISTORICAL AUTHENTICITY:
+    - **Small, telling details** - period accuracy through commonplace objects
+    - **Social customs** shown through character behavior, not explanation
+    - **Daily rhythms** - how people actually lived their ordinary days
+    - **Environmental storytelling** - let setting reveal historical context
+    - **"Lived-in" feeling** - history as background to human experience
 
-    ### 🎵 NARRATIVE FLOW:
-    - Smooth transitions between paragraphs
-    - Varied sentence lengths for rhythm
-    - Building and releasing tension gently
-    - Natural conversation flow
-    - Descriptive passages balanced with action
+    ### 🎵 TÓIBÍN'S NARRATIVE MASTERY:
+    - **Sentence rhythm variation** - short observations, longer contemplative flows
+    - **Emotional undertow** - feelings flowing beneath surface politeness
+    - **"Sighing of disappearance"** - that sense of time passing, things changing
+    - **Contemplative pace** - allow characters time to think, observe, recognize
+    - **Literary density** - every sentence carrying weight beyond its words
+
+    ## FORBIDDEN ELEMENTS (ANTI-TÓIBÍN):
+    ❌ **Dramatic external action** - keep focus on internal/relational
+    ❌ **Overwrought emotion** - Tóibín is always understated
+    ❌ **Generic openings** - especially "You find yourself" (completely banned)
+    ❌ **Surface-level interaction** - all relationships must have depth
+    ❌ **Rushed pacing** - allow contemplative time for recognition
+    ❌ **Obvious exposition** - let readers discover through observation
+
+    ## TÓIBÍN MASTERY EXAMPLES FOR STAGE 2:
+
+    **CHARACTER CONTINUITY EXAMPLE:**
+    *Stage 1 established Marcus as quietly observational*
+    *Stage 2 continues:* "Marcus moves through the evening ritual as he always does, but tonight he notices how Julia's hands pause over the wine cups, the way she listens to sounds beyond the courtyard walls."
+
+    **EMOTIONAL PROGRESSION EXAMPLE:**
+    *Stage 1 introduced gentle melancholy*
+    *Stage 2 deepens:* "The familiar sadness is there, but softer now, like an old friend who no longer needs introduction."
 
     OUTPUT FORMAT:
     {{
       "stories": {{
-        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[COMPLETE story with MASTERFUL opening and precise word count]",
-        "{remaining_scene_plan[1]['scene_id'] if len(remaining_scene_plan) > 1 else 'Y'}": "[COMPLETE story with UNIQUE opening style]"
+        "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}": "[COMPLETE Tóibín-style story maintaining Stage 1 character consistency with advanced opening mastery]",
+        "{remaining_scene_plan[1]['scene_id'] if len(remaining_scene_plan) > 1 else 'Y'}": "[COMPLETE Tóibín-style story with unique opening from advanced variety list]"
       }},
       "stage2_stats": {{
         "stories_written": {remaining_scenes},
         "scenes_covered": "{remaining_scene_plan[0]['scene_id'] if remaining_scene_plan else 'X'}-{remaining_scene_plan[-1]['scene_id'] if remaining_scene_plan else 'Y'}",
-        "enhanced_prompts_used": true,
-        "master_storytelling": true,
-        "opening_variety_enforced": true,
-        "smart_durations": true,
+        "toibin_continuity_maintained": true,
+        "character_consistency_achieved": true,
+        "advanced_opening_mastery": true,
+        "literary_depth_sustained": true,
+        "quiet_recognition_progression": true,
         "total_word_count": "[calculated]",
-        "character_development": "continued"
+        "emotional_arc_completion": "deepened_understanding"
       }}
     }}
 
-    ## KRISTIN HANNAH EXCELLENCE CHALLENGE:
-    Continue your bestselling mastery across {remaining_scenes} stories using your proven methods:
-    - **HANNAH'S OPENING VARIETY** - Different wisdom/memory/reflection pattern for each story
-    - **VOICE CONSISTENCY** - Same elderly narrator from Stage 1 with lived experience
-    - **EMOTIONAL AUTHENTICITY** - Your signature correction patterns and precise language
-    - **HISTORICAL DEPTH** - Research-level authenticity that made your novels credible
-    - **FEMALE RESILIENCE** - Continue themes of strength through impossible circumstances
-    - **DISASTER FORESHADOWING** - Maintain narrator's tragic knowledge vs characters' hope
-    - **CHARACTER CONTINUITY** - Develop Stage 1 characters with your trademark depth
-    
-    Write with the same emotional precision and historical authenticity that made The Nightingale a global phenomenon. Each opening must demonstrate your mastery while never repeating exact formulas from previous stories or Stage 1."""
+    ## COLM TÓIBÍN STAGE 2 MASTERY CHALLENGE:
+
+    Write {remaining_scenes} stories that demonstrate TÓIBÍN'S ADVANCED LITERARY CRAFT:
+
+    ### REQUIRED EXCELLENCE FOR EACH STORY:
+    - ✅ **ADVANCED UNIQUE OPENING** (9-16 from new variety list above)
+    - ✅ **CHARACTER CONSISTENCY** - same internal voices/patterns from Stage 1
+    - ✅ **EMOTIONAL PROGRESSION** - deepen the quiet recognition established earlier
+    - ✅ **"Fascination of commonplaces"** - continue finding profound in ordinary
+    - ✅ **Perfect word count** matched to contemplative scene duration
+    - ✅ **Historical authenticity** through small, lived-in details
+    - ✅ **Sleep-optimized literary pacing** - gentle rhythm for peaceful rest
+
+    ### TÓIBÍN'S SIGNATURE ELEMENTS TO CONTINUE:
+    - **"Hush you hear"** - maintain that distinctive peaceful silence
+    - **"Mixed motives and tacit exchanges"** - keep character relationships complex
+    - **"Sparseness with superabundance"** - restrained language, rich suggestion
+    - **"Quiet, vivid epiphanies"** - moments of gentle recognition and acceptance
+    - **"Characters led by desires they don't understand"** - internal psychology depth
+
+    ### STAGE 2 EMOTIONAL PROGRESSION:
+    **STAGE 1:** Peaceful observation + character introduction
+    **STAGE 2:** Growing awareness + relationship deepening + gentle acceptance
+
+    Continue channeling COLM TÓIBÍN'S celebrated literary mastery. These remaining stories should feel seamlessly connected to Stage 1 while demonstrating advanced opening variety and deeper character development. Maintain the contemplative, psychologically rich, quietly profound qualities that make Tóibín's work so distinctive and perfect for sleep content.
+
+    REMEMBER: Character consistency is crucial - these people must feel like the same individuals from Stage 1, just revealed more deeply through continued observation."""
 
         try:
             self.api_call_count += 1
@@ -1674,18 +1791,19 @@ class AutomatedStoryGenerator:
                 temperature=CONFIG.claude_config["temperature"],
                 stream=True,
                 timeout=1800,
-                system="You are KRISTIN HANNAH continuing your masterwork. Maintain your signature elderly narrator voice and emotional precision from Stage 1. Each remaining story must use a different opening pattern from your proven repertoire. Continue the female resilience themes and disaster foreshadowing established earlier. Apply the same research-authentic historical details and memory-driven narrative structure that made your novels bestsellers. Keep character development consistent with Stage 1 while varying your opening approaches.",                messages=[{"role": "user", "content": stage2_prompt}]
+                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier. Use your advanced opening mastery (approaches 9-16) while deepening the 'quiet recognition' emotional progression. Continue the 'hush you hear' atmospheric quality and 'fascination of commonplaces' approach. These stories must feel seamlessly connected to Stage 1 while demonstrating your full range of literary craft.",
+                messages=[{"role": "user", "content": stage2_prompt}]
             )
 
             content = ""
-            print("📡 Stage 2: Streaming Claude 4 response with ENHANCED PROMPTS...")
+            print("📡 Stage 2: Streaming with TÓIBÍN LITERARY CONTINUITY...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
                     if len(content) % 5000 == 0:
-                        print(f"   📊 Stage 2 ENHANCED: {len(content):,} characters...")
+                        print(f"   📚 TÓIBÍN CONTINUITY: {len(content):,} characters...")
 
-            print(f"✅ Stage 2 ENHANCED complete: {len(content):,} characters")
+            print(f"✅ Stage 2 TÓIBÍN LITERARY MASTERY complete: {len(content):,} characters")
 
             input_tokens = len(stage2_prompt) // 4
             output_tokens = len(content) // 4
@@ -1694,17 +1812,18 @@ class AutomatedStoryGenerator:
 
             parsed_result = self._parse_claude_response(content, "stage2")
 
-            self.log_step("Stage 2 ENHANCED Parsing", "SUCCESS", {
+            self.log_step("Stage 2 TÓIBÍN LITERARY CONTINUITY Parsing", "SUCCESS", {
                 "stories_written": len(parsed_result.get('stories', {})),
-                "enhanced_prompts_used": True,
+                "toibin_continuity_maintained": True,
+                "character_consistency_achieved": True,
                 "stage_cost": stage_cost
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 2 ENHANCED Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 2 enhanced error: {e}")
+            self.log_step("Stage 2 TÓIBÍN LITERARY CONTINUITY Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 2 Tóibín continuity error: {e}")
             return {"stories": {}, "stage2_stats": {"error": str(e)}}
 
     def generate_hook_subscribe_scenes(self, scene_plan: List[Dict], hook_content: str, subscribe_content: str) -> Dict:
@@ -1781,7 +1900,7 @@ class AutomatedStoryGenerator:
         for scene in scene_plan:
             scene_context += f"Scene {scene['scene_id']}: {scene.get('title', '')} - {scene.get('description', '')}\n"
 
-        character_prompt = f"""Analyze the complete sleep story and create character extraction + YouTube optimization package.
+        character_prompt = f"""Analyze the complete COLM TÓIBÍN-style sleep story and extract characters for DRAMATIC THUMBNAIL optimization while maintaining literary authenticity.
 
 TOPIC: {topic}
 DESCRIPTION: {description}
@@ -1794,21 +1913,40 @@ SCENE PLAN CONTEXT (First 4000 chars):
 
 REQUIREMENTS:
 
-## PART 1: DEEP CHARACTER EXTRACTION
-- Identify maximum {CONFIG.claude_config['max_characters']} main characters
-- Focus on characters that appear in multiple scenes
-- Provide comprehensive character analysis for each including:
-  * Physical description (for visual consistency)
-  * Personality traits and voice style
-  * Character arc (beginning, conflict, resolution)
-  * Symbolic meaning and core function in story
-  * Visual contrast and lighting preferences
-  * Marketing utility for thumbnails/promotion
-- Map which scenes each character appears in
-- Analyze character relationships and dynamics
+## PART 1: TÓIBÍN-STYLE DEEP CHARACTER EXTRACTION
 
-## PART 2: YOUTUBE OPTIMIZATION
-Create complete YouTube upload package
+Extract maximum {CONFIG.claude_config['max_characters']} characters using TÓIBÍN'S PSYCHOLOGICAL MASTERY:
+
+### TÓIBÍN CHARACTER ANALYSIS REQUIREMENTS:
+- **"Characters led by desires they don't understand"** - identify internal conflicts
+- **"Mixed motives and tacit exchanges"** - complex relationship dynamics  
+- **"Vulnerabilities and strengths virtually the same"** - character paradoxes
+- **Quiet dignity** - characters who maintain composure despite internal struggle
+- **Understated emotion** - feelings expressed through gesture, silence, observation
+- **"Fascination of commonplaces"** - how ordinary moments reveal character depth
+
+## PART 2: DRAMATIC THUMBNAIL OPTIMIZATION + YOUTUBE OPTIMIZATION
+
+**CRITICAL BALANCE:**
+- Extract characters with **STRONG VISUAL APPEAL** for dramatic thumbnails
+- Maintain **TÓIBÍN'S LITERARY AUTHENTICITY** in character analysis
+- Characters must work for **"BETRAYAL!" "MYSTERIOUS!" "SCANDALOUS!"** thumbnails
+- But psychological analysis stays TRUE to Tóibín's subtle mastery
+
+### THUMBNAIL CHARACTER REQUIREMENTS:
+- **Expressive faces** - capable of dramatic emotion for thumbnails
+- **Visual contrast** - distinct appearance for thumbnail recognition
+- **Emotional range** - can show concern, determination, contemplation for clicks
+- **Historical authenticity** - period-accurate appearance
+- **Marketing utility** - faces that draw clicks while maintaining story integrity
+
+### DRAMATIC THUMBNAIL STRATEGY:
+**YOUR PROVEN FORMULA:**
+- Thumbnail: "BETRAYAL! Character's Final Evening" 
+- Content: Tóibín-style quiet contemplation and daily life
+- Result: Click satisfaction + literary quality + sleep optimization
+
+Create YouTube package that bridges DRAMATIC MARKETING with TÓIBÍN QUALITY:
 
 ## PART 3: PRODUCTION SPECIFICATIONS
 Generate all technical requirements for full automation
@@ -1838,7 +1976,20 @@ OUTPUT FORMAT (Complete JSON):
       "thumbnail_potential": "[Why this character works well in thumbnails]",
       "relationships": [
         {{"character": "other_character_name", "relationship": "detailed description", "visual_dynamic": "how they appear together"}}
-      ]
+      ],
+      "toibin_elements": {
+      "internal_contradiction": "[What they want vs what they understand about wanting]",
+      "emotional_archaeology": "[Layers of feeling beneath surface politeness]",
+      "quiet_dignity": "[How they maintain composure despite struggle]",
+      "relationship_complexity": "[Mixed motives in interactions with others]",
+      "recognition_moments": "[Instances of unspoken understanding]"
+    },
+    "dramatic_potential": {
+      "thumbnail_emotion": "[Best emotional expression for dramatic thumbnails]",
+      "visual_drama": "[How to show intensity while maintaining Tóibín authenticity]",
+      "marketing_appeal": "[Why viewers will click while getting quality content]"
+    }
+      
     }}
   ],
   "character_relationships": [
@@ -1865,12 +2016,12 @@ OUTPUT FORMAT (Complete JSON):
   }},
   "youtube_optimization": {{
     "clickbait_titles": [
-      "This Ancient Queen's Final Secret Will Put You to Sleep Instantly",
-      "I Spent 2 Hours in Ancient Palace (Sleep Story)",
-      "What Really Happened in History's Most Peaceful Night?",
-      "Ancient Sleep Ritual That Actually Works",
-      "The Most Relaxing Historical Story Ever Told"
-    ],
+  "MYSTERIOUS! [Character]'s Final Secret Decision (2 Hour Sleep Story)",
+  "BETRAYAL! The Night [Character] Never Saw Coming - Most Peaceful Historical Story", 
+  "SCANDALOUS! What Really Happened in [Character]'s Last Quiet Evening",
+  "TERRIFYING! [Character]'s Hidden Truth - Beautiful Sleep Story That Actually Works",
+  "INCREDIBLE! [Character]'s Most Peaceful Final Hours - You Won't Believe What Happened"
+],
     "thumbnail_concept": {{
       "main_character": "[Main character name]",
       "dramatic_scene": "[Most visually striking scene]",
@@ -1980,15 +2131,19 @@ OUTPUT FORMAT (Complete JSON):
   }}
 }}
 
-Analyze thoroughly and create complete package with DEEP CHARACTER ANALYSIS including:
-- Character arcs (beginning → conflict → resolution)
-- Symbolic meaning and thematic representation  
-- Visual contrast and lighting preferences
-- Voice style and emotional journey
-- Marketing and thumbnail potential
-- Complex relationship dynamics
+## TÓIBÍN + DRAMATIC MARKETING MASTERY CHALLENGE:
 
-Plus full YouTube optimization and production specifications."""
+Extract characters that serve BOTH purposes perfectly:
+
+### REQUIRED EXCELLENCE:
+- ✅ **TÓIBÍN PSYCHOLOGICAL AUTHENTICITY** - complex internal lives, mixed motives, quiet dignity
+- ✅ **DRAMATIC VISUAL APPEAL** - faces and personalities that work for "BETRAYAL!" thumbnails  
+- ✅ **CHARACTER CONSISTENCY** - match the contemplative, internally complex characters from stories
+- ✅ **MARKETING UTILITY** - characters viewers want to click on and learn about
+- ✅ **LITERARY DEPTH** - character analysis that honors Tóibín's sophisticated approach
+- ✅ **SLEEP CONTENT OPTIMIZATION** - characters whose stories promote peaceful rest
+
+This is the PERFECT FORMULA for 1 million subscribers: dramatic marketing appeal combined with genuine literary quality and effective sleep content."""
 
         try:
             self.api_call_count += 1
@@ -1999,7 +2154,7 @@ Plus full YouTube optimization and production specifications."""
                 temperature=0.3,
                 stream=True,
                 timeout=900,
-                system="You are analyzing stories written in KRISTIN HANNAH's style. Focus on Hannah's signature female characters - resilient women who discover strength through crisis. Look for characters with Hannah's trademark emotional depth, authentic historical context, and the kind of compelling personal journeys that made The Nightingale and The Four Winds bestsellers. Extract characters who embody Hannah's themes of survival, sacrifice, and the untold stories of women in history.",                messages=[{"role": "user", "content": character_prompt}]
+                system="You are COLM TÓIBÍN analyzing your own literary characters while also being a YouTube optimization expert. Extract characters with your signature psychological depth - 'characters led by desires they don't understand,' 'mixed motives and tacit exchanges,' 'quiet dignity' - while ensuring they have dramatic visual appeal for thumbnails. Balance literary authenticity with marketing effectiveness. These characters must work for both 'BETRAYAL!' thumbnails AND contemplative literary content."
             )
 
             # Collect streaming response
@@ -2036,27 +2191,40 @@ Plus full YouTube optimization and production specifications."""
                 )
                 parsed_result['scene_character_mapping'] = scene_character_map
 
-                # REGENERATE VISUAL PROMPTS with correct character integration
-                regenerated_visual_prompts = self._regenerate_visual_prompts_with_characters(
-                    stage1_result.get('scene_plan', []),
-                    top_characters,
-                    scene_character_map,
-                    parsed_result.get('visual_style_notes', {})
+                # 🆕 GENERATE STORY-BASED VISUAL PROMPTS with Claude + Tóibín style + Midjourney safety
+                story_based_visual_prompts = self._generate_claude_visual_prompts_from_stories(
+                    validation_result.get('validated_stories', {}),  # 📖 Actual story content
+                    stage1_result.get('scene_plan', []),  # 🎬 Scene information
+                    top_characters,  # 👥 Character data
+                    scene_character_map  # 🗺️ Character-scene mapping
                 )
 
-                # Replace the old visual prompts with the regenerated ones
-                parsed_result['regenerated_visual_prompts'] = regenerated_visual_prompts
+                # Replace the old visual prompts with story-based ones
+                parsed_result['story_based_visual_prompts'] = story_based_visual_prompts
 
-                self.character_system.log_extraction_step("Visual Prompts Regenerated", "SUCCESS", {
-                    "prompts_created": len(regenerated_visual_prompts),
+                self.character_system.log_extraction_step("Story-Based Visual Prompts Generated", "SUCCESS", {
+                    "prompts_created": len(story_based_visual_prompts),  # ✅ DOĞRU değişken
                     "character_integrated_scenes": len(
-                        [p for p in regenerated_visual_prompts if p.get('character_reference_needed')])
+                        [p for p in story_based_visual_prompts if p.get('character_reference_needed')]),
+                    "story_based_generation": True,
+                    "toibin_style_integrated": True,
+                    "midjourney_safety_compliant": True
                 })
 
             self.character_system.log_extraction_step("Character Extraction", "SUCCESS", {
                 "characters_extracted": len(parsed_result.get('main_characters', [])),
                 "character_names": [c.get('name', 'Unknown') for c in parsed_result.get('main_characters', [])],
-                "visual_prompts_regenerated": 'regenerated_visual_prompts' in parsed_result,
+                "visual_prompts_regenerated": 'story_based_visual_prompts' in parsed_result,  # ✅ DOĞRU key
+                "story_based_generation": True,
+                "toibin_style_integrated": True,
+                "stage_cost": stage_cost
+            })
+
+            self.character_system.log_extraction_step("Character Extraction", "SUCCESS", {
+                "characters_extracted": len(parsed_result.get('main_characters', [])),
+                "character_names": [c.get('name', 'Unknown') for c in parsed_result.get('main_characters', [])],
+                "visual_prompts_regenerated": 'story_based_visual_prompts' in parsed_result,  # ✅ DOĞRU key
+                "story_based_generation": True,  # 🆕 Yeni feature
                 "stage_cost": stage_cost
             })
 
@@ -2066,147 +2234,428 @@ Plus full YouTube optimization and production specifications."""
             self.character_system.log_extraction_step("Character Extraction Failed", "ERROR")
             print(f"❌ Character extraction error: {e}")
             return {"main_characters": [], "character_stats": {"error": str(e)}}
+    def _regenerate_visual_prompts_with_toibin_drama(self, scene_plan: List[Dict], characters: List[Dict],
+                                                     scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
+        """Generate visual prompts balancing TÓIBÍN LITERARY QUALITY with DRAMATIC THUMBNAIL APPEAL"""
 
-    def _regenerate_visual_prompts_with_characters(self, scene_plan: List[Dict], characters: List[Dict],
-                                                   scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
-        """Generate ENHANCED DRAMATIC visual prompts with better storytelling"""
+        prompts = []
 
-        self.character_system.log_extraction_step("Enhanced Visual Prompts with Dramatic Storytelling")
+        for scene in scene_plan:
+            scene_id = scene['scene_id']
+            scene_characters = scene_character_map.get(str(scene_id), [])
+            location = scene.get('location', 'Historical setting')
+            emotion = scene.get('emotion', 'quiet_contemplation')
+            description = scene.get('description', '')
+            title = scene.get('title', f"Scene {scene_id}")
 
-        # Enhanced Midjourney safety awareness
-        ENHANCED_PROMPT_GUIDE = """
-        Create DRAMATIC, CINEMATIC visual prompts that tell visual stories.
+            # Balance dramatic appeal with Tóibín authenticity
+            if scene_characters:
+                char_names = [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters]
+                char_list = ', '.join(char_names)
 
-        SAFETY RULES:
-        - Never use: "intimate", "private", "mystical", "late at night"
-        - Use instead: "contemplative", "personal reflection", "atmospheric", "evening hours"
-        - Focus on educational/historical content
-        - Show character emotions and interactions
-        - Include environmental storytelling
+                # DRAMATIC but LITERARY approach
+                if emotion in ['concern', 'recognition', 'conflict']:
+                    drama_element = "showing quiet concern and internal contemplation about unfolding events"
+                    lighting = "dramatic lighting that emphasizes character psychology and internal struggle"
+                else:
+                    drama_element = "in thoughtful, contemplative poses with subtle emotional intensity"
+                    lighting = "warm, sophisticated lighting suggesting literary depth and character complexity"
 
-        DRAMATIC ENHANCEMENT:
-        - Show character emotions and reactions
-        - Include multiple visual layers (foreground + background)
-        - Add crisis elements for dramatic topics
-        - Use environmental storytelling
-        - Create cinematic composition
-        """
+                prompt = f"Literary cinematic scene of {location}, featuring {char_list} {drama_element}, {lighting}, Tóibín-style character psychology visible in expressions, historically accurate period setting, sophisticated composition balancing dramatic appeal with contemplative literary quality"
 
-        regeneration_prompt = f"""
-        {ENHANCED_PROMPT_GUIDE}
+                enhanced_prompt = f"[CHARACTERS: {char_list}] [TÓIBÍN + DRAMATIC BALANCE] {prompt}"
+                char_ref_needed = True
 
-        Create DRAMATICALLY ENHANCED visual prompts for historical story scenes.
+                characters_in_scene = []
+                for char_name in char_names:
+                    full_char = next((c for c in characters if c['name'] == char_name), None)
+                    if full_char:
+                        characters_in_scene.append({
+                            'name': char_name,
+                            'description': full_char.get('physical_description',
+                                                         'Literary character with dramatic potential'),
+                            'importance': full_char.get('importance_score', 5),
+                            'dramatic_potential': full_char.get('dramatic_potential', {}),
+                            'toibin_elements': full_char.get('toibin_elements', {})
+                        })
+            else:
+                # Atmospheric scenes with dramatic potential
+                prompt = f"Atmospheric literary scene of {location}, sophisticated cinematography with dramatic visual appeal, warm intelligent lighting, Tóibín-style contemplative mood with subtle dramatic tension, historically accurate, educational atmosphere that draws clicks while promoting peaceful contemplation"
+                enhanced_prompt = f"[TÓIBÍN ATMOSPHERIC + DRAMATIC APPEAL] {prompt}"
+                char_ref_needed = False
+                characters_in_scene = []
 
-        SCENE PLAN:
-        {json.dumps([{
-            'scene_id': s['scene_id'],
-            'title': s['title'],
-            'location': s['location'],
-            'emotion': s['emotion'],
-            'description': s['description']
-        } for s in scene_plan], indent=2)}
+            prompt_data = {
+                "scene_number": scene_id,
+                "title": title,
+                "location": location,
+                "characters_present": [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters],
+                "character_reference_needed": char_ref_needed,
+                "prompt": prompt,
+                "enhanced_prompt": enhanced_prompt,
+                "duration_minutes": scene.get('duration_minutes', 4),
+                "emotion": emotion,
+                "characters_in_scene": characters_in_scene,
+                "toibin_literary_quality": True,
+                "dramatic_appeal_balanced": True,
+                "marketing_optimization": "Balances click appeal with literary authenticity"
+            }
 
-        MAIN CHARACTERS:
-        {json.dumps([{
-            'name': char.get('name', ''),
-            'physical_description': char.get('physical_description', ''),
-            'role': char.get('role', '')
-        } for char in characters], indent=2)}
+            prompts.append(prompt_data)
 
-        SCENE-CHARACTER MAPPING:
-        {json.dumps(scene_character_map, indent=2)}
+        return prompts
 
-        REQUIREMENTS FOR EACH SCENE:
-        1. If characters present: Show their emotions and interactions
-        2. If no characters: Create atmospheric storytelling
-        3. Add dramatic elements appropriate to the scene emotion
-        4. Include environmental details that enhance the story
-        5. Use historically accurate period details
-        6. Create multiple visual layers (foreground + background activity)
-        7. Show consequences and stakes when appropriate
+    def _generate_claude_visual_prompts_from_stories(self, validated_stories, scene_plan, characters,
+                                                     scene_character_map):
+        """🆕 Generate visual prompts by having Claude read each story with Tóibín style + Midjourney safety"""
 
-        For CRISIS scenes (emotion: concern): Add evacuation, smoke, worried crowds
-        For PEACEFUL scenes (emotion: peaceful): Add beauty, serenity, contemplation
-        For RESOLUTION scenes: Add hope, determination, community
+        self.log_step("Generating Story-Based Visual Prompts with Claude + Tóibín Style + Midjourney Safety")
 
-        OUTPUT FORMAT for each scene:
-        {{
-          "scene_number": X,
-          "title": "[Scene title]",
-          "location": "[Scene location]", 
-          "characters_present": ["Character1"] or [],
-          "character_reference_needed": true/false,
-          "prompt": "[DRAMATICALLY ENHANCED prompt with storytelling]",
-          "enhanced_prompt": "[Same prompt with character markers]",
-          "duration_minutes": X,
-          "emotion": "[Scene emotion]",
-          "characters_in_scene": [
-            {{
-              "name": "Character Name",
-              "description": "Physical description",
-              "importance": X
-            }}
-          ]
-        }}
+        MIDJOURNEY_SAFETY_PROMPT = """
+    🛡️ CRITICAL MIDJOURNEY CONTENT POLICY COMPLIANCE:
 
-        Create enhanced prompts that show VISUAL STORIES, not just static scenes.
-        """
+    BANNED WORDS THAT CAUSE AUTOMATIC REJECTION:
+    ❌ NEVER USE: "intimate", "private", "personal", "sensual", "romantic"
+    ❌ NEVER USE: "bedroom", "bath", "naked", "nude", "skin", "touching"  
+    ❌ NEVER USE: "embrace", "caress", "kiss", "passion", "desire"
+    ❌ NEVER USE: "mystical", "supernatural", "magic", "spiritual"
+    ❌ NEVER USE: "late at night", "dark secrets", "hidden desires"
 
-        try:
-            self.api_call_count += 1
+    ✅ SAFE ALTERNATIVES:
+    - "contemplative" NOT "intimate"
+    - "evening hours" NOT "late at night"
+    - "scholarly atmosphere" NOT "mystical mood"
+    - "historical educational setting" ALWAYS include
+    - "family-friendly historical content" ALWAYS include
+    """
 
-            response = self.client.messages.create(
-                model=CONFIG.claude_config["model"],
-                max_tokens=16000,
-                temperature=0.4,
-                stream=True,
-                timeout=900,
-                system="You are a cinematic visual director. Create dramatic visual prompts that tell emotional stories with character interactions and environmental storytelling. Focus on showing consequences, emotions, and multiple visual layers.",
-                messages=[{"role": "user", "content": regeneration_prompt}]
-            )
+        TOIBIN_VISUAL_TRANSLATION = """
+    🎭 COLM TÓIBÍN LITERARY STYLE → VISUAL TRANSLATION:
 
-            content = ""
-            print("📡 Generating Enhanced Dramatic Visual Prompts...")
-            for chunk in response:
-                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
-                    content += chunk.delta.text
+    TÓIBÍN'S SIGNATURE VISUAL APPROACH:
+    ✅ "SPARSENESS WITH SUPERABUNDANCE" → Visual restraint that suggests deeper meaning
+    ✅ "QUIET DIGNITY" → Characters maintaining composure, understated elegance  
+    ✅ "FASCINATION OF COMMONPLACES" → Extraordinary beauty in ordinary moments
+    ✅ "HUSH YOU HEAR" → Peaceful, contemplative atmosphere with subtle depth
+    ✅ "MIXED MOTIVES & TACIT EXCHANGES" → Complex psychology visible in expressions
 
-            print(f"✅ Enhanced visual prompts complete: {len(content):,} characters")
+    VISUAL REQUIREMENTS:
+    - RESTRAINT over spectacle (Tóibín prefers subtlety)
+    - CHARACTER PSYCHOLOGY emphasis (internal states visible)
+    - CONTEMPLATIVE PACING (thoughtful compositions)
+    - LITERARY SOPHISTICATION (educated audience appeal)
+    - UNDERSTATED EMOTION (never melodramatic)
+    """
 
-            # Calculate cost
-            input_tokens = len(regeneration_prompt) // 4
-            output_tokens = len(content) // 4
-            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
-            self.total_cost += stage_cost
+        enhanced_prompts = []
+
+        for scene_id, story_content in validated_stories.items():
+            scene_info = next((s for s in scene_plan if str(s['scene_id']) == scene_id), {})
+            scene_characters = scene_character_map.get(str(scene_id), [])
+
+            # Character names for prompt
+            char_names = []
+            for sc in scene_characters:
+                if isinstance(sc, dict):
+                    char_names.append(sc.get('name', ''))
+                else:
+                    char_names.append(str(sc))
+
+            prompt = f"""
+    {MIDJOURNEY_SAFETY_PROMPT}
+
+    {TOIBIN_VISUAL_TRANSLATION}
+
+    READ this COLM TÓIBÍN-style story and create a MIDJOURNEY-OPTIMIZED visual prompt:
+
+    STORY CONTENT (First 3000 characters):
+    {story_content[:3000]}
+
+    SCENE CONTEXT:
+    - Title: {scene_info.get('title', '')}
+    - Location: {scene_info.get('location', '')}
+    - Characters Present: {', '.join(char_names) if char_names else 'None'}
+    - Emotion: {scene_info.get('emotion', 'peaceful')}
+    - Duration: {scene_info.get('duration_minutes', 4)} minutes
+    - Tóibín Elements: {scene_info.get('toibin_elements', [])}
+
+    CREATE A VISUAL PROMPT THAT CAPTURES:
+
+    1. 🎭 TÓIBÍN LITERARY STYLE:
+       - "Quiet dignity" in character presentation
+       - "Fascination of commonplaces" - make ordinary extraordinary
+       - "Sparseness with suggestion" - visual restraint with deep meaning
+       - Contemplative, peaceful atmosphere with psychological depth
+
+    2. 📖 SPECIFIC STORY DETAILS:
+       - EXACT character actions described in the story
+       - PARTICULAR objects and environmental elements mentioned
+       - EMOTIONAL moments and internal states shown
+       - SYMBOLIC elements that carry story meaning
+
+    3. 🛡️ MIDJOURNEY SAFETY & OPTIMIZATION:
+       - Use only safe, educational language
+       - Include "historical educational content" qualifier
+       - Stay under 3000 characters
+       - Family-friendly approach
+       - No banned words whatsoever
+
+    VISUAL PROMPT STRUCTURE:
+    "Contemplative [shot type] of [historical location], [character] showing quiet dignity while [specific story action], [story-specific environmental details], understated composition emphasizing the fascination of commonplaces, peaceful Tóibín atmosphere with subtle psychological depth, historical educational content showcasing authentic [period] daily life, family-friendly literary scene"
+
+    QUALITY CHECKLIST:
+    ✅ Tóibín's "quiet dignity" visible in character presentation?
+    ✅ Ordinary moment made visually compelling ("fascination of commonplaces")?
+    ✅ Specific story details captured accurately?
+    ✅ Literary sophistication maintained?
+    ✅ Midjourney-safe language used throughout?
+    ✅ Historical educational context emphasized?
+
+    OUTPUT: Single optimized visual prompt (2000-3000 characters)
+    """
 
             try:
-                content = content.strip()
-                if content.startswith('```json'):
-                    content = content[7:]
-                elif content.startswith('```'):
-                    content = content[3:]
-                if content.endswith('```'):
-                    content = content[:-3]
-                content = content.strip()
+                self.api_call_count += 1
 
-                visual_prompts = json.loads(content)
+                response = self.client.messages.create(
+                    model=CONFIG.claude_config["model"],
+                    max_tokens=1500,
+                    temperature=0.3,
+                    timeout=300,
+                    system="You are COLM TÓIBÍN collaborating with a master visual director. Create visual prompts that capture both your literary authenticity - 'quiet dignity,' 'sparseness with suggestion,' 'fascination of commonplaces' - AND the specific story details, while ensuring complete Midjourney content policy compliance.",
+                    messages=[{"role": "user", "content": prompt}]
+                )
 
-                self.character_system.log_extraction_step("Enhanced Visual Prompts", "SUCCESS", {
-                    "prompts_generated": len(visual_prompts),
-                    "dramatic_enhancement": True,
-                    "stage_cost": stage_cost
+                story_based_prompt = response.content[0].text.strip()
+
+                # Apply safety filters
+                story_based_prompt = self._apply_midjourney_safety_filters(story_based_prompt)
+
+                # Build character details for consistency
+                characters_in_scene = []
+                for char_name in char_names:
+                    full_char = next((c for c in characters if c['name'] == char_name), None)
+                    if full_char:
+                        characters_in_scene.append({
+                            'name': char_name,
+                            'description': full_char.get('physical_description', ''),
+                            'importance': full_char.get('importance_score', 5),
+                            'toibin_psychology': full_char.get('toibin_elements', {})
+                        })
+
+                enhanced_prompts.append({
+                    "scene_number": int(scene_id),
+                    "title": scene_info.get('title', f'Scene {scene_id}'),
+                    "location": scene_info.get('location', ''),
+                    "characters_present": char_names,
+                    "character_reference_needed": len(char_names) > 0,
+                    "prompt": story_based_prompt,
+                    "enhanced_prompt": f"[TÓIBÍN LITERARY + STORY-BASED] {story_based_prompt}",
+                    "duration_minutes": scene_info.get('duration_minutes', 4),
+                    "emotion": scene_info.get('emotion', 'peaceful'),
+                    "characters_in_scene": characters_in_scene,
+                    "story_based_generation": True,
+                    "toibin_style_integrated": True,
+                    "midjourney_safety_compliant": True,
+                    "character_count": len(story_based_prompt),
+                    "story_elements_captured": self._count_story_elements(story_content, story_based_prompt)
                 })
 
-                return visual_prompts
+                self.log_step(
+                    f"Story-based visual prompt generated for scene {scene_id}: {len(story_based_prompt)} chars",
+                    "SUCCESS")
 
-            except json.JSONDecodeError as e:
-                print(f"⚠️ JSON parsing failed, creating enhanced fallback: {e}")
-                return self._create_enhanced_fallback_prompts(scene_plan, characters, scene_character_map)
+            except Exception as e:
+                self.log_step(f"Story-based visual prompt failed for scene {scene_id}: {str(e)}", "WARNING")
+                # Fallback to simple prompt
+                fallback_prompt = self._create_story_fallback_prompt(scene_info, char_names, story_content)
+                enhanced_prompts.append(fallback_prompt)
 
-        except Exception as e:
-            self.character_system.log_extraction_step("Enhanced Visual Prompts Failed", "ERROR")
-            print(f"❌ Enhanced visual prompt error: {e}")
-            return self._create_enhanced_fallback_prompts(scene_plan, characters, scene_character_map)
+        return enhanced_prompts
+
+    def _apply_midjourney_safety_filters(self, prompt: str) -> str:
+        """Apply safety filters to prevent Midjourney rejection"""
+
+        REPLACEMENTS = {
+            "intimate": "contemplative",
+            "private": "personal study",
+            "mystical": "atmospheric",
+            "late at night": "evening hours",
+            "dark secrets": "historical mysteries",
+            "touching": "near",
+            "embrace": "gather around",
+            "sensual": "peaceful",
+            "romantic": "warm",
+            "naked": "unadorned",
+            "nude": "simple"
+        }
+
+        # Apply replacements
+        for risky, safe in REPLACEMENTS.items():
+            prompt = prompt.replace(risky, safe)
+
+        # Ensure safety qualifiers
+        if "historical educational" not in prompt.lower():
+            prompt += ", historical educational content, family-friendly scene"
+
+        # Character limit check
+        if len(prompt) > 3500:
+            prompt = prompt[:3400] + ", family-friendly historical scene"
+
+        return prompt
+
+    def _count_story_elements(self, story_content: str, visual_prompt: str) -> int:
+        """Count specific story elements captured in visual prompt"""
+        story_words = set(story_content.lower().split())
+        prompt_words = set(visual_prompt.lower().split())
+
+        # Key story elements (nouns, actions, objects)
+        story_elements = [
+            word for word in story_words
+            if len(word) > 4 and word not in ['that', 'with', 'from', 'they', 'have', 'this', 'will', 'been']
+        ]
+
+        captured = [element for element in story_elements if element in prompt_words]
+        return len(captured)
+
+    def _create_story_fallback_prompt(self, scene_info, char_names, story_content):
+        """Create fallback prompt if Claude generation fails"""
+        location = scene_info.get('location', 'Historical setting')
+        emotion = scene_info.get('emotion', 'peaceful')
+
+        if char_names:
+            chars = ', '.join(char_names)
+            prompt = f"Contemplative scene of {location}, featuring {chars} in {emotion} moment, historical educational content, family-friendly literary scene"
+        else:
+            prompt = f"Atmospheric scene of {location}, {emotion} historical atmosphere, educational content, family-friendly"
+
+        return {
+            "scene_number": int(scene_info.get('scene_id', 0)),
+            "title": scene_info.get('title', 'Fallback Scene'),
+            "prompt": prompt,
+            "enhanced_prompt": f"[FALLBACK] {prompt}",
+            "story_based_generation": False,
+            "fallback_used": True
+        }
+
+    def _apply_midjourney_safety_filters(self, prompt: str) -> str:
+        """Apply safety filters to prevent Midjourney rejection"""
+
+        REPLACEMENTS = {
+            "intimate": "contemplative",
+            "private": "personal study",
+            "mystical": "atmospheric",
+            "late at night": "evening hours",
+            "dark secrets": "historical mysteries",
+            "touching": "near",
+            "embrace": "gather around",
+            "sensual": "peaceful",
+            "romantic": "warm"
+        }
+
+        for risky, safe in REPLACEMENTS.items():
+            prompt = prompt.replace(risky, safe)
+
+        # Ensure safety qualifier
+        if "historical educational" not in prompt.lower():
+            prompt += ", historical educational content, family-friendly scene"
+
+        # Character limit
+        if len(prompt) > 3500:
+            prompt = prompt[:3400] + "..."
+
+        return prompt
+
+    def _create_toibin_dramatic_fallback_prompts(self, scene_plan: List[Dict], characters: List[Dict],
+                                                 scene_character_map: Dict) -> List[Dict]:
+        """Create TÓIBÍN + DRAMATIC fallback prompts with perfect balance"""
+
+        prompts = []
+
+        for scene in scene_plan:
+            scene_id = scene['scene_id']
+            scene_characters = scene_character_map.get(str(scene_id), [])
+            location = scene.get('location', 'Historical setting')
+            emotion = scene.get('emotion', 'quiet_contemplation')
+            description = scene.get('description', '')
+            title = scene.get('title', f"Scene {scene_id}")
+
+            # Tóibín + Dramatic balance based on emotion
+            if emotion in ['concern', 'curiosity', 'recognition']:
+                toibin_element = "showing quiet internal contemplation about unfolding complexity"
+                dramatic_element = "with subtle emotional intensity and dramatic lighting suitable for thumbnail overlays"
+                lighting = "sophisticated dramatic lighting that emphasizes character psychology while maintaining peaceful undertone"
+            else:  # peaceful, resolution
+                toibin_element = "in thoughtful, dignified poses with visible internal depth"
+                dramatic_element = "with compelling visual composition and character expression perfect for marketing"
+                lighting = "warm, sophisticated lighting suggesting both literary quality and visual appeal"
+
+            # Character integration with Tóibín + dramatic balance
+            if scene_characters:
+                char_names = [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters]
+                char_list = ', '.join(char_names)
+
+                prompt = f"Literary cinematic scene of {location}, featuring {char_list} {toibin_element}, {dramatic_element}, {lighting}, Tóibín-style character psychology visible in expressions and posture, historically accurate period setting, sophisticated composition balancing dramatic thumbnail appeal with contemplative literary atmosphere, environmental storytelling supporting both marketing effectiveness and peaceful sleep content"
+
+                enhanced_prompt = f"[TÓIBÍN LITERARY + DRAMATIC MARKETING] [CHARACTERS: {char_list}] {prompt}"
+                char_ref_needed = True
+
+                # Character details with Tóibín + dramatic analysis
+                characters_in_scene = []
+                for char_name in char_names:
+                    full_char = next((c for c in characters if c['name'] == char_name), None)
+                    if full_char:
+                        characters_in_scene.append({
+                            'name': char_name,
+                            'description': full_char.get('physical_description',
+                                                         'Literary character with dramatic appeal'),
+                            'importance': full_char.get('importance_score', 5),
+                            'toibin_psychology': 'Internal contradiction visible in subtle expression',
+                            'dramatic_appeal': 'Face and posture perfect for thumbnail marketing',
+                            'literary_authenticity': 'Maintains Tóibín quiet dignity and complexity'
+                        })
+            else:
+                # Atmospheric scenes with Tóibín + dramatic potential
+                prompt = f"Atmospheric literary scene of {location}, sophisticated cinematography with compelling visual drama, {lighting}, Tóibín-style contemplative mood with subtle dramatic tension for thumbnail appeal, historically accurate environmental storytelling, educational atmosphere that draws clicks while promoting peaceful contemplation and sleep"
+
+                enhanced_prompt = f"[TÓIBÍN ATMOSPHERIC + DRAMATIC MARKETING] {prompt}"
+                char_ref_needed = False
+                characters_in_scene = []
+
+            prompt_data = {
+                "scene_number": scene_id,
+                "title": title,
+                "location": location,
+                "characters_present": [sc if isinstance(sc, str) else sc.get('name', '') for sc in scene_characters],
+                "character_reference_needed": char_ref_needed,
+                "prompt": prompt,
+                "enhanced_prompt": enhanced_prompt,
+                "duration_minutes": scene.get('duration_minutes', 4),
+                "emotion": emotion,
+                "characters_in_scene": characters_in_scene,
+                "toibin_literary_elements": {
+                    "quiet_dignity_visible": "Character composure maintained despite internal drama",
+                    "internal_contradiction": "Subtle psychological complexity shown in expression",
+                    "environmental_storytelling": "Setting details suggesting character depth and historical authenticity",
+                    "sparseness_with_suggestion": "Visual restraint that suggests deeper meaning"
+                },
+                "dramatic_marketing_elements": {
+                    "thumbnail_appeal": "Strong visual composition perfect for dramatic text overlays",
+                    "visual_drama": "Emotional intensity that draws clicks without compromising peaceful mood",
+                    "character_expression": "Facial expressions ideal for 'BETRAYAL!' 'MYSTERIOUS!' marketing",
+                    "composition_strategy": "RIGHT side character placement, LEFT side clear for thumbnail text"
+                },
+                "sleep_content_optimization": {
+                    "peaceful_undertone": "Maintains calming atmosphere despite visual drama",
+                    "soothing_elements": "Warm lighting and composed character expressions promote relaxation",
+                    "non_jarring_composition": "Sophisticated visual appeal that won't disturb sleep-seeking viewers"
+                }
+            }
+
+            prompts.append(prompt_data)
+
+        return prompts
+
 
     def _create_enhanced_fallback_prompts(self, scene_plan: List[Dict], characters: List[Dict],
                                           scene_character_map: Dict) -> List[Dict]:
@@ -2277,90 +2726,143 @@ Plus full YouTube optimization and production specifications."""
 
     def _generate_intelligent_thumbnail(self, topic: str, description: str, character_result: Dict,
                                         clickbait_title: str = None, font_design: str = None) -> Dict[str, Any]:
-        """Generate DRAMATICALLY ENHANCED thumbnail with better storytelling and composition"""
+        """
+        Generate TÓIBÍN LITERARY + DRAMATIC MARKETING thumbnail with perfect balance
 
-        self.character_system.log_extraction_step("Enhanced Dramatic Thumbnail Generation")
+        THUMBNAIL PHILOSOPHY:
+        - DRAMATIC APPEAL for maximum click-through rates
+        - TÓIBÍN LITERARY SOPHISTICATION for brand authenticity
+        - SLEEP CONTENT APPROPRIATENESS for audience satisfaction
+        - HISTORICAL ACCURACY for educational credibility
+
+        PERFECT FORMULA: Sophisticated drama that draws clicks while promising peaceful quality content
+        """
+
+        self.character_system.log_extraction_step("TÓIBÍN + Dramatic Marketing Thumbnail Generation")
 
         characters = character_result.get('main_characters', [])
         visual_style = character_result.get('visual_style_notes', {})
 
-        # Analyze if this is a crisis topic
+        # Analyze topic for Tóibín + dramatic approach
         topic_lower = f"{topic} {description}".lower()
+
+        # ENHANCED ANALYSIS: Historical drama vs peaceful contemplation
         crisis_keywords = ['last day', 'fall', 'destruction', 'siege', 'fire', 'burning', 'final', 'end', 'war',
-                           'battle']
+                           'battle', 'betrayal', 'assassination', 'death', 'murder']
+        contemplative_keywords = ['evening', 'dinner', 'garden', 'villa', 'palace', 'chamber', 'study', 'library',
+                                  'private', 'quiet', 'peaceful']
+
         is_crisis = any(keyword in topic_lower for keyword in crisis_keywords)
+        is_contemplative = any(keyword in topic_lower for keyword in contemplative_keywords)
 
+        # TÓIBÍN + DRAMATIC DRAMA LEVEL CALCULATION
         if is_crisis:
-            drama_level = 8
+            drama_level = 8  # High drama for crisis topics
             crisis_elements = [kw for kw in crisis_keywords if kw in topic_lower]
-        else:
-            drama_level = 4
+            toibin_approach = "quiet_dignity_under_pressure"
+        elif is_contemplative:
+            drama_level = 6  # Moderate drama for contemplative topics
             crisis_elements = []
+            toibin_approach = "contemplative_recognition"
+        else:
+            drama_level = 5  # Balanced drama for general topics
+            crisis_elements = []
+            toibin_approach = "everyday_profundity"
 
+        # ENHANCED CHARACTER SELECTION with Tóibín + dramatic analysis
         thumbnail_character_selection = self.character_system.select_thumbnail_character(
             characters, topic, description
         )
 
+        # ENHANCED TITLE GENERATION with dramatic + literary balance
         if not clickbait_title:
             youtube_data = character_result.get('youtube_optimization', {})
             clickbait_titles = youtube_data.get('clickbait_titles', [])
-            clickbait_title = clickbait_titles[
-                0] if clickbait_titles else f"The Secret History of {topic} (2 Hour Sleep Story)"
+            if clickbait_titles:
+                clickbait_title = clickbait_titles[0]
+            else:
+                # Generate Tóibín + dramatic title
+                if is_crisis:
+                    clickbait_title = f"BETRAYAL! {topic.split()[-1] if topic.split() else 'Character'}'s Final Peaceful Evening (2 Hour Sleep Story)"
+                else:
+                    clickbait_title = f"MYSTERIOUS! The Secret History of {topic} (Most Peaceful Sleep Story)"
 
         if not font_design:
-            font_design = "Bold impact font, warm golden color (#d4af37), contrasted with deep shadows for readability"
+            font_design = "Bold impact font with literary sophistication, warm golden color (#d4af37) with deep shadows, balancing dramatic appeal with educated audience expectations"
 
-        thumbnail_prompt = f"""Create a DRAMATICALLY ENHANCED thumbnail for "{topic}" that maximizes visual storytelling and clickability.
+        thumbnail_prompt = f"""Create a TÓIBÍN LITERARY + DRAMATIC MARKETING thumbnail for "{topic}" that achieves perfect balance between click appeal and literary authenticity.
 
     TOPIC: {topic}
     DESCRIPTION: {description}
     CRISIS TOPIC: {is_crisis}
+    CONTEMPLATIVE TOPIC: {is_contemplative}
     DRAMA LEVEL: {drama_level}/10
     CRISIS ELEMENTS: {crisis_elements}
+    TÓIBÍN APPROACH: {toibin_approach}
 
     CHARACTER SELECTION:
     {json.dumps(thumbnail_character_selection, indent=2)}
 
     CLICKBAIT TITLE: {clickbait_title}
 
-    ## DRAMATIC THUMBNAIL REQUIREMENTS:
+    🎭 TÓIBÍN + DRAMATIC THUMBNAIL MASTERY:
 
-    ### 🎬 VISUAL STORYTELLING STRATEGY:
-    1. Show EMOTIONAL REACTIONS and CONSEQUENCES, not just static poses
-    2. Include ENVIRONMENTAL STORYTELLING (background elements that hint at the story)
-    3. Use MULTIPLE VISUAL LAYERS (foreground emotions + background context)
-    4. Show CHARACTER INTERACTIONS when multiple characters present
-    5. Include SYMBOLIC ELEMENTS that enhance the narrative
+    ## LITERARY AUTHENTICITY REQUIREMENTS:
+    - **"Quiet Dignity"** - Characters maintain composure and internal depth even in dramatic scenes
+    - **"Sparseness with Suggestion"** - Visual restraint that implies deeper meaning
+    - **"Fascination of Commonplaces"** - Ordinary moments made visually compelling
+    - **Sophisticated Composition** - Educated audience expectations met with literary sensibility
+    - **Character Psychology Visible** - Internal states shown through subtle expression and posture
 
-    ### 🎭 CRISIS vs PEACEFUL APPROACH:
+    ## DRAMATIC MARKETING REQUIREMENTS:
+    - **HIGH CLICK-THROUGH POTENTIAL** - Visual elements that compel immediate clicks
+    - **EMOTIONAL STORYTELLING** - Character expressions and environmental context that tell story
+    - **DRAMATIC TEXT OVERLAY COMPATIBILITY** - Composition perfect for "BETRAYAL!" "MYSTERIOUS!" overlays
+    - **VISUAL HIERARCHY** - Clear focus on character emotion with supporting environmental drama
+    - **THUMBNAIL COMPETITION ADVANTAGE** - Stands out against generic sleep content thumbnails
+
+    ## PERFECT BALANCE STRATEGY:
+
+    ### 🎬 TÓIBÍN + DRAMATIC VISUAL STORYTELLING:
+    1. **Character Internal Drama** - Show "characters led by desires they don't understand" through expression
+    2. **Environmental Literary Context** - Historical accuracy with sophisticated atmospheric storytelling  
+    3. **"Mixed Motives" Visible** - Complex character psychology evident in subtle facial expression
+    4. **Dramatic Lighting** - Sophisticated cinematography that draws clicks while maintaining literary quality
+    5. **Cultural/Historical Symbolism** - Elements that suggest educational depth and narrative richness
+
+    ### 🎯 EMOTIONAL APPROACH BY TOPIC TYPE:
+
     {f'''
-    FOR CRISIS TOPICS like "{topic}":
-    - Characters showing concern, worry, or determination about historical events
-    - Environmental indicators: smoke, crowds, evacuation activity, crisis symbols
-    - Emotional expressions reflecting gravity of historical moment
-    - Symbolic elements: burning scrolls, falling architecture, worried communities
-    - Balance drama with peaceful, contemplative mood (not scary/jarring)
+    FOR CRISIS TOPICS like "{topic}" (Tóibín + Dramatic):
+    - **Character Expression**: Quiet concern and dignified contemplation about historical events (NOT fear/terror)
+    - **Environmental Elements**: Subtle crisis indicators balanced with peaceful, educational atmosphere
+    - **Tóibín Element**: "Quiet dignity under pressure" - composure despite internal awareness
+    - **Dramatic Appeal**: Expressions that work for "BETRAYAL!" overlays while maintaining sophistication
+    - **Literary Quality**: Historical accuracy and character depth visible in visual composition
+    - **Sleep Balance**: Contemplative sadness rather than jarring anxiety - invites peaceful exploration
     ''' if is_crisis else f'''
-    FOR PEACEFUL TOPICS like "{topic}":
-    - Characters in warm, contemplative interactions
-    - Beautiful environmental details: gardens, architecture, daily life
-    - Serene expressions showing contentment or gentle focus
-    - Symbolic elements: cultural artifacts, beautiful settings, community harmony
-    - Emphasize beauty, tranquility, and historical richness
+    FOR CONTEMPLATIVE TOPICS like "{topic}" (Tóibín + Dramatic):
+    - **Character Expression**: Thoughtful recognition and gentle internal complexity  
+    - **Environmental Elements**: Beautiful historical details suggesting narrative depth and luxury
+    - **Tóibín Element**: "Contemplative recognition" - moments of quiet understanding
+    - **Dramatic Appeal**: Compelling character psychology and visual richness that draws clicks
+    - **Literary Quality**: Sophisticated composition suggesting quality storytelling
+    - **Sleep Balance**: Warm, inviting atmosphere that promises peaceful, educational content
     '''}
 
-    ### 🎯 COMPOSITION STRATEGY (CRITICAL):
-    - **Character Position**: RIGHT side of frame (60-70% from left edge)
-    - **Text Space**: LEFT side (30-40%) must be CLEAR for text overlay
-    - **Zoom Level**: Wide enough so character heads are NOT cropped
-    - **Multiple Characters**: Show relationships and interactions when possible
-    - **Background**: Environmental storytelling that enhances the narrative
+    ### 🎯 COMPOSITION MASTERY (CRITICAL FOR SUCCESS):
+    - **Character Position**: RIGHT side of frame (60-70% from left edge) - PROVEN EFFECTIVE
+    - **Text Space**: LEFT side (30-40%) completely CLEAR for dramatic text overlay
+    - **Character Scale**: Close enough to show facial expression, wide enough to include environmental context
+    - **Multiple Characters**: Show relationships and "tacit exchanges" when multiple characters present
+    - **Background**: Historical setting that suggests both educational value and narrative intrigue
 
-    ### 💤 SLEEP CONTENT BALANCE:
-    - Maintain warm, inviting color palette even in dramatic scenes
-    - Focus on contemplative emotions rather than fear or terror
-    - Use atmospheric lighting that suggests comfort and relaxation
-    - Ensure overall mood invites peaceful sleep despite any drama
+    ### 💤 SLEEP CONTENT + LITERARY BRAND BALANCE:
+    - **Sophisticated Color Palette** - Warm, inviting tones that suggest quality content and peaceful experience
+    - **Literary Sensibility** - Visual composition that appeals to educated audience seeking quality sleep content
+    - **Contemplative Mood** - Even dramatic elements maintain underlying peaceful, thoughtful atmosphere
+    - **Educational Promise** - Visual elements that suggest learning and cultural enrichment
+    - **Premium Content Indication** - Sophistication level that justifies longer viewing time investment
 
     OUTPUT FORMAT:
     {{
@@ -2370,49 +2872,89 @@ Plus full YouTube optimization and production specifications."""
         "clickbait_title": "{clickbait_title}",
         "font_design": "{font_design}",
         "drama_level": {drama_level},
+        "toibin_approach": "{toibin_approach}",
         "is_crisis_topic": {is_crisis},
-        "prompt": "[DRAMATICALLY ENHANCED cinematic thumbnail with visual storytelling]",
-        "visual_style": "[Style emphasizing emotional storytelling]",
-        "character_positioning": "RIGHT side of frame (60-70% from left), heads not cropped",
-        "text_overlay_strategy": "LEFT side (30-40%) clear for title text",
-        "emotional_appeal": "[Specific emotion viewers should feel]",
-        "environmental_storytelling": "[Background elements that enhance story]",
-        "clickability_factors": ["factor1", "factor2", "factor3"],
-        "sleep_content_balance": "[How it maintains peaceful mood while being engaging]",
-        "symbolic_elements": ["element1", "element2"],
-        "thumbnail_reasoning": "{thumbnail_character_selection['reasoning']}",
-        "composition_notes": "RIGHT-positioned characters, LEFT text space, dramatic but peaceful"
+        "is_contemplative_topic": {is_contemplative},
+        "prompt": "[TÓIBÍN LITERARY + DRAMATIC MARKETING cinematic thumbnail with perfect balance]",
+        "visual_style": "[Sophisticated dramatic style maintaining literary authenticity]",
+        "character_positioning": "RIGHT side of frame (60-70% from left), literary character depth visible",
+        "text_overlay_strategy": "LEFT side (30-40%) clear for dramatic title text overlays",
+        "emotional_appeal": "[Specific sophisticated emotion that draws clicks while promising quality]",
+        "environmental_storytelling": "[Historical context that suggests both drama and educational depth]",
+        "clickability_factors": ["sophisticated_character_psychology", "dramatic_historical_context", "literary_quality_promise"],
+        "sleep_content_balance": "[How dramatic appeal maintains peaceful, contemplative undertone for sleep audience]",
+        "literary_authenticity": "[How thumbnail maintains Tóibín literary quality and educated audience appeal]",
+        "toibin_elements": {{
+          "quiet_dignity_visible": "[How character maintains composure despite dramatic situation]",
+          "internal_complexity_shown": "[Subtle signs of character psychological depth]",
+          "fascination_of_commonplaces": "[How ordinary moment is made visually compelling]",
+          "sparseness_with_suggestion": "[Visual restraint that implies deeper narrative meaning]"
+        }},
+        "dramatic_marketing_elements": {{
+          "click_appeal_factors": "[Specific visual elements that compel immediate clicks]",
+          "thumbnail_competition_advantage": "[How this stands out against generic sleep content]",
+          "emotional_storytelling": "[Character expression and context that tell visual story]",
+          "overlay_compatibility": "[Perfect composition for BETRAYAL! MYSTERIOUS! text overlays]"
+        }},
+        "thumbnail_reasoning": "{thumbnail_character_selection['reasoning']} - Enhanced with Tóibín literary sophistication",
+        "composition_notes": "RIGHT-positioned character with literary depth, LEFT text space, sophisticated drama maintaining peaceful undertone"
       }},
       "thumbnail_alternatives": [
         {{
-          "variant": "Character Focus",
-          "prompt": "[Alternative with character emotions emphasized]"
+          "variant": "Literary Character Focus",
+          "prompt": "[Alternative emphasizing Tóibín character psychology with dramatic lighting]"
         }},
         {{
-          "variant": "Environmental Drama",
-          "prompt": "[Alternative focusing on setting with character reactions]"
+          "variant": "Historical Environmental Drama", 
+          "prompt": "[Alternative focusing on sophisticated historical setting with character contemplation]"
         }},
         {{
-          "variant": "Symbolic Moment",
-          "prompt": "[Alternative showing key story symbols]"
+          "variant": "Symbolic Literary Moment",
+          "prompt": "[Alternative showing key story symbols with Tóibín contemplative approach]"
         }}
       ],
       "thumbnail_stats": {{
         "character_approach": "{thumbnail_character_selection['character_used']}",
+        "toibin_literary_authenticity": true,
+        "dramatic_marketing_appeal": true,
         "visual_storytelling": true,
         "environmental_elements": true,
         "composition_optimized": true,
         "clickability_enhanced": true,
         "sleep_appropriate": true,
-        "crisis_balanced": {is_crisis}
+        "educated_audience_targeted": true,
+        "premium_content_suggested": true,
+        "crisis_balanced": {is_crisis},
+        "literary_sophistication_maintained": true
       }}
     }}
 
-    CRITICAL: Create a thumbnail that tells a VISUAL STORY in one image. Show emotions, consequences, and environmental context that makes viewers want to click while maintaining sleep content appropriateness.
+    ## 🎭 TÓIBÍN + DRAMATIC THUMBNAIL MASTERY CHALLENGE:
 
-    For crisis topics: Show human emotional response to historical events with contemplative sadness rather than fear.
-    For peaceful topics: Show beauty, warmth, and inviting historical atmosphere.
-    """
+    Create a thumbnail that achieves the PERFECT BALANCE for 1 million subscribers:
+
+    ### REQUIRED EXCELLENCE:
+    - ✅ **DRAMATIC CLICK APPEAL** - Compels immediate clicks from dramatic visual storytelling
+    - ✅ **TÓIBÍN LITERARY AUTHENTICITY** - Maintains sophisticated character psychology and literary quality
+    - ✅ **SLEEP CONTENT APPROPRIATENESS** - Promises peaceful, contemplative experience despite drama
+    - ✅ **HISTORICAL EDUCATIONAL VALUE** - Suggests learning and cultural enrichment  
+    - ✅ **PREMIUM BRAND POSITIONING** - Appeals to educated audience seeking quality sleep content
+    - ✅ **CHARACTER PSYCHOLOGY DEPTH** - Shows "quiet dignity" and internal complexity
+    - ✅ **ENVIRONMENTAL STORYTELLING** - Historical context supporting both drama and peace
+    - ✅ **COMPOSITION PERFECTION** - RIGHT character, LEFT text, thumbnail overlay ready
+
+    ### SUCCESS METRICS THIS THUMBNAIL MUST ACHIEVE:
+    - **HIGH CTR** from dramatic appeal and character psychology intrigue
+    - **AUDIENCE SATISFACTION** from literary quality promise fulfilled  
+    - **BRAND AUTHENTICITY** maintaining sophisticated content reputation
+    - **SLEEP EFFECTIVENESS** peaceful undertone despite dramatic marketing
+    - **EDUCATIONAL VALUE** historical accuracy and cultural depth
+    - **PREMIUM POSITIONING** justifying 2-hour content investment
+
+    CRITICAL SUCCESS REQUIREMENT: This thumbnail must work perfectly for "BETRAYAL! Character's Final Peaceful Evening" while maintaining Tóibín literary sophistication and sleep content appropriateness. The perfect formula for viral growth + loyal educated audience.
+
+    For crisis topics: Show contemplative response to historical drama with quiet dignity and sophisticated visual storytelling.
+    For contemplative topics: Show compelling character psychology and historical richness with warm, inviting literary atmosphere."""
 
         try:
             self.api_call_count += 1
@@ -2423,17 +2965,17 @@ Plus full YouTube optimization and production specifications."""
                 temperature=0.4,
                 stream=True,
                 timeout=600,
-                system="You are a YouTube thumbnail specialist focused on visual storytelling. Create thumbnails that show emotional stories and consequences while maintaining sleep content appropriateness. Balance engaging visuals with peaceful, contemplative mood.",
+                system="You are both COLM TÓIBÍN and a master YouTube thumbnail strategist. Create thumbnails that balance your literary authenticity - 'quiet dignity,' 'sparseness with suggestion,' 'fascination of commonplaces' - with dramatic marketing appeal. Show character psychology through sophisticated expression while creating compositions perfect for 'BETRAYAL!' 'MYSTERIOUS!' overlays. Maintain peaceful, contemplative undertones for sleep content while achieving maximum click appeal for educated audiences.",
                 messages=[{"role": "user", "content": thumbnail_prompt}]
             )
 
             content = ""
-            print("📡 Generating Enhanced Dramatic Thumbnail...")
+            print("📡 Generating TÓIBÍN + Dramatic Marketing Thumbnail...")
             for chunk in response:
                 if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
                     content += chunk.delta.text
 
-            print(f"✅ Enhanced thumbnail complete: {len(content):,} characters")
+            print(f"✅ TÓIBÍN + Dramatic thumbnail complete: {len(content):,} characters")
 
             input_tokens = len(thumbnail_prompt) // 4
             output_tokens = len(content) // 4
@@ -2442,9 +2984,13 @@ Plus full YouTube optimization and production specifications."""
 
             parsed_result = self._parse_claude_response(content, "thumbnail_generation")
 
-            self.character_system.log_extraction_step("Enhanced Dramatic Thumbnail", "SUCCESS", {
+            self.character_system.log_extraction_step("TÓIBÍN + Dramatic Marketing Thumbnail", "SUCCESS", {
                 "drama_level": drama_level,
+                "toibin_approach": toibin_approach,
                 "is_crisis_topic": is_crisis,
+                "is_contemplative_topic": is_contemplative,
+                "literary_authenticity_maintained": True,
+                "dramatic_marketing_optimized": True,
                 "visual_storytelling": True,
                 "stage_cost": stage_cost
             })
@@ -2452,50 +2998,67 @@ Plus full YouTube optimization and production specifications."""
             return parsed_result
 
         except Exception as e:
-            print(f"❌ Enhanced thumbnail error: {e}")
+            print(f"❌ Tóibín + dramatic thumbnail error: {e}")
 
-            # Enhanced fallback
+            # ENHANCED TÓIBÍN + DRAMATIC FALLBACK
             if is_crisis:
-                fallback_elements = "showing concern about historical events, with environmental crisis indicators in background"
-                mood = "contemplative sadness appropriate for historical drama"
+                fallback_elements = "showing quiet dignity and contemplative concern about historical events, with sophisticated environmental indicators suggesting crisis context"
+                mood = "contemplative literary response to historical drama, maintaining peaceful undertone"
+                toibin_element = "quiet dignity under pressure"
+            elif is_contemplative:
+                fallback_elements = "in thoughtful, sophisticated contemplation with visible internal complexity"
+                mood = "warm, inviting literary atmosphere suggesting quality contemplative content"
+                toibin_element = "contemplative recognition"
             else:
-                fallback_elements = "in peaceful, warm interactions"
-                mood = "serene and inviting historical atmosphere"
+                fallback_elements = "showing character psychology depth with compelling visual appeal"
+                mood = "sophisticated literary atmosphere balancing drama with peaceful content promise"
+                toibin_element = "fascination of commonplaces"
 
-            fallback_prompt = f"Cinematic thumbnail of {topic}, characters positioned RIGHT side of frame {fallback_elements}, historically accurate setting, warm atmospheric lighting, {mood}, LEFT side clear for text overlay, visual storytelling with multiple layers"
+            fallback_prompt = f"TÓIBÍN LITERARY + DRAMATIC MARKETING cinematic thumbnail of {topic}, character positioned RIGHT side of frame {fallback_elements}, historically accurate sophisticated setting, literary cinematography with dramatic appeal, {mood}, LEFT side clear for text overlay, visual storytelling balancing Tóibín authenticity with click optimization, {toibin_element} visible in character expression and composition"
 
             return {
                 "thumbnail_prompt": {
                     "scene_number": 99,
-                    "character_used": "Main characters (enhanced fallback)",
+                    "character_used": "Main character (Tóibín + dramatic enhanced fallback)",
                     "clickbait_title": clickbait_title,
                     "drama_level": drama_level,
+                    "toibin_approach": toibin_approach,
                     "prompt": fallback_prompt,
-                    "character_positioning": "RIGHT side, LEFT text space",
-                    "visual_storytelling": "Enhanced environmental storytelling",
-                    "thumbnail_reasoning": "Enhanced fallback with dramatic elements"
+                    "character_positioning": "RIGHT side with literary depth, LEFT text space clear",
+                    "visual_storytelling": "TÓIBÍN + dramatic environmental storytelling",
+                    "literary_authenticity": "Maintains sophisticated character psychology and literary quality",
+                    "dramatic_marketing_appeal": "Optimized for click-through while preserving authenticity",
+                    "thumbnail_reasoning": "Enhanced Tóibín + dramatic fallback maintaining perfect balance"
                 },
                 "thumbnail_stats": {
+                    "toibin_literary_authenticity": True,
+                    "dramatic_marketing_appeal": True,
                     "visual_storytelling": True,
-                    "enhanced_fallback": True
+                    "enhanced_fallback": True,
+                    "literary_sophistication_maintained": True
                 }
             }
 
     def _combine_all_stages(self, stage1: Dict, validation_result: Dict, character_data: Dict, thumbnail_data: Dict,
                             hook_subscribe_data: Dict, topic: str, description: str) -> Dict[str, Any]:
-        """Combine all five stages into final result - USING VALIDATED STORIES + REGENERATED VISUAL PROMPTS + THUMBNAIL + ALL LOCAL FEATURES"""
+        """Combine all five stages into final result - USING VALIDATED STORIES + STORY-BASED VISUAL PROMPTS + THUMBNAIL + ALL LOCAL FEATURES"""
 
         self.log_step(
-            "Combining All Stages with VALIDATED STORIES + Regenerated Visual Prompts + Thumbnail + Hook/Subscribe + ALL LOCAL FEATURES")
+            "Combining All Stages with VALIDATED STORIES + Story-Based Visual Prompts + Thumbnail + Hook/Subscribe + ALL LOCAL FEATURES")
 
         # Use validated stories from validation system
         all_stories = validation_result.get('validated_stories', {})
 
-        # Use REGENERATED visual prompts
-        if 'regenerated_visual_prompts' in character_data:
+        # Use STORY-BASED visual prompts (NEW) with fallback to regenerated (OLD)
+        if 'story_based_visual_prompts' in character_data:  # ✅ NEW: Story-based prompts
+            enhanced_visual_prompts = character_data['story_based_visual_prompts']
+            print(f"✅ Using story-based visual prompts: {len(enhanced_visual_prompts)} prompts")
+            visual_prompt_type = "story_based"
+        elif 'regenerated_visual_prompts' in character_data:  # 🔄 FALLBACK: Old regenerated prompts
             enhanced_visual_prompts = character_data['regenerated_visual_prompts']
-            print(f"✅ Using regenerated visual prompts: {len(enhanced_visual_prompts)} prompts")
-        else:
+            print(f"⚠️ Using fallback regenerated visual prompts: {len(enhanced_visual_prompts)} prompts")
+            visual_prompt_type = "regenerated"
+        else:  # 🆘 FINAL FALLBACK: Basic enhancement
             print("⚠️ Using fallback visual prompt enhancement")
             enhanced_visual_prompts = self._enhance_visual_prompts_with_characters(
                 stage1.get('visual_prompts', []),
@@ -2503,6 +3066,7 @@ Plus full YouTube optimization and production specifications."""
                 character_data.get('scene_character_mapping', {}),
                 character_data.get('visual_style_notes', {})
             )
+            visual_prompt_type = "fallback"
 
         # ADD THUMBNAIL TO VISUAL PROMPTS
         thumbnail_prompt = thumbnail_data.get('thumbnail_prompt', {})
@@ -2561,7 +3125,14 @@ Plus full YouTube optimization and production specifications."""
                 "auto_correction_enabled": CONFIG.claude_config.get('auto_correction', True),
                 "stories_validated": len(all_stories),
                 "stories_corrected": validation_result.get('validation_report', {}).get('corrections_made', 0),
-                "visual_prompts_regenerated": 'regenerated_visual_prompts' in character_data,
+
+                # 🔧 FIXED: Visual prompt tracking
+                "visual_prompts_regenerated": 'story_based_visual_prompts' in character_data or 'regenerated_visual_prompts' in character_data,
+                "story_based_generation": 'story_based_visual_prompts' in character_data,  # 🆕 NEW
+                "toibin_style_integrated": 'story_based_visual_prompts' in character_data,  # 🆕 NEW
+                "midjourney_safety_compliant": 'story_based_visual_prompts' in character_data,  # 🆕 NEW
+                "visual_prompt_type": visual_prompt_type,  # 🆕 NEW: Track which type was used
+
                 "thumbnail_generated": bool(thumbnail_data.get('thumbnail_prompt')),
                 "hook_subscribe_generated": bool(hook_subscribe_data.get('hook_scenes')),
                 "youtube_optimization_generated": bool(
@@ -2581,7 +3152,8 @@ Plus full YouTube optimization and production specifications."""
                 "server_optimized": True,
                 "complete_pipeline": True,
                 "all_local_features_integrated": True,
-                "validation_and_correction_integrated": True
+                "validation_and_correction_integrated": True,
+                "story_based_visual_prompts_integrated": 'story_based_visual_prompts' in character_data  # 🆕 NEW
             },
             "generation_log": self.generation_log,
             "character_extraction_log": self.character_system.extraction_log,
@@ -2590,11 +3162,11 @@ Plus full YouTube optimization and production specifications."""
             "description": description,
             "generated_at": datetime.now().isoformat(),
             "model_used": CONFIG.claude_config["model"],
-            "enhancement_status": "complete_5_stage_pipeline_with_validation_system_smart_algorithm_and_all_optimizations_plus_all_local_features"
+            "enhancement_status": "complete_5_stage_pipeline_with_validation_system_story_based_visual_prompts_toibin_style_and_all_optimizations"
+            # 🔧 UPDATED
         }
 
         return result
-
     def _enhance_visual_prompts_with_characters(self, visual_prompts: List[Dict], characters: List[Dict],
                                                 scene_character_map: Dict, style_notes: Dict) -> List[Dict]:
         """Enhanced visual prompts with character information (FALLBACK METHOD)"""
@@ -3435,7 +4007,6 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
         print(f"\n⚠️ PARTIAL SUCCESS")
         print(f"🔍 Review generation_report.json and validation_report.json for issues")
 
-    print(f"\n📄 GENERATED FILES ({len(saved_files if 'saved_files' in locals() else [])} TOTAL - ALL FEATURES + VALIDATION):")
     print("1. 📖 complete_story.txt - Full story text (validated)")
     print("2. 🎬 scene_plan.json - Smart scene structure + chapters")
     print("3. 🖼️  visual_generation_prompts.json - Scenes + Thumbnail (99)")
