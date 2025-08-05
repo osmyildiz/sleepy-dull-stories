@@ -1134,16 +1134,21 @@ class ServerMidjourneySceneGenerator:
 
         # Try to detect historical period from existing files
         try:
-            character_path = Path(output_path) / "character_profiles.json"
-            if character_path.exists():
-                with open(character_path, 'r', encoding='utf-8') as f:
-                    character_data = json.load(f)
-                    visual_style = character_data.get('visual_style_notes', {})
-                    self.current_historical_period = visual_style.get('period_accuracy', 'ancient times')
+            conn = sqlite3.connect(self.db_manager.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT historical_period FROM topics WHERE id = ?', (topic_id,))
+            period_result = cursor.fetchone()
+            conn.close()
+
+            if period_result and period_result[0]:
+                self.current_historical_period = period_result[0]
+                print(f"🏛️ Historical period from database: {self.current_historical_period}")
             else:
                 self.current_historical_period = "ancient times"
-        except:
+                print("⚠️ No historical period in database, using default")
+        except Exception as e:
             self.current_historical_period = "ancient times"
+            print(f"⚠️ Could not get historical period: {e}")
 
         project_info = {
             "topic_id": topic_id,
@@ -1230,6 +1235,38 @@ class ServerMidjourneySceneGenerator:
 
         return regular_scenes
 
+    def is_valid_midjourney_url(self, url: str) -> bool:
+        """Check if URL is valid for Midjourney image references"""
+        if not url:
+            return False
+
+        # Midjourney accepts these domains
+        valid_domains = [
+            'cdn.discordapp.com',
+            'media.discordapp.net',
+            'cdn.midjourney.com',
+            'mj-gallery.com'
+        ]
+
+        # Must be proper image URL
+        valid_extensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif']
+
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+
+            # Check domain
+            domain_valid = any(domain in parsed.netloc for domain in valid_domains)
+
+            # Check extension
+            extension_valid = any(url.lower().endswith(ext) for ext in valid_extensions)
+
+            return domain_valid and extension_valid
+
+        except:
+            return False
+
+
     def setup_scene_directories(self):
         """Create necessary directories for scene generation"""
         output_dir = Path(self.current_output_dir)
@@ -1289,8 +1326,21 @@ class ServerMidjourneySceneGenerator:
         final_parts = []
 
         # Add character references first
+        # Add character references first (but validate URLs)
         if char_refs:
-            final_parts.extend(char_refs)
+            valid_char_refs = []
+            for char_ref in char_refs:
+                # Check if URL is valid for Midjourney
+                if self.is_valid_midjourney_url(char_ref):
+                    valid_char_refs.append(char_ref)
+                else:
+                    print(f"⚠️ Scene {scene_num}: Skipping invalid character URL: {char_ref[:50]}...")
+
+            if valid_char_refs:
+                final_parts.extend(valid_char_refs)
+                print(f"✅ Scene {scene_num}: Added {len(valid_char_refs)} valid character references")
+            else:
+                print(f"⚠️ Scene {scene_num}: No valid character URLs - proceeding without character references")
 
         # Add historical context
         final_parts.append(historical_context)
