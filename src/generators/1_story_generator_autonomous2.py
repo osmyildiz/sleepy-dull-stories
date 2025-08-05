@@ -532,6 +532,7 @@ class ToibinStoryGenerator:
           "internal_focus": "[Character's internal state]",
           "tóibín_element": "[Tóibín technique demonstrated]",
           "scene_description": "[Detailed scene description for story generation]",
+          "environmental_details": "[EXTENSIVE sensory details of the setting]", 
           "emotional_core": "[Core feeling of scene]",
           "sleep_optimization": "[How this promotes peaceful contemplation]"
         }}
@@ -634,6 +635,7 @@ class ToibinStoryGenerator:
           "internal_focus": "[Character's internal state]",
           "tóibín_element": "[Tóibín technique demonstrated]",
           "scene_description": "[Detailed scene description for story generation]",
+          "environmental_details": "[EXTENSIVE sensory details of the setting]", 
           "emotional_core": "[Core feeling of scene]",
           "connection_to_stage1": "[How this connects to earlier scenes]",
           "sleep_optimization": "[How this promotes peaceful contemplation]"
