@@ -1815,7 +1815,7 @@ Viral Potential: {scene.get('viral_score', 'High')}
         real_target_max = 150
 
         # Random scene count for real target
-        total_scenes = random.randint(35, 50)
+        total_scenes = random.randint(30, 40)
 
         # Emotional distribution ratios
         peaceful_ratio = 0.35
