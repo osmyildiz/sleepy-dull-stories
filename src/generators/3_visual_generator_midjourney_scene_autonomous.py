@@ -485,6 +485,8 @@ class ServerMidjourneySceneGenerator:
         # Generation tracking
         self.generation_log = []
         self.character_references = {}
+        self._primary_character = None
+        self._primary_character_url = None
         self.api_calls_made = 0
         self.successful_downloads = 0
 
@@ -564,6 +566,11 @@ class ServerMidjourneySceneGenerator:
             self.claude_corrector.correction_attempts[scene_num] = 0
 
         current_prompt = prompt
+        is_safe, risk_terms = self.check_prompt_safety_score(current_prompt)
+        if is_safe:
+            print(f"✅ Scene {scene_num}: Local filter successful - low risk of rejection")
+        else:
+            print(f"⚠️ Scene {scene_num}: Local filter insufficient, Claude may be needed for: {risk_terms}")
 
         for attempt in range(max_claude_attempts + 1):  # +1 for original attempt
 
@@ -784,87 +791,328 @@ class ServerMidjourneySceneGenerator:
 
         return prompt
 
-    def apply_content_policy_filter(self, prompt: str) -> str:
-        """Apply universal content policy filter to any prompt"""
+    def apply_refined_content_policy_filter(self, prompt: str) -> str:
+        """Apply comprehensive content policy filter while preserving story essence"""
 
-        # Global content policy replacements - ORDER MATTERS (longer phrases first)
-        replacements = {
-            # Intimate shots - SPECIFIC REPLACEMENTS FIRST
-            "INTIMATE MEDIUM SHOT": "MEDIUM SHOT",
-            "INTIMATE CLOSE-UP": "CLOSE-UP",
+        # PHASE 1: Context-preserving replacements (hikaye bozulmadan)
+        contextual_replacements = {
+            # Kitchen/domestic scenes - preserve intimacy but make safe
+            "intimate kitchen scene": "quiet private kitchen scene",
+            "intimate domestic scene": "quiet domestic scene",
+            "intimate workspace": "private workspace",
+            "intimate study": "private study",
+            "intimate chamber": "private chamber",
+
+            # Camera angles - technical terms
             "intimate medium shot": "medium shot",
-            "intimate close-up": "close-up",
-            "intimate shot": "close-up shot",
-            "Intimate medium shot": "Medium shot",
-            "Intimate close-up": "Close-up",
+            "intimate close-up": "close-up shot",
+            "intimate shot": "close shot",
+            "intimate view": "private view",
 
-            # Then general intimate replacements
-            "intimate": "quiet",
-            "intimately": "quietly",
-            "INTIMATE": "QUIET",
+            # Bathing/washing - preserve Roman context
+            "child's evening bath": "child's evening washing ritual",
+            "evening bath": "evening washing ritual",
+            "thermal baths": "Roman thermal complex",
+            "Roman baths": "Roman bathing complex",
+            "bath attendant": "Roman pool attendant",
+            "bathing ritual": "washing ritual",
+            "bathing": "washing",
+            "bath": "washing area",
 
-            # Bath/water related
-            "thermal baths": "ancient pool facility",
-            "bath attendant": "Roman worker",
-            "baths setting": "pool complex",
-            "heated pools": "warm water pools",
-            "bathing": "water facility",
-            "bath": "pool",
-
-            # Romantic/physical
-            "embracing tenderly": "sharing a peaceful moment",
-            "embracing": "standing together peacefully",
-            "embrace": "peaceful moment",
+            # Family interactions - preserve emotion
+            "embracing tenderly": "holding each other gently",
+            "embracing warmly": "holding each other warmly",
+            "embracing": "standing close together",
+            "tender embrace": "gentle closeness",
+            "warm embrace": "warm closeness",
+            "kissing gently": "showing gentle affection",
             "kissing": "showing affection",
-            "tenderly": "peacefully",
-            "romantic": "affectionate",
+            "kiss": "gentle touch",
 
-            # Children related
-            "children playing": "young people enjoying activities",
+            # Private spaces - preserve context
+            "bedchamber": "private sleeping chamber",
+            "bedroom scene": "sleeping chamber scene",
+            "bedroom": "sleeping chamber",
+            "private bedchamber": "private chamber",
+            "marital bed": "sleeping area",
+            "bed": "resting place",
+
+            # Clothing/body - historical accuracy
+            "nude figure": "classical figure",
+            "naked": "unclothed classical figure",
+            "undressed": "in simple garments",
+            "bare shoulders": "shoulders",
+            "bare arms": "arms",
+            "bare": "uncovered",
+
+            # Romantic/sensual - preserve emotion
+            "romantic scene": "affectionate scene",
+            "romantic moment": "tender moment",
+            "romantic": "affectionate",
+            "sensual": "graceful",
+            "seductive": "alluring",
+            "sensually": "gracefully",
+
+            # Violence/conflict - soften but keep drama
+            "violent": "intense",
+            "blood": "red stains",
+            "bloody": "stained",
+            "fighting": "confronting",
+            "battle": "conflict",
+            "war": "conflict",
+            "stabbing": "striking",
+            "killing": "defeating",
+
+            # Children - extra safety
+            "children playing": "young people at play",
             "children": "young people",
             "kids": "youth",
             "child": "young person",
+            "little girl": "young girl",
+            "little boy": "young boy",
 
-            # Bedroom/private spaces
-            "bedchamber": "private chamber",
-            "bedroom": "sleeping chamber",
-            "bed": "resting area",
+            # Adult situations - family friendly
+            "lovers": "couple",
+            "passion": "deep feeling",
+            "passionate": "emotional",
+            "desire": "longing",
+            "lust": "attraction",
+            "seduction": "charm",
 
-            # Body/nudity related
-            "nude": "unclothed figure",
-            "naked": "bare figure",
-            "undressed": "unclothed",
-            "bare": "uncovered",
-
-            # Violence/conflict
-            "blood": "red liquid",
-            "violence": "conflict",
-            "fighting": "confrontation",
-
-            # Modern terms that might confuse
-            "thermal": "warm",
-            "spa": "wellness area"
+            # Modern terms that confuse historical context
+            "spa": "wellness facility",
+            "thermal spa": "thermal facility",
+            "massage": "treatment",
+            "therapy": "treatment",
         }
 
-        # Apply replacements in order (important for overlapping terms)
+        # PHASE 2: Pattern-based replacements
+        pattern_replacements = {
+            # Multiple intimate references
+            r"intimate.*intimate": "private peaceful",
+            r"very intimate": "very private",
+            r"most intimate": "most private",
+            r"deeply intimate": "deeply personal",
+
+            # Multiple romantic references
+            r"romantic.*romantic": "affectionate tender",
+            r"very romantic": "very tender",
+            r"deeply romantic": "deeply affectionate",
+
+            # Bedroom combinations
+            r"intimate bedroom": "private chamber",
+            r"romantic bedroom": "private chamber",
+            r"bedroom scene": "chamber scene",
+
+            # Bath combinations
+            r"intimate bath": "private washing",
+            r"romantic bath": "peaceful washing",
+            r"sensual bath": "gentle washing",
+        }
+
+        # Apply contextual replacements first
         filtered_prompt = prompt
-        for old_term, new_term in replacements.items():
+        for old_term, new_term in contextual_replacements.items():
             filtered_prompt = filtered_prompt.replace(old_term, new_term)
 
-        # Add safety qualifiers if needed
-        safety_keywords = ["educational", "historical", "classical", "artistic"]
-        has_safety = any(keyword in filtered_prompt.lower() for keyword in safety_keywords)
+        # Apply pattern replacements
+        import re
+        for pattern, replacement in pattern_replacements.items():
+            filtered_prompt = re.sub(pattern, replacement, filtered_prompt, flags=re.IGNORECASE)
 
-        if not has_safety:
-            filtered_prompt += ", historical educational content, classical art style"
+        # PHASE 3: Safety additions without changing core content
+        safety_additions = []
 
-        # Add explicit safety clause for potentially sensitive scenes
-        sensitive_indicators = ["couple", "private", "chamber", "pool", "young people"]
+        # Check for potentially sensitive content and add appropriate safety
+        sensitive_indicators = [
+            "couple", "private", "chamber", "washing", "young people",
+            "affection", "closeness", "unclothed", "classical figure"
+        ]
+
         if any(indicator in filtered_prompt.lower() for indicator in sensitive_indicators):
-            if "no explicit content" not in filtered_prompt.lower():
-                filtered_prompt += ", appropriate content"
+            if "appropriate content" not in filtered_prompt.lower():
+                safety_additions.append("appropriate content")
+
+        # Always add historical context if missing
+        if "historical" not in filtered_prompt.lower() and "educational" not in filtered_prompt.lower():
+            safety_additions.append("historical educational content")
+
+        # Add safety qualifiers
+        if safety_additions:
+            filtered_prompt += f", {', '.join(safety_additions)}"
+
+        # PHASE 4: Final cleanup
+        # Remove redundant words
+        filtered_prompt = re.sub(r'\b(\w+)\s+\1\b', r'\1', filtered_prompt)  # Remove duplicate words
+        filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt)  # Normalize spaces
+        filtered_prompt = filtered_prompt.strip()
 
         return filtered_prompt
+
+    def check_prompt_safety_score(self, prompt: str) -> Tuple[bool, List[str]]:
+        """Check if prompt is likely to pass Midjourney without Claude correction"""
+
+        # Known banned words/phrases that definitely trigger Midjourney
+        high_risk_terms = [
+            "intimate", "romantic", "sensual", "seductive", "nude", "naked",
+            "bath", "bathing", "bedroom", "bed", "kiss", "kissing", "embrace",
+            "lovers", "passion", "desire", "lust", "violence", "blood", "fight"
+        ]
+
+        # Medium risk terms
+        medium_risk_terms = [
+            "private", "tender", "gentle", "close", "warm", "soft", "quiet",
+            "chamber", "washing", "affection", "closeness"
+        ]
+
+        found_high_risk = []
+        found_medium_risk = []
+
+        prompt_lower = prompt.lower()
+
+        for term in high_risk_terms:
+            if term in prompt_lower:
+                found_high_risk.append(term)
+
+        for term in medium_risk_terms:
+            if term in prompt_lower:
+                found_medium_risk.append(term)
+
+        # Risk assessment
+        safety_score = 100
+        safety_score -= len(found_high_risk) * 30  # High risk terms heavily penalize
+        safety_score -= len(found_medium_risk) * 5  # Medium risk terms lightly penalize
+
+        is_safe = safety_score >= 70 and len(found_high_risk) == 0
+
+        risk_terms = found_high_risk + found_medium_risk
+
+        return is_safe, risk_terms
+
+    def build_consistent_historical_context(self) -> str:
+        """Build consistent historical context based on current project's historical period"""
+
+        period = self.current_historical_period or "ancient times"
+        period_lower = period.lower()
+
+        print(f"🏛️ Using historical period: {period}")
+
+        # Roman periods
+        if 'roman' in period_lower:
+            style_elements = ["classical Roman architecture", "oil lamp lighting", "marble and stone",
+                              "Roman togas and tunics"]
+
+        # Egyptian periods
+        elif 'egypt' in period_lower:
+            style_elements = ["ancient Egyptian architecture", "torch lighting", "sandstone and granite",
+                              "Egyptian linens and jewelry"]
+
+        # Greek periods
+        elif 'greece' in period_lower or 'greek' in period_lower:
+            style_elements = ["classical Greek architecture", "oil lamp lighting", "marble columns",
+                              "Greek chitons and himations"]
+
+        # Medieval periods
+        elif 'medieval' in period_lower or 'crusades' in period_lower:
+            style_elements = ["medieval stone architecture", "candle and torch lighting", "stone and timber",
+                              "medieval robes and tunics"]
+
+        # Tudor England
+        elif 'tudor' in period_lower:
+            style_elements = ["Tudor architecture", "candle lighting", "oak and stone", "Tudor doublets and gowns"]
+
+        # French periods
+        elif 'french revolution' in period_lower or 'napoleon' in period_lower:
+            style_elements = ["18th century architecture", "candle lighting", "ornate furnishings",
+                              "period French fashion"]
+
+        # Byzantine
+        elif 'byzantine' in period_lower:
+            style_elements = ["Byzantine architecture", "oil lamp lighting", "gold and marble",
+                              "Byzantine robes and silks"]
+
+        # Ancient civilizations
+        elif 'babylon' in period_lower:
+            style_elements = ["Babylonian architecture", "torch lighting", "clay and stone", "Mesopotamian garments"]
+        elif 'maya' in period_lower:
+            style_elements = ["Maya stone architecture", "torch lighting", "limestone and jade",
+                              "Maya textiles and feathers"]
+        elif 'aztec' in period_lower:
+            style_elements = ["Aztec stone architecture", "torch lighting", "obsidian and gold",
+                              "Aztec feathered garments"]
+        elif 'minoan' in period_lower:
+            style_elements = ["Minoan palace architecture", "oil lamp lighting", "colorful frescoes",
+                              "Minoan flowing garments"]
+        elif 'polynesian' in period_lower:
+            style_elements = ["traditional Polynesian architecture", "torch lighting", "natural materials",
+                              "Polynesian traditional dress"]
+
+        # Edwardian Era
+        elif 'edwardian' in period_lower:
+            style_elements = ["Edwardian architecture", "electric and gas lighting", "rich fabrics",
+                              "Edwardian formal wear"]
+
+        # World Wars and modern
+        elif 'world war' in period_lower:
+            style_elements = ["1940s architecture", "electric lighting", "period materials", "1940s clothing"]
+        elif 'cold war' in period_lower:
+            style_elements = ["1980s architecture", "modern lighting", "contemporary materials", "1980s fashion"]
+        elif 'soviet' in period_lower:
+            style_elements = ["Soviet architecture", "electric lighting", "industrial materials",
+                              "Soviet period clothing"]
+
+        # Islamic Golden Age
+        elif 'islamic' in period_lower:
+            style_elements = ["Islamic architecture", "oil lamp lighting", "intricate tilework",
+                              "Islamic robes and turbans"]
+
+        # Mongol Empire
+        elif 'mongol' in period_lower:
+            style_elements = ["Mongol tent architecture", "fire lighting", "leather and felt",
+                              "Mongol traditional dress"]
+
+        # Russian Empire
+        elif 'russian empire' in period_lower:
+            style_elements = ["Russian imperial architecture", "candle lighting", "ornate furnishings",
+                              "Russian period clothing"]
+
+        # Ottoman Empire
+        elif 'ottoman' in period_lower:
+            style_elements = ["Ottoman architecture", "oil lamp lighting", "rich textiles", "Ottoman robes and turbans"]
+
+        # Fictional worlds
+        elif 'fictional' in period_lower:
+            if 'lotr' in period_lower or 'lord of the rings' in period_lower:
+                style_elements = ["fantasy medieval architecture", "torch and candle lighting", "stone and wood",
+                                  "fantasy medieval clothing"]
+            elif 'game of thrones' in period_lower:
+                style_elements = ["fantasy medieval architecture", "torch lighting", "stone castles",
+                                  "medieval fantasy clothing"]
+            elif 'star wars' in period_lower:
+                style_elements = ["sci-fi architecture", "futuristic lighting", "advanced materials", "sci-fi clothing"]
+            elif 'attack on titan' in period_lower:
+                style_elements = ["steampunk architecture", "gas lamp lighting", "industrial materials",
+                                  "military uniforms"]
+            elif 'superman' in period_lower:
+                style_elements = ["art deco architecture", "modern lighting", "urban materials", "1930s-40s clothing"]
+            else:
+                style_elements = ["fantasy architecture", "atmospheric lighting", "period materials",
+                                  "fantasy clothing"]
+
+        # Arthurian and Neolithic
+        elif 'arthurian' in period_lower:
+            style_elements = ["medieval castle architecture", "torch lighting", "stone and timber",
+                              "Arthurian medieval clothing"]
+        elif 'neolithic' in period_lower:
+            style_elements = ["primitive stone architecture", "fire lighting", "natural materials",
+                              "primitive clothing"]
+
+        # Default for any unmatched period
+        else:
+            style_elements = ["period architecture", "atmospheric lighting", "authentic materials", "period clothing"]
+
+        return f"{period}, {', '.join(style_elements)}"
+
 
     def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
         """Get next completed character project that needs SCENE generation"""
@@ -942,6 +1190,11 @@ class ServerMidjourneySceneGenerator:
             except Exception as e:
                 self.log_step(f"❌ Failed to load {filename.name}: {e}", "ERROR")
 
+        if loaded_count > 0:
+            primary_char, primary_url = self.get_primary_character()
+            print(f"🎭 Primary character for style consistency: {primary_char}")
+            print(f"   URL: {primary_url[:50]}...")
+
         self.log_step(f"✅ Loaded {loaded_count} character references", "SUCCESS")
         return loaded_count > 0
 
@@ -990,58 +1243,72 @@ class ServerMidjourneySceneGenerator:
         self.log_step("📁 Scene generation directories created", "SUCCESS")
 
     def build_safe_scene_prompt(self, scene: Dict) -> str:
-        """Build safe scene prompt using clean template system"""
+        """Build safe scene prompt with improved filtering and character consistency"""
 
         base_prompt = scene.get("enhanced_prompt", scene.get("prompt", ""))
         scene_num = scene.get("scene_number")
 
         print(f"🎬 Building prompt for Scene {scene_num}")
 
-        # Character references
+        # STEP 1: Apply comprehensive content filter first
+        filtered_prompt = self.apply_refined_content_policy_filter(base_prompt)
+
+        # STEP 2: Check safety score
+        is_safe, risk_terms = self.check_prompt_safety_score(filtered_prompt)
+
+        if not is_safe:
+            print(f"⚠️ Scene {scene_num}: Still has risk terms after filter: {risk_terms}")
+            print(f"   Will use Claude correction if this fails")
+        else:
+            print(f"✅ Scene {scene_num}: Passed safety filter")
+
+        # STEP 3: Get consistent historical context
+        historical_context = self.build_consistent_historical_context()
+
+        # STEP 4: Handle character references consistently
         char_refs = []
-        if scene.get("characters_present") and len(self.character_references) > 0:
-            for char_name in scene["characters_present"]:
-                if char_name in self.character_references:
-                    char_refs.append(self.character_references[char_name])
+        characters_present = scene.get("characters_present", [])
 
-        # Apply content policy filter first
-        filtered_prompt = self.apply_content_policy_filter(base_prompt)
+        # Handle valid characters vs invalid ones like "Entire City"
+        valid_characters = [char for char in characters_present
+                            if char in self.character_references and char != "Entire City"]
 
-        # Build final prompt
+        if valid_characters:
+            # Use specific character references
+            for char_name in valid_characters:
+                char_refs.append(self.character_references[char_name])
+            print(f"📌 Scene {scene_num}: Using {len(char_refs)} character references")
+        else:
+            # Use primary character for consistency
+            primary_char, primary_url = self.get_primary_character()
+            if primary_char and primary_url:
+                char_refs.append(primary_url)
+                print(f"📌 Scene {scene_num}: Using primary character {primary_char} for consistency")
+
+        # STEP 5: Build final prompt with consistent structure
         final_parts = []
 
-        # Add character references if available
+        # Add character references first
         if char_refs:
             final_parts.extend(char_refs)
-        else:
-            # If no character references, add style anchor to maintain consistency
-            # Use any available character reference as style anchor
-            if self.character_references:
-                # Pick first available character as style reference
-                first_char_url = list(self.character_references.values())[0]
-                final_parts.append(first_char_url)
-                print(f"📌 Scene {scene_num}: Using style anchor from {list(self.character_references.keys())[0]}")
 
-        # Enhance historical period context for scenes without characters
-        if not scene.get("characters_present"):
-            # Add historical period context
-            historical_context = f"ancient {self.current_historical_period.lower()}"
-            if "roman" in self.current_historical_period.lower():
-                historical_context = "ancient Roman empire 1st century CE"
-            elif "egyptian" in self.current_historical_period.lower():
-                historical_context = "ancient Egyptian Ptolemaic period"
+        # Add historical context
+        final_parts.append(historical_context)
 
-            filtered_prompt = f"{historical_context} setting, {filtered_prompt}"
-
+        # Add filtered scene content
         final_parts.append(filtered_prompt)
-        final_parts.append("cinematic realistic photograph professional film photography dramatic lighting")
-        final_parts.append("warm golden light deep shadows atmospheric weathered materials")
-        final_parts.append("photorealistic historical scene detailed textures")
+
+        # Add consistent visual style
+        final_parts.append("cinematic realistic photograph professional film photography")
+        final_parts.append("dramatic lighting warm golden light deep shadows atmospheric")
+        final_parts.append("weathered materials photorealistic historical scene detailed textures")
         final_parts.append("--v 7.0 --ar 16:9")
 
         final_prompt = " ".join(final_parts)
 
-        print(f"🔧 Final scene prompt: {final_prompt[:150]}...")
+        print(f"🔧 Scene {scene_num} final prompt length: {len(final_prompt)} chars")
+        print(f"   Safety status: {'✅ Safe' if is_safe else '⚠️ May need Claude'}")
+        print(f"   Preview: {final_prompt[:150]}...")
 
         return final_prompt
 
@@ -1507,6 +1774,18 @@ class ServerMidjourneySceneGenerator:
             import traceback
             traceback.print_exc()
             return False
+
+    def get_primary_character(self) -> Tuple[str, str]:
+        """Get the primary character for consistent style anchoring"""
+        if self._primary_character is None and self.character_references:
+            # Use the first character alphabetically for consistency
+            self._primary_character = sorted(self.character_references.keys())[0]
+            self._primary_character_url = self.character_references[self._primary_character]
+            print(f"🎭 Primary character set: {self._primary_character}")
+
+        return self._primary_character, self._primary_character_url
+
+
 
 
 if __name__ == "__main__":
