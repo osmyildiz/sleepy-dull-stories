@@ -2,6 +2,7 @@
 Sleepy Dull Stories - Sosyal Medya Görsel Oluşturucu
 YouTube Shorts, Instagram Reels ve TikTok videoları için Midjourney ile görsel oluşturma
 Claude AI prompt düzeltme sistemi ile entegre
+Database entegre otomatik workflow
 """
 
 import requests
@@ -310,6 +311,121 @@ class SocialMediaServerConfig:
             dir_path.mkdir(parents=True, exist_ok=True)
 
         print("✅ All social media generator directories created/verified")
+
+# Database Social Media Management Integration
+class DatabaseSocialMediaManager:
+    """Professional social media management using existing production.db"""
+
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self.setup_social_media_columns()
+
+    def setup_social_media_columns(self):
+        """Add social media generation columns if they don't exist"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Check existing columns
+        cursor.execute('PRAGMA table_info(topics)')
+        columns = [row[1] for row in cursor.fetchall()]
+
+        # Add social media columns if they don't exist
+        social_media_columns = [
+            ('social_media_generation_status', 'TEXT DEFAULT "pending"'),
+            ('social_media_generation_started_at', 'DATETIME'),
+            ('social_media_generation_completed_at', 'DATETIME'),
+            ('social_media_content_generated', 'INTEGER DEFAULT 0'),
+            ('youtube_shorts_generated', 'INTEGER DEFAULT 0'),
+            ('instagram_reels_generated', 'INTEGER DEFAULT 0'),
+            ('tiktok_videos_generated', 'INTEGER DEFAULT 0'),
+            ('social_media_claude_corrections', 'INTEGER DEFAULT 0'),
+            ('social_media_api_calls', 'INTEGER DEFAULT 0')
+        ]
+
+        for column_name, column_definition in social_media_columns:
+            if column_name not in columns:
+                print(f"🔧 Adding social media column: {column_name}")
+                cursor.execute(f'ALTER TABLE topics ADD COLUMN {column_name} {column_definition}')
+
+        conn.commit()
+        conn.close()
+        print("✅ Social media generation columns verified/added")
+
+    def get_completed_topic_ready_for_social_media(self) -> Optional[Tuple[int, str, str, str]]:
+        """Get completed scene generation topic that needs SOCIAL MEDIA generation"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, topic, description, output_path 
+            FROM topics 
+            WHERE status = 'completed' 
+            AND scene_generation_status = 'completed'
+            AND (social_media_generation_status IS NULL OR social_media_generation_status = 'pending')
+            ORDER BY scene_generation_completed_at ASC 
+            LIMIT 1
+        ''')
+
+        result = cursor.fetchone()
+        conn.close()
+
+        return result if result else None
+
+    def mark_social_media_generation_started(self, topic_id: int):
+        """Mark social media generation as started"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE topics 
+            SET social_media_generation_status = 'in_progress', 
+                social_media_generation_started_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (topic_id,))
+
+        conn.commit()
+        conn.close()
+
+    def mark_social_media_generation_completed(self, topic_id: int, results: Dict):
+        """Mark social media generation as completed with detailed stats"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        youtube_count = results.get("platform_results", {}).get("youtube_shorts", {}).get("completed", 0)
+        instagram_count = results.get("platform_results", {}).get("instagram_reels", {}).get("completed", 0)
+        tiktok_count = results.get("platform_results", {}).get("tiktok_videos", {}).get("completed", 0)
+        total_content = results.get("total_completed", 0)
+        claude_corrections = results.get("claude_corrections_used", 0)
+        api_calls = results.get("api_calls_made", 0)
+
+        cursor.execute('''
+            UPDATE topics 
+            SET social_media_generation_status = 'completed',
+                social_media_generation_completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP,
+                social_media_content_generated = ?,
+                youtube_shorts_generated = ?,
+                instagram_reels_generated = ?,
+                tiktok_videos_generated = ?,
+                social_media_claude_corrections = ?,
+                social_media_api_calls = ?
+            WHERE id = ?
+        ''', (total_content, youtube_count, instagram_count, tiktok_count, claude_corrections, api_calls, topic_id))
+
+        conn.commit()
+        conn.close()
+
+    def get_topic_historical_period(self, topic_id: int) -> Optional[str]:
+        """Get historical period for topic"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT historical_period FROM topics WHERE id = ?', (topic_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        return result[0] if result and result[0] else "ancient times"
 
 class SocialMediaVisualGenerator:
     """Social media content visual generator with Claude AI correction and Database integration"""
