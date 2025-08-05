@@ -415,150 +415,237 @@ class ToibinStoryGenerator:
         return structure
 
     def _create_master_scene_plan(self, topic: str, description: str, scene_structure: Dict) -> Dict:
-        """Claude as master director creating detailed scene plan with duration emphasis"""
+        """Create master scene plan in two stages to avoid timeouts"""
 
-        self.log_step("Creating Master Scene Plan with Claude Director")
+        self.log_step("Creating Master Scene Plan in Two Stages")
 
         emotional_structure = scene_structure["emotional_structure"]
         total_scenes = scene_structure["total_scenes"]
-        target_duration = scene_structure["target_duration"]
+        first_half = total_scenes // 2
 
-        # DURATION EMPHASIS for Claude
-        duration_instruction = f"""
-🎯 CRITICAL DURATION REQUIREMENT: 
-- MINIMUM 120 minutes total duration REQUIRED
-- Current target: {target_duration:.1f} minutes
-- Total scenes: {total_scenes}
-- EACH scene must be substantial and detailed for sleep content
+        # Split scenes into two halves
+        first_half_scenes = emotional_structure[:first_half]
+        second_half_scenes = emotional_structure[first_half:]
 
-⚠️ Each scene description must be rich enough to generate long, detailed stories.
-Include extensive character psychology, environmental details, and contemplative moments.
-"""
+        self.log_step(f"Stage 1 Plan: {len(first_half_scenes)} scenes, Stage 2 Plan: {len(second_half_scenes)} scenes")
 
-        # Create emotional summary for Claude
+        # Generate Stage 1 master plan
+        stage1_plan = self._create_master_plan_stage1(topic, description, first_half_scenes)
+
+        # Generate Stage 2 master plan
+        stage2_plan = self._create_master_plan_stage2(topic, description, second_half_scenes, stage1_plan)
+
+        # Combine both stages
+        combined_scene_plan = []
+        combined_scene_plan.extend(stage1_plan.get('scene_plan', []))
+        combined_scene_plan.extend(stage2_plan.get('scene_plan', []))
+
+        # Create unified master plan
+        master_plan = {
+            "master_plan": {
+                "topic_analysis": stage1_plan.get('topic_analysis', {}),
+                "scene_plan": combined_scene_plan,
+                "stage1_scenes": len(stage1_plan.get('scene_plan', [])),
+                "stage2_scenes": len(stage2_plan.get('scene_plan', [])),
+                "total_scenes": len(combined_scene_plan)
+            }
+        }
+
+        self.log_step("Master Scene Plan Created (Two Stages)", "SUCCESS", {
+            "stage1_scenes": len(stage1_plan.get('scene_plan', [])),
+            "stage2_scenes": len(stage2_plan.get('scene_plan', [])),
+            "total_scenes": len(combined_scene_plan)
+        })
+
+        return master_plan
+
+    def _create_master_plan_stage1(self, topic: str, description: str, scenes: List[Dict]) -> Dict:
+        """Create master plan for first half of scenes"""
+
+        self.log_step(f"Creating Master Plan Stage 1: {len(scenes)} scenes")
+
+        # Create emotional summary for first half
         emotional_summary = "\n".join([
             f"Scene {scene['scene_number']}: {scene['emotion']} ({scene['phase']}) - {scene['toibin_focus']} - Duration: {scene['duration_range'][0]:.1f}-{scene['duration_range'][1]:.1f} min"
-            for scene in emotional_structure
+            for scene in scenes
         ])
 
-        master_plan_prompt = f"""You are CLAUDE, master film director creating a detailed scene plan for "{topic}" in COLM TÓIBÍN's literary style.
+        stage1_prompt = f"""You are CLAUDE, master film director creating a detailed scene plan for the FIRST HALF of "{topic}" in COLM TÓIBÍN's literary style.
 
-TOPIC: {topic}
-DESCRIPTION: {description}
+    TOPIC: {topic}
+    DESCRIPTION: {description}
 
-{duration_instruction}
+    🎬 STAGE 1 SCENES TO PLAN (EXACTLY {len(scenes)} SCENES):
+    {emotional_summary}
 
-EMOTIONAL STRUCTURE TO FOLLOW (EXACTLY {total_scenes} SCENES):
-{emotional_summary}
+    Create the opening half of this story with TÓIBÍN'S LITERARY MASTERY:
 
-🎬 YOUR ROLE AS MASTER DIRECTOR:
+    ## TÓIBÍN'S CORE PRINCIPLES:
+    - "Sparseness of tone with superabundance of suggestion"
+    - Characters led by desires they don't understand
+    - Fascination of commonplaces
+    - Daily life as drama
 
-You must create EXACTLY {total_scenes} detailed scenes that follow TÓIBÍN'S LITERARY MASTERY while respecting the emotional progression. Each scene should be a small masterpiece of character psychology and daily life observation.
+    OUTPUT FORMAT:
+    {{
+      "topic_analysis": {{
+        "central_theme": "[Core story theme]",
+        "character_focus": "[Main characters for this story]",
+        "daily_life_elements": "[Authentic activities]",
+        "tóibín_approach": "[How Tóibín would approach this]",
+        "historical_authenticity": "[Key period details]"
+      }},
+      "scene_plan": [
+        {{
+          "scene_id": 1,
+          "title": "[Scene title]",
+          "emotion": "{scenes[0]['emotion'] if scenes else 'peaceful'}",
+          "phase": "{scenes[0]['phase'] if scenes else 'establishment'}",
+          "duration_minutes": {random.uniform(scenes[0]['duration_range'][0], scenes[0]['duration_range'][1]):.1f if scenes else 4.0},
+          "setting": "[Specific location]",
+          "time_of_day": "[Time]",
+          "main_character": "[Character name and brief description]",
+          "activity": "[What character is doing]", 
+          "internal_focus": "[Character's internal state]",
+          "tóibín_element": "[Tóibín technique demonstrated]",
+          "scene_description": "[Detailed scene description for story generation]",
+          "emotional_core": "[Core feeling of scene]",
+          "sleep_optimization": "[How this promotes peaceful contemplation]"
+        }}
+      ]
+    }}
 
-## TÓIBÍN'S CORE PRINCIPLES TO FOLLOW:
-
-### 1. "Sparseness of tone with superabundance of suggestion"
-- Every scene should say more through what's NOT said
-- Focus on small gestures that reveal character depths
-- Understated dialogue, powerful subtext
-
-### 2. "Characters led by desires they don't understand" 
-- Characters should have complex internal motivations
-- Show internal contradictions and mixed feelings
-- Focus on psychological authenticity over external action
-
-### 3. "Fascination of commonplaces"
-- Transform ordinary daily activities into profound moments
-- Meals, conversations, walks, work - make them meaningful
-- Find the extraordinary in the completely ordinary
-
-### 4. Daily Life as Drama
-- NO external dramatic events needed
-- Internal character drama is sufficient
-- Relationships and emotions are the real "plot"
-
-### 5. DURATION REQUIREMENTS FOR EACH SCENE:
-- Rich atmospheric descriptions for extended reading
-- Detailed character internal psychology
-- Extended dialogue with pauses and subtext
-- Environmental details that promote contemplation
-- Natural pacing with breathing room
-
-OUTPUT FORMAT:
-{{
-  "master_plan": {{
-    "topic_analysis": {{
-      "central_theme": "[What is the core story we're telling?]",
-      "character_focus": "[Primary character types and their psychology]",
-      "daily_life_elements": "[Specific authentic activities for this topic]",
-      "tóibín_approach": "[How Tóibín would approach this subject]",
-      "historical_authenticity": "[Key period details that matter]"
-    }},
-    "scene_plan": [
-      {{
-        "scene_id": 1,
-        "title": "[Specific scene title related to topic and moment]",
-        "emotion": "{emotional_structure[0]['emotion']}",
-        "phase": "{emotional_structure[0]['phase']}",
-        "duration_minutes": {random.uniform(emotional_structure[0]['duration_range'][0], emotional_structure[0]['duration_range'][1]):.1f},
-        "setting": "[Specific location within topic context]",
-        "time_of_day": "[Specific time, contributing to daily progression]",
-        "main_character": "[Character name and brief description]",
-        "activity": "[What exactly the character is doing]", 
-        "internal_focus": "[Character's internal state/thoughts]",
-        "tóibín_element": "[Which Tóibín technique this demonstrates]",
-        "scene_description": "[DETAILED description of what happens - rich enough for extended story generation]",
-        "dialogue_style": "[How characters speak - understated, gestural, etc.]",
-        "environmental_details": "[EXTENSIVE sensory details of the setting]",
-        "emotional_core": "[The feeling/recognition at the heart of this scene]",
-        "connection_to_previous": "[How this connects to the previous scene]",
-        "connection_to_next": "[How this sets up the next scene]",
-        "key_tóibín_qualities": ["silence_between_words", "ordinary_made_profound", "character_psychology"],
-        "sleep_optimization": "[How this scene promotes peaceful contemplation]"
-      }}
-    ]
-  }}
-}}
-
-Create {total_scenes} scenes that demonstrate TÓIBÍN'S LITERARY GENIUS while authentically representing {topic} and meeting duration requirements."""
+    Create exactly {len(scenes)} scenes for the first half of {topic}."""
 
         try:
             self.api_call_count += 1
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=20000,
+                max_tokens=15000,  # Reduced from 20000
                 temperature=0.5,
-                timeout=300,  # 5 dakika timeout
-                system="You are COLM TÓIBÍN, the master Irish literary author, working as a film director to create a detailed scene plan. Apply your signature literary genius: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and quiet recognition of human psychology. Each scene must be rich enough to generate extended, contemplative stories.",
-                messages=[{"role": "user", "content": master_plan_prompt}]
+                timeout=240,  # Reduced from 300
+                system="You are COLM TÓIBÍN creating the opening scenes of your literary masterwork. Focus on establishment and character introduction with your signature understated style.",
+                messages=[{"role": "user", "content": stage1_prompt}]
             )
 
-            # SENİN SİSTEMİNİ KULLANIYORUM - NON-STREAMING
             content = response.content[0].text
-
-            print(f"✅ Master scene plan complete: {len(content):,} characters")
+            print(f"✅ Master plan Stage 1 complete: {len(content):,} characters")
 
             # Calculate cost
-            input_tokens = len(master_plan_prompt) // 4
+            input_tokens = len(stage1_prompt) // 4
             output_tokens = len(content) // 4
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
             # Parse response
-            parsed_result = self._parse_claude_response(content, "master_plan")
+            parsed_result = self._parse_claude_response(content, "master_plan_stage1")
 
-            self.log_step("Master Scene Plan Created", "SUCCESS", {
-                "scenes_planned": len(parsed_result.get('master_plan', {}).get('scene_plan', [])),
+            self.log_step("Master Plan Stage 1 Created", "SUCCESS", {
+                "scenes_planned": len(parsed_result.get('scene_plan', [])),
                 "stage_cost": stage_cost
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Master Scene Plan Failed", "ERROR")
-            CONFIG.logger.error(f"Master plan error: {e}")
+            self.log_step("Master Plan Stage 1 Failed", "ERROR")
+            CONFIG.logger.error(f"Master plan stage 1 error: {e}")
             raise
+
+    def _create_master_plan_stage2(self, topic: str, description: str, scenes: List[Dict], stage1_plan: Dict) -> Dict:
+        """Create master plan for second half of scenes with continuity from stage 1"""
+
+        self.log_step(f"Creating Master Plan Stage 2: {len(scenes)} scenes")
+
+        # Get character info from stage 1 for continuity
+        stage1_characters = []
+        stage1_scenes = stage1_plan.get('scene_plan', [])
+        for scene in stage1_scenes:
+            char = scene.get('main_character', '')
+            if char and char not in stage1_characters:
+                stage1_characters.append(char)
+
+        # Create emotional summary for second half
+        emotional_summary = "\n".join([
+            f"Scene {scene['scene_number']}: {scene['emotion']} ({scene['phase']}) - {scene['toibin_focus']} - Duration: {scene['duration_range'][0]:.1f}-{scene['duration_range'][1]:.1f} min"
+            for scene in scenes
+        ])
+
+        stage2_prompt = f"""You are CLAUDE, master film director creating the SECOND HALF scene plan for "{topic}" in COLM TÓIBÍN's literary style.
+
+    TOPIC: {topic}
+    DESCRIPTION: {description}
+
+    CHARACTERS FROM STAGE 1 (maintain continuity):
+    {', '.join(stage1_characters[:5])}
+
+    🎬 STAGE 2 SCENES TO PLAN (EXACTLY {len(scenes)} SCENES):
+    {emotional_summary}
+
+    Continue the story with TÓIBÍN'S LITERARY MASTERY while maintaining character continuity:
+
+    OUTPUT FORMAT:
+    {{
+      "scene_plan": [
+        {{
+          "scene_id": {scenes[0]['scene_number'] if scenes else len(stage1_scenes) + 1},
+          "title": "[Scene title]",
+          "emotion": "{scenes[0]['emotion'] if scenes else 'peaceful'}",
+          "phase": "{scenes[0]['phase'] if scenes else 'recognition'}",
+          "duration_minutes": {random.uniform(scenes[0]['duration_range'][0], scenes[0]['duration_range'][1]):.1f if scenes else 4.0},
+          "setting": "[Specific location]",
+          "time_of_day": "[Time]",
+          "main_character": "[Character name - use Stage 1 characters when possible]",
+          "activity": "[What character is doing]", 
+          "internal_focus": "[Character's internal state]",
+          "tóibín_element": "[Tóibín technique demonstrated]",
+          "scene_description": "[Detailed scene description for story generation]",
+          "emotional_core": "[Core feeling of scene]",
+          "connection_to_stage1": "[How this connects to earlier scenes]",
+          "sleep_optimization": "[How this promotes peaceful contemplation]"
+        }}
+      ]
+    }}
+
+    Create exactly {len(scenes)} scenes for the second half of {topic} with character continuity."""
+
+        try:
+            self.api_call_count += 1
+
+            response = self.client.messages.create(
+                model=CONFIG.claude_config["model"],
+                max_tokens=15000,  # Reduced from 20000
+                temperature=0.5,
+                timeout=240,  # Reduced from 300
+                system="You are COLM TÓIBÍN continuing your literary masterwork. Maintain character consistency and deepen the emotional journey while building toward resolution.",
+                messages=[{"role": "user", "content": stage2_prompt}]
+            )
+
+            content = response.content[0].text
+            print(f"✅ Master plan Stage 2 complete: {len(content):,} characters")
+
+            # Calculate cost
+            input_tokens = len(stage2_prompt) // 4
+            output_tokens = len(content) // 4
+            stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
+            self.total_cost += stage_cost
+
+            # Parse response
+            parsed_result = self._parse_claude_response(content, "master_plan_stage2")
+
+            self.log_step("Master Plan Stage 2 Created", "SUCCESS", {
+                "scenes_planned": len(parsed_result.get('scene_plan', [])),
+                "stage_cost": stage_cost
+            })
+
+            return parsed_result
+
+        except Exception as e:
+            self.log_step("Master Plan Stage 2 Failed", "ERROR")
+            CONFIG.logger.error(f"Master plan stage 2 error: {e}")
+            raise
+
 
     def _generate_stage1_stories(self, topic: str, description: str, master_plan: Dict) -> Dict:
         """Generate first half stories following master plan with validation"""
@@ -1551,7 +1638,7 @@ Viral Potential: {scene.get('viral_score', 'High')}
         result = {}
 
         try:
-            if stage == "master_plan":
+            if stage in ["master_plan", "master_plan_stage1", "master_plan_stage2"]:
                 # Extract scene plan array
                 scene_start = content.find('"scene_plan": [')
                 if scene_start > -1:
