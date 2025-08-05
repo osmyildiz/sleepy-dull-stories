@@ -55,7 +55,15 @@ class ServerConfig:
             "validation_tolerance": 0.15,  # ±15% tolerance
             "toibin_style_required": True,
             "minimum_duration_minutes": 120  # ADDED: Minimum duration requirement
+            "duration_manipulation": {
+                "enabled": True,
+                "inflation_factor": 1.8,  # Ask for 1.8x the target duration
+                "success_threshold": 0.85,  # If we get 85%+ of real target, success
+                "max_inflation": 2.5,  # Never ask for more than 2.5x
+                "adaptive": True  # Learn from Claude's behavior
+            }
         }
+
 
         # Get API key
         self.api_key = self.get_claude_api_key()
@@ -205,6 +213,11 @@ class ToibinStoryGenerator:
         self.api_call_count = 0
         self.total_cost = 0.0
         self.generation_log = []
+        self.claude_behavior = {
+            "requests_made": 0,
+            "average_fulfillment_rate": 0.6,  # Start with assumption Claude gives 60% of requested
+            "last_5_rates": []
+        }
 
         print("✅ TÓIBÍN Quality Generator with Duration Validation initialized")
 
@@ -459,7 +472,6 @@ class ToibinStoryGenerator:
 
         return master_plan
 
-    # _create_master_plan_stage1 metodundaki f-string'i düzelt:
 
     def _create_master_plan_stage1(self, topic: str, description: str, scenes: List[Dict]) -> Dict:
         """Create master plan for first half of scenes"""
@@ -564,7 +576,6 @@ class ToibinStoryGenerator:
             CONFIG.logger.error(f"Master plan stage 1 error: {e}")
             raise
 
-    # _create_master_plan_stage2 metodundaki f-string'i de düzelt:
 
     def _create_master_plan_stage2(self, topic: str, description: str, scenes: List[Dict], stage1_plan: Dict) -> Dict:
         """Create master plan for second half of scenes with continuity from stage 1"""
@@ -1727,6 +1738,274 @@ Viral Potential: {scene.get('viral_score', 'High')}
             print(f"Story extraction error: {e}")
 
         return stories
+
+    def _calculate_manipulation_target(self, real_target: float) -> Tuple[float, float]:
+        """Calculate manipulated duration to ask Claude for"""
+
+        config = CONFIG.claude_config["duration_manipulation"]
+
+        if not config["enabled"]:
+            return real_target, real_target
+
+        # Use adaptive factor based on Claude's recent behavior
+        if config["adaptive"] and len(self.claude_behavior["last_5_rates"]) >= 3:
+            avg_rate = sum(self.claude_behavior["last_5_rates"]) / len(self.claude_behavior["last_5_rates"])
+            # If Claude gives us 70%, ask for 1/0.7 = 1.43x
+            adaptive_factor = min(1 / avg_rate, config["max_inflation"]) if avg_rate > 0.3 else config[
+                "inflation_factor"]
+        else:
+            adaptive_factor = config["inflation_factor"]
+
+        manipulated_target = real_target * adaptive_factor
+
+        # Cap the manipulation
+        if manipulated_target > real_target * config["max_inflation"]:
+            manipulated_target = real_target * config["max_inflation"]
+
+        print(
+            f"🎭 MANIPULATION: Real target {real_target:.1f}min → Ask Claude for {manipulated_target:.1f}min (factor: {adaptive_factor:.2f})")
+
+        return manipulated_target, real_target
+
+    def _evaluate_claude_performance(self, requested_duration: float, actual_duration: float, real_target: float):
+        """Track Claude's performance for adaptive manipulation"""
+
+        if requested_duration > 0:
+            fulfillment_rate = actual_duration / requested_duration
+            real_success_rate = actual_duration / real_target
+
+            # Track for adaptation
+            self.claude_behavior["last_5_rates"].append(fulfillment_rate)
+            if len(self.claude_behavior["last_5_rates"]) > 5:
+                self.claude_behavior["last_5_rates"].pop(0)
+
+            self.claude_behavior["requests_made"] += 1
+
+            print(f"📊 CLAUDE PERFORMANCE:")
+            print(f"   Requested: {requested_duration:.1f}min")
+            print(f"   Delivered: {actual_duration:.1f}min")
+            print(f"   Fulfillment Rate: {fulfillment_rate:.1%}")
+            print(f"   Real Success Rate: {real_success_rate:.1%}")
+            print(
+                f"   Adaptive Factor Next: {1 / fulfillment_rate:.2f}" if fulfillment_rate > 0.3 else "   Adaptive Factor Next: MAX")
+
+    def _check_manipulation_success(self, actual_duration: float, real_target: float) -> bool:
+        """Check if manipulation achieved the real target"""
+
+        success_threshold = CONFIG.claude_config["duration_manipulation"]["success_threshold"]
+        success_rate = actual_duration / real_target
+
+        success = success_rate >= success_threshold
+
+        print(f"🎯 MANIPULATION RESULT: {actual_duration:.1f}min / {real_target:.1f}min = {success_rate:.1%}")
+        print(f"   Success Threshold: {success_threshold:.1%}")
+        print(f"   Status: {'✅ SUCCESS' if success else '⚠️ NEEDS EXTENSION'}")
+
+        return success
+
+    # _generate_emotional_scene_structure'ı manipulation ile güncelle:
+
+    def _generate_emotional_scene_structure(self) -> Dict:
+        """Generate emotional scene structure with manipulation strategy"""
+
+        # REAL TARGET: 120-150 minutes
+        real_target_min = 120
+        real_target_max = 150
+
+        # Random scene count for real target
+        total_scenes = random.randint(35, 50)
+
+        # Emotional distribution ratios
+        peaceful_ratio = 0.35
+        curiosity_ratio = 0.25
+        contemplation_ratio = 0.25
+        resolution_ratio = 0.15
+
+        # Calculate scene counts
+        peaceful_count = int(total_scenes * peaceful_ratio)
+        curiosity_count = int(total_scenes * curiosity_ratio)
+        contemplation_count = int(total_scenes * contemplation_ratio)
+        resolution_count = total_scenes - peaceful_count - curiosity_count - contemplation_count
+
+        # Create emotional progression
+        emotional_structure = []
+
+        # REAL duration ranges (what we actually want)
+        real_duration_ranges = {
+            "peaceful": (4.5, 7.0),
+            "curiosity": (4.0, 6.0),
+            "contemplation": (3.5, 5.5),
+            "resolution": (5.0, 8.0)
+        }
+
+        # MANIPULATION: Calculate inflated duration ranges
+        inflation = CONFIG.claude_config["duration_manipulation"]["inflation_factor"]
+
+        manipulated_ranges = {
+            emotion: (range_tuple[0] * inflation, range_tuple[1] * inflation)
+            for emotion, range_tuple in real_duration_ranges.items()
+        }
+
+        # Phase 1: Peaceful establishment
+        for i in range(peaceful_count):
+            emotional_structure.append({
+                "scene_number": i + 1,
+                "emotion": "peaceful",
+                "phase": "establishment",
+                "duration_range": real_duration_ranges["peaceful"],  # Real target for validation
+                "manipulated_duration_range": manipulated_ranges["peaceful"],  # What we tell Claude
+                "toibin_focus": "daily_life_observation"
+            })
+
+        # Phase 2: Curiosity/Discovery
+        for i in range(curiosity_count):
+            emotional_structure.append({
+                "scene_number": peaceful_count + i + 1,
+                "emotion": "curiosity",
+                "phase": "discovery",
+                "duration_range": real_duration_ranges["curiosity"],
+                "manipulated_duration_range": manipulated_ranges["curiosity"],
+                "toibin_focus": "character_recognition"
+            })
+
+        # Phase 3: Contemplation
+        for i in range(contemplation_count):
+            emotional_structure.append({
+                "scene_number": peaceful_count + curiosity_count + i + 1,
+                "emotion": "contemplation",
+                "phase": "recognition",
+                "duration_range": real_duration_ranges["contemplation"],
+                "manipulated_duration_range": manipulated_ranges["contemplation"],
+                "toibin_focus": "internal_complexity"
+            })
+
+        # Phase 4: Resolution
+        for i in range(resolution_count):
+            emotional_structure.append({
+                "scene_number": peaceful_count + curiosity_count + contemplation_count + i + 1,
+                "emotion": "resolution",
+                "phase": "acceptance",
+                "duration_range": real_duration_ranges["resolution"],
+                "manipulated_duration_range": manipulated_ranges["resolution"],
+                "toibin_focus": "quiet_acceptance"
+            })
+
+        # Calculate durations
+        real_target_duration = sum(random.uniform(scene["duration_range"][0], scene["duration_range"][1])
+                                   for scene in emotional_structure)
+
+        manipulated_duration = sum(
+            random.uniform(scene["manipulated_duration_range"][0], scene["manipulated_duration_range"][1])
+            for scene in emotional_structure)
+
+        structure = {
+            "total_scenes": total_scenes,
+            "real_target_duration": real_target_duration,
+            "manipulated_duration": manipulated_duration,
+            "manipulation_factor": manipulated_duration / real_target_duration,
+            "emotional_distribution": {
+                "peaceful": peaceful_count,
+                "curiosity": curiosity_count,
+                "contemplation": contemplation_count,
+                "resolution": resolution_count
+            },
+            "emotional_structure": emotional_structure
+        }
+
+        print(f"🎭 MANIPULATION STRATEGY:")
+        print(f"   Real Target: {real_target_duration:.1f} minutes")
+        print(f"   Tell Claude: {manipulated_duration:.1f} minutes")
+        print(f"   Inflation Factor: {structure['manipulation_factor']:.2f}x")
+
+        self.log_step(f"Emotional Structure with Manipulation: {total_scenes} scenes", "SUCCESS", {
+            "real_target": f"{real_target_duration:.1f} minutes",
+            "claude_target": f"{manipulated_duration:.1f} minutes",
+            "manipulation_factor": f"{structure['manipulation_factor']:.2f}x"
+        })
+
+        return structure
+
+    # validate_and_extend_stories'i manipulation aware yap:
+
+    def validate_and_extend_stories(self, stories: Dict, scene_plan: List[Dict]) -> Dict:
+        """Validate story durations with manipulation awareness"""
+
+        self.log_step("Validating Story Durations (Manipulation Aware)")
+
+        # Calculate both real and manipulated targets
+        total_real_target = sum(scene.get('duration_minutes', 4) for scene in scene_plan)
+        total_manipulated_target = sum(
+            scene.get('manipulated_duration_minutes', scene.get('duration_minutes', 4) * 1.8) for scene in scene_plan)
+
+        # Calculate actual duration
+        actual_duration = self._calculate_total_duration(stories, scene_plan)
+
+        # Evaluate Claude's performance
+        self._evaluate_claude_performance(total_manipulated_target, actual_duration, total_real_target)
+
+        # Check if manipulation was successful
+        manipulation_success = self._check_manipulation_success(actual_duration, total_real_target)
+
+        if manipulation_success:
+            self.log_step("Manipulation Strategy SUCCESS - No Extension Needed", "SUCCESS")
+            return stories
+        else:
+            self.log_step("Manipulation Strategy PARTIAL - Extension Needed", "WARNING")
+            # Proceed with normal validation using REAL targets
+            return self._perform_standard_validation(stories, scene_plan)
+
+    def _perform_standard_validation(self, stories: Dict, scene_plan: List[Dict]) -> Dict:
+        """Perform standard validation using real duration targets"""
+
+        extended_stories = {}
+        extension_needed = []
+
+        for scene in scene_plan:
+            scene_id = str(scene.get('scene_id', 0))
+            story_content = stories.get(scene_id, '')
+
+            if not story_content:
+                continue
+
+            # Use REAL target, not manipulated target
+            word_count = len(story_content.split())
+            estimated_duration = word_count / CONFIG.claude_config["target_words_per_minute"]
+            real_target_duration = random.uniform(scene["duration_range"][0], scene["duration_range"][1])
+
+            print(
+                f"📊 Scene {scene_id}: {word_count} words = {estimated_duration:.1f}min (real target: {real_target_duration:.1f}min)")
+
+            # Check against REAL target
+            tolerance = CONFIG.claude_config.get("validation_tolerance", 0.15)
+            min_acceptable_duration = real_target_duration * (1 - tolerance)
+
+            if estimated_duration < min_acceptable_duration:
+                extension_needed.append({
+                    'scene_id': scene_id,
+                    'scene_info': scene,
+                    'current_story': story_content,
+                    'current_duration': estimated_duration,
+                    'target_duration': real_target_duration,  # Use real target
+                    'needed_words': int(
+                        (real_target_duration - estimated_duration) * CONFIG.claude_config["target_words_per_minute"])
+                })
+                print(
+                    f"⚠️ Scene {scene_id} needs extension: {estimated_duration:.1f} < {min_acceptable_duration:.1f}min")
+            else:
+                extended_stories[scene_id] = story_content
+                print(f"✅ Scene {scene_id} duration OK")
+
+        # Extend stories that need it
+        if extension_needed:
+            self.log_step(f"Extending {len(extension_needed)} stories (post-manipulation)")
+
+            batch_size = 3
+            for i in range(0, len(extension_needed), batch_size):
+                batch = extension_needed[i:i + batch_size]
+                extended_batch = self._extend_story_batch(batch)
+                extended_stories.update(extended_batch)
+
+        return extended_stories
 
 def save_production_outputs(output_dir: str, result: Dict, story_topic: str, topic_id: int,
                           api_calls: int, total_cost: float):
