@@ -54,7 +54,7 @@ class ServerConfig:
             "target_words_per_minute": 140,
             "validation_tolerance": 0.15,  # ±15% tolerance
             "toibin_style_required": True,
-            "minimum_duration_minutes": 120  # ADDED: Minimum duration requirement
+            "minimum_duration_minutes": 120,  # ADDED: Minimum duration requirement
             "duration_manipulation": {
                 "enabled": True,
                 "inflation_factor": 1.8,  # Ask for 1.8x the target duration
