@@ -913,13 +913,17 @@ class SocialMediaVisualGenerator:
             task_id = self.submit_social_media_task_with_correction(content, aspect_ratio="9:16")
 
             if task_id:
-                results["tasks"][content_id] = {
+                # Use unique key to prevent overwrites
+                unique_key = f"{platform_name}_{content_id}"
+                results["tasks"][unique_key] = {
                     "task_id": task_id,
                     "content_data": content,
-                    "save_path": str(save_path)
+                    "save_path": str(save_path),
+                    "content_id": content_id,
+                    "platform": platform_name
                 }
                 results["submitted"] += 1
-                print(f"✅ {platform_name} {content_id}: Task submitted")
+                print(f"✅ {platform_name} {content_id}: Task submitted (key: {unique_key})")
             else:
                 print(f"❌ {platform_name} {content_id}: Submission failed")
                 results["failed"] += 1
@@ -942,16 +946,18 @@ class SocialMediaVisualGenerator:
 
                 tasks_to_remove = []
 
-                for content_id, task_data in results["tasks"].items():
+                for unique_key, task_data in results["tasks"].items():
                     task_id = task_data["task_id"]
+                    content_id = task_data["content_id"]
+                    platform = task_data["platform"]
 
-                    result_data = self.check_task_status(task_id, platform_name, content_id)
+                    result_data = self.check_task_status(task_id, platform, content_id)
 
                     if result_data and isinstance(result_data, dict):
-                        print(f"✅ {platform_name} {content_id}: Task completed!")
+                        print(f"✅ {platform} {content_id}: Task completed!")
 
                         # Download all variations
-                        downloaded_files = self.download_all_variations(result_data, task_data["save_path"], platform_name, content_id)
+                        downloaded_files = self.download_all_variations(result_data, task_data["save_path"], platform, content_id)
 
                         if downloaded_files:
                             results["completed"] += 1
@@ -959,7 +965,7 @@ class SocialMediaVisualGenerator:
                             # Save metadata with all variations
                             metadata = {
                                 "content_id": content_id,
-                                "platform": platform_name,
+                                "platform": platform,
                                 "title": task_data["content_data"].get("title", ""),
                                 "generated_at": datetime.now().isoformat(),
                                 "image_urls": {
@@ -968,21 +974,21 @@ class SocialMediaVisualGenerator:
                                 },
                                 "local_files": downloaded_files,
                                 "variations_count": len(downloaded_files),
-                                "claude_corrections": self.claude_corrector.correction_attempts.get(f"{platform_name}_{content_id}", 0)
+                                "claude_corrections": self.claude_corrector.correction_attempts.get(f"{platform}_{content_id}", 0)
                             }
 
                             json_path = Path(task_data["save_path"]).with_suffix('.json')
                             with open(json_path, 'w', encoding='utf-8') as f:
                                 json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-                        tasks_to_remove.append(content_id)
+                        tasks_to_remove.append(unique_key)
 
                     elif result_data is False:
-                        print(f"❌ {platform_name} {content_id}: Task failed")
+                        print(f"❌ {platform} {content_id}: Task failed")
                         results["failed"] += 1
-                        tasks_to_remove.append(content_id)
+                        tasks_to_remove.append(unique_key)
 
-                for content_id in tasks_to_remove:
+                for unique_key in tasks_to_remove:
                     del results["tasks"][content_id]
 
                 if not results["tasks"]:
