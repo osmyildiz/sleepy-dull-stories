@@ -989,7 +989,7 @@ class SocialMediaVisualGenerator:
                         tasks_to_remove.append(unique_key)
 
                 for unique_key in tasks_to_remove:
-                    del results["tasks"][content_id]
+                    del results["tasks"][unique_key]
 
                 if not results["tasks"]:
                     break
