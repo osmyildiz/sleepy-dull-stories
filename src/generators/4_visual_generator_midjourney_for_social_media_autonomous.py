@@ -781,11 +781,12 @@ class SocialMediaVisualGenerator:
                         temp_urls = output.get("temporary_image_urls", [])
                         image_url = output.get("image_url", "")
 
-                        if temp_urls and len(temp_urls) > 0:
-                            selected_url = temp_urls[1] if len(temp_urls) >= 2 else temp_urls[0]
-                            return {"url": selected_url, "source": "temporary_image_urls"}
-                        elif image_url:
-                            return {"url": image_url, "source": "image_url"}
+                        if temp_urls or image_url:
+                            return {
+                                "temporary_image_urls": temp_urls,
+                                "url": image_url,
+                                "source": "multiple_variations"
+                            }
                         else:
                             print(f"⚠️ {content_type} {content_id}: Completed but no URLs")
                             return False
@@ -804,9 +805,9 @@ class SocialMediaVisualGenerator:
             print(f"⚠️ {content_type} {content_id}: Status check error - {e}")
             return None
 
-    def download_image(self, result_data: Dict, save_path: str, content_type: str, content_id: int) -> bool:
-        """Download generated image"""
-        image_url = result_data["url"]
+    def download_all_variations(self, result_data: Dict, save_path_base: str, content_type: str, content_id: int) -> List[str]:
+        """Download all 4 variations from Midjourney result"""
+        downloaded_files = []
 
         try:
             headers = {
@@ -815,26 +816,53 @@ class SocialMediaVisualGenerator:
                 'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
             }
 
-            print(f"📥 {content_type} {content_id}: Downloading...")
+            # Get all available URLs
+            temp_urls = result_data.get("temporary_image_urls", [])
+            main_url = result_data.get("url", "")
 
-            response = requests.get(image_url, headers=headers, timeout=30, stream=True)
+            # Collect all URLs
+            all_urls = []
+            if temp_urls:
+                all_urls.extend(temp_urls)
+            if main_url and main_url not in all_urls:
+                all_urls.append(main_url)
 
-            if response.status_code == 200:
-                with open(save_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
+            print(f"📥 {content_type} {content_id}: Found {len(all_urls)} variations to download")
 
-                file_size = os.path.getsize(save_path)
-                print(f"✅ {content_type} {content_id}: Downloaded ({file_size} bytes)")
-                self.successful_downloads += 1
-                return True
-            else:
-                print(f"❌ {content_type} {content_id}: Download failed HTTP {response.status_code}")
-                return False
+            # Download each variation
+            for i, image_url in enumerate(all_urls):
+                if i >= 4:  # Limit to max 4 variations
+                    break
+
+                # Create filename with variation number
+                path_obj = Path(save_path_base)
+                if i == 0:
+                    save_path = save_path_base  # Main file without suffix
+                else:
+                    save_path = str(path_obj.parent / f"{path_obj.stem}_v{i+1}{path_obj.suffix}")
+
+                print(f"📥 {content_type} {content_id}: Downloading variation {i+1}/{len(all_urls)}...")
+
+                response = requests.get(image_url, headers=headers, timeout=30, stream=True)
+
+                if response.status_code == 200:
+                    with open(save_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+
+                    file_size = os.path.getsize(save_path)
+                    print(f"✅ {content_type} {content_id}: Downloaded variation {i+1} ({file_size} bytes)")
+                    downloaded_files.append(save_path)
+                    self.successful_downloads += 1
+                else:
+                    print(f"❌ {content_type} {content_id}: Variation {i+1} download failed HTTP {response.status_code}")
+
+            print(f"🎉 {content_type} {content_id}: Downloaded {len(downloaded_files)} variations successfully")
+            return downloaded_files
 
         except Exception as e:
-            print(f"❌ {content_type} {content_id}: Download error - {e}")
-            return False
+            print(f"❌ {content_type} {content_id}: Download variations error - {e}")
+            return downloaded_files
 
     def generate_platform_content(self, content_list: List[Dict], platform_name: str, output_dir: Path) -> Dict:
         """Generate visuals for a specific platform"""
@@ -855,7 +883,15 @@ class SocialMediaVisualGenerator:
 
         # Submit tasks
         for content in content_list:
-            content_id = content.get(f"{platform_name.split('_')[0]}_id", content.get("reel_id", content.get("tiktok_id", 0)))
+            # Fix ID extraction for each platform
+            if platform_name == "youtube_shorts":
+                content_id = content.get("short_id", 0)
+            elif platform_name == "instagram_reels":
+                content_id = content.get("reel_id", 0)
+            elif platform_name == "tiktok_videos":
+                content_id = content.get("tiktok_id", 0)
+            else:
+                content_id = content.get("id", 0)
 
             # Add content type and ID for Claude correction
             content["content_type"] = platform_name
@@ -914,18 +950,24 @@ class SocialMediaVisualGenerator:
                     if result_data and isinstance(result_data, dict):
                         print(f"✅ {platform_name} {content_id}: Task completed!")
 
-                        # Download image
-                        if self.download_image(result_data, task_data["save_path"], platform_name, content_id):
+                        # Download all variations
+                        downloaded_files = self.download_all_variations(result_data, task_data["save_path"], platform_name, content_id)
+
+                        if downloaded_files:
                             results["completed"] += 1
 
-                            # Save metadata
+                            # Save metadata with all variations
                             metadata = {
                                 "content_id": content_id,
                                 "platform": platform_name,
                                 "title": task_data["content_data"].get("title", ""),
                                 "generated_at": datetime.now().isoformat(),
-                                "image_url": result_data["url"],
-                                "local_path": task_data["save_path"],
+                                "image_urls": {
+                                    "temporary_image_urls": result_data.get("temporary_image_urls", []),
+                                    "main_url": result_data.get("url", "")
+                                },
+                                "local_files": downloaded_files,
+                                "variations_count": len(downloaded_files),
                                 "claude_corrections": self.claude_corrector.correction_attempts.get(f"{platform_name}_{content_id}", 0)
                             }
 
