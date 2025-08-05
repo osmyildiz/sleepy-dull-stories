@@ -459,6 +459,8 @@ class ToibinStoryGenerator:
 
         return master_plan
 
+    # _create_master_plan_stage1 metodundaki f-string'i düzelt:
+
     def _create_master_plan_stage1(self, topic: str, description: str, scenes: List[Dict]) -> Dict:
         """Create master plan for first half of scenes"""
 
@@ -469,6 +471,15 @@ class ToibinStoryGenerator:
             f"Scene {scene['scene_number']}: {scene['emotion']} ({scene['phase']}) - {scene['toibin_focus']} - Duration: {scene['duration_range'][0]:.1f}-{scene['duration_range'][1]:.1f} min"
             for scene in scenes
         ])
+
+        # FIX: F-string içindeki JSON formatını düzelt
+        first_scene = scenes[0] if scenes else None
+        scene_id = 1
+        emotion = first_scene['emotion'] if first_scene else 'peaceful'
+        phase = first_scene['phase'] if first_scene else 'establishment'
+        duration_min = first_scene['duration_range'][0] if first_scene else 4.0
+        duration_max = first_scene['duration_range'][1] if first_scene else 6.0
+        duration = random.uniform(duration_min, duration_max)
 
         stage1_prompt = f"""You are CLAUDE, master film director creating a detailed scene plan for the FIRST HALF of "{topic}" in COLM TÓIBÍN's literary style.
 
@@ -497,11 +508,11 @@ class ToibinStoryGenerator:
       }},
       "scene_plan": [
         {{
-          "scene_id": 1,
+          "scene_id": {scene_id},
           "title": "[Scene title]",
-          "emotion": "{scenes[0]['emotion'] if scenes else 'peaceful'}",
-          "phase": "{scenes[0]['phase'] if scenes else 'establishment'}",
-          "duration_minutes": {random.uniform(scenes[0]['duration_range'][0], scenes[0]['duration_range'][1]):.1f if scenes else 4.0},
+          "emotion": "{emotion}",
+          "phase": "{phase}",
+          "duration_minutes": {duration:.1f},
           "setting": "[Specific location]",
           "time_of_day": "[Time]",
           "main_character": "[Character name and brief description]",
@@ -553,6 +564,8 @@ class ToibinStoryGenerator:
             CONFIG.logger.error(f"Master plan stage 1 error: {e}")
             raise
 
+    # _create_master_plan_stage2 metodundaki f-string'i de düzelt:
+
     def _create_master_plan_stage2(self, topic: str, description: str, scenes: List[Dict], stage1_plan: Dict) -> Dict:
         """Create master plan for second half of scenes with continuity from stage 1"""
 
@@ -572,6 +585,15 @@ class ToibinStoryGenerator:
             for scene in scenes
         ])
 
+        # FIX: F-string içindeki JSON formatını düzelt
+        first_scene = scenes[0] if scenes else None
+        scene_id = first_scene['scene_number'] if first_scene else len(stage1_scenes) + 1
+        emotion = first_scene['emotion'] if first_scene else 'peaceful'
+        phase = first_scene['phase'] if first_scene else 'recognition'
+        duration_min = first_scene['duration_range'][0] if first_scene else 4.0
+        duration_max = first_scene['duration_range'][1] if first_scene else 6.0
+        duration = random.uniform(duration_min, duration_max)
+
         stage2_prompt = f"""You are CLAUDE, master film director creating the SECOND HALF scene plan for "{topic}" in COLM TÓIBÍN's literary style.
 
     TOPIC: {topic}
@@ -589,11 +611,11 @@ class ToibinStoryGenerator:
     {{
       "scene_plan": [
         {{
-          "scene_id": {scenes[0]['scene_number'] if scenes else len(stage1_scenes) + 1},
+          "scene_id": {scene_id},
           "title": "[Scene title]",
-          "emotion": "{scenes[0]['emotion'] if scenes else 'peaceful'}",
-          "phase": "{scenes[0]['phase'] if scenes else 'recognition'}",
-          "duration_minutes": {random.uniform(scenes[0]['duration_range'][0], scenes[0]['duration_range'][1]):.1f if scenes else 4.0},
+          "emotion": "{emotion}",
+          "phase": "{phase}",
+          "duration_minutes": {duration:.1f},
           "setting": "[Specific location]",
           "time_of_day": "[Time]",
           "main_character": "[Character name - use Stage 1 characters when possible]",
@@ -645,7 +667,6 @@ class ToibinStoryGenerator:
             self.log_step("Master Plan Stage 2 Failed", "ERROR")
             CONFIG.logger.error(f"Master plan stage 2 error: {e}")
             raise
-
 
     def _generate_stage1_stories(self, topic: str, description: str, master_plan: Dict) -> Dict:
         """Generate first half stories following master plan with validation"""
