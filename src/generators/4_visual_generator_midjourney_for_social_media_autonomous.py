@@ -312,7 +312,7 @@ class SocialMediaServerConfig:
         print("✅ All social media generator directories created/verified")
 
 class SocialMediaVisualGenerator:
-    """Social media content visual generator with Claude AI correction"""
+    """Social media content visual generator with Claude AI correction and Database integration"""
 
     def __init__(self, config: SocialMediaServerConfig):
         self.config = config
@@ -324,6 +324,13 @@ class SocialMediaVisualGenerator:
             "Content-Type": "application/json"
         }
 
+        # Current project tracking
+        self.current_topic_id = None
+        self.current_output_dir = None
+        self.current_topic = None
+        self.current_description = None
+        self.current_historical_period = None
+
         # Generation tracking
         self.generation_log = []
         self.api_calls_made = 0
@@ -333,9 +340,14 @@ class SocialMediaVisualGenerator:
         # Initialize Claude corrector
         self.claude_corrector = ClaudeSocialMediaPromptCorrector()
 
-        print("🚀 Social Media Visual Generator with Claude AI Initialized")
+        # Database manager
+        db_path = Path(config.paths['DATA_DIR']) / 'production.db'
+        self.db_manager = DatabaseSocialMediaManager(str(db_path))
+
+        print("🚀 Social Media Visual Generator with Database Integration")
         print(f"🔑 Midjourney API Key: {self.api_key[:8]}...")
         print(f"🧠 Claude AI Correction: {'✅ Enabled' if self.claude_corrector.enabled else '❌ Disabled'}")
+        print(f"🗄️ Database: {db_path}")
 
     def log_step(self, step: str, status: str = "START", metadata: Dict = None):
         """Log generation steps"""
@@ -353,14 +365,52 @@ class SocialMediaVisualGenerator:
         print(f"{icon} {step} [Calls: {self.api_calls_made}] [Downloads: {self.successful_downloads}]")
         self.config.logger.info(f"{step} - Status: {status}")
 
-    def load_social_media_content(self, json_path: str) -> Dict:
-        """Load social media content from JSON file"""
-        self.log_step("📂 Loading social media content")
+    def get_next_project_from_database(self) -> Tuple[bool, Optional[Dict]]:
+        """Get next completed scene project that needs SOCIAL MEDIA generation"""
+        self.log_step("🔍 Finding completed scene project for social media generation")
 
-        if not os.path.exists(json_path):
-            raise FileNotFoundError(f"Social media JSON not found: {json_path}")
+        result = self.db_manager.get_completed_topic_ready_for_social_media()
 
-        with open(json_path, 'r', encoding='utf-8') as f:
+        if not result:
+            self.log_step("✅ No completed scene projects ready for social media generation", "INFO")
+            return False, None
+
+        topic_id, topic, description, output_path = result
+
+        # Setup project paths
+        self.current_topic_id = topic_id
+        self.current_output_dir = output_path
+        self.current_topic = topic
+        self.current_description = description
+
+        # Get historical period from database
+        self.current_historical_period = self.db_manager.get_topic_historical_period(topic_id)
+
+        project_info = {
+            "topic_id": topic_id,
+            "topic": topic,
+            "description": description,
+            "output_dir": output_path,
+            "historical_period": self.current_historical_period
+        }
+
+        # Mark as started in database
+        self.db_manager.mark_social_media_generation_started(topic_id)
+
+        self.log_step(f"✅ Found project: {topic}", "SUCCESS", project_info)
+        return True, project_info
+
+    def load_social_media_content_from_project(self) -> Dict:
+        """Load social media content from project's social_media_content.json"""
+        self.log_step("📂 Loading social media content from project")
+
+        output_dir = Path(self.current_output_dir)
+        social_media_json_path = output_dir / "social_media_content.json"
+
+        if not social_media_json_path.exists():
+            raise FileNotFoundError(f"Social media content not found: {social_media_json_path}")
+
+        with open(social_media_json_path, 'r', encoding='utf-8') as f:
             content_data = json.load(f)
 
         youtube_shorts = content_data.get("youtube_shorts", [])
@@ -369,39 +419,42 @@ class SocialMediaVisualGenerator:
 
         total_content = len(youtube_shorts) + len(instagram_reels) + len(tiktok_videos)
 
-        self.log_step("✅ Social media content loaded", "SUCCESS", {
+        self.log_step("✅ Social media content loaded from project", "SUCCESS", {
             "youtube_shorts": len(youtube_shorts),
             "instagram_reels": len(instagram_reels),
             "tiktok_videos": len(tiktok_videos),
-            "total_content": total_content
+            "total_content": total_content,
+            "source_file": str(social_media_json_path)
         })
 
         return content_data
 
-    def setup_output_directories(self, campaign_name: str = "social_media_campaign"):
-        """Create output directories for social media content"""
+    def setup_output_directories_in_project(self) -> Path:
+        """Create social media directories within the project's output directory"""
 
-        # Create main campaign directory
-        campaign_dir = Path(self.config.paths['SOCIAL_MEDIA_DIR']) / self.sanitize_filename(campaign_name)
-        campaign_dir.mkdir(parents=True, exist_ok=True)
+        # Create social media directory within project
+        project_dir = Path(self.current_output_dir)
+        social_media_dir = project_dir / "social_media"
+        social_media_dir.mkdir(exist_ok=True)
 
         # Create platform-specific directories
-        self.youtube_dir = campaign_dir / "youtube_shorts"
-        self.instagram_dir = campaign_dir / "instagram_reels"
-        self.tiktok_dir = campaign_dir / "tiktok_videos"
+        self.youtube_dir = social_media_dir / "youtube_shorts"
+        self.instagram_dir = social_media_dir / "instagram_reels"
+        self.tiktok_dir = social_media_dir / "tiktok_videos"
 
         self.youtube_dir.mkdir(exist_ok=True)
         self.instagram_dir.mkdir(exist_ok=True)
         self.tiktok_dir.mkdir(exist_ok=True)
 
-        self.campaign_dir = campaign_dir
+        self.social_media_dir = social_media_dir
 
-        print(f"📁 Output directories created:")
+        print(f"📁 Social media directories created in project:")
+        print(f"   📁 Base: {social_media_dir}")
         print(f"   📺 YouTube Shorts: {self.youtube_dir}")
         print(f"   📸 Instagram Reels: {self.instagram_dir}")
         print(f"   🎵 TikTok Videos: {self.tiktok_dir}")
 
-        return campaign_dir
+        return social_media_dir
 
     def sanitize_filename(self, name: str) -> str:
         """Sanitize filename for cross-platform compatibility"""
@@ -781,23 +834,31 @@ class SocialMediaVisualGenerator:
 
         return results
 
-    def generate_all_social_media_content(self, json_path: str) -> bool:
-        """Generate all social media content from JSON"""
-
+    def run_database_integrated_generation(self) -> bool:
+        """Run social media generation integrated with database"""
         print("🚀" * 50)
-        print("SOCIAL MEDIA VISUAL GENERATOR v1.0")
+        print("DATABASE INTEGRATED SOCIAL MEDIA GENERATOR v1.0")
         print("🧠 CLAUDE SONNET 4 PROMPT CORRECTION")
+        print("🗄️ DATABASE INTEGRATED WORKFLOW")
         print("📱 MULTI-PLATFORM CONTENT GENERATION")
         print("🎬 YouTube Shorts + Instagram Reels + TikTok")
         print("🚀" * 50)
 
-        try:
-            # Load content
-            content_data = self.load_social_media_content(json_path)
+        # Get next project from database
+        found, project_info = self.get_next_project_from_database()
+        if not found:
+            return False
 
-            # Setup directories
-            campaign_name = content_data.get("social_media_strategy", {}).get("campaign_name", "social_media_campaign")
-            campaign_dir = self.setup_output_directories(campaign_name)
+        print(f"✅ Project found: {project_info['topic']}")
+        print(f"📁 Output directory: {project_info['output_dir']}")
+        print(f"🏛️ Historical period: {project_info['historical_period']}")
+
+        try:
+            # Load social media content from project
+            content_data = self.load_social_media_content_from_project()
+
+            # Setup directories within project
+            social_media_dir = self.setup_output_directories_in_project()
 
             # Generate platform content
             youtube_results = self.generate_platform_content(
@@ -824,7 +885,10 @@ class SocialMediaVisualGenerator:
             total_failed = youtube_results["failed"] + instagram_results["failed"] + tiktok_results["failed"]
 
             report = {
-                "campaign_name": campaign_name,
+                "topic_id": self.current_topic_id,
+                "topic": self.current_topic,
+                "description": self.current_description,
+                "historical_period": self.current_historical_period,
                 "generation_completed": datetime.now().isoformat(),
                 "total_content": total_content,
                 "total_completed": total_completed,
@@ -839,7 +903,7 @@ class SocialMediaVisualGenerator:
                 },
                 "claude_correction_attempts": dict(self.claude_corrector.correction_attempts),
                 "output_directories": {
-                    "campaign_dir": str(campaign_dir),
+                    "social_media_dir": str(social_media_dir),
                     "youtube_dir": str(self.youtube_dir),
                     "instagram_dir": str(self.instagram_dir),
                     "tiktok_dir": str(self.tiktok_dir)
@@ -847,9 +911,12 @@ class SocialMediaVisualGenerator:
             }
 
             # Save report
-            report_path = campaign_dir / "generation_report.json"
+            report_path = social_media_dir / "social_media_generation_report.json"
             with open(report_path, 'w', encoding='utf-8') as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+
+            # Update database with results
+            self.db_manager.mark_social_media_generation_completed(self.current_topic_id, report)
 
             # Print final summary
             print(f"\n🎉 SOCIAL MEDIA GENERATION COMPLETED!")
@@ -859,10 +926,11 @@ class SocialMediaVisualGenerator:
             print(f"   📸 Instagram Reels: {instagram_results['completed']}/{instagram_results['total']}")
             print(f"   🎵 TikTok Videos: {tiktok_results['completed']}/{tiktok_results['total']}")
             print(f"   🧠 Claude corrections: {sum(self.claude_corrector.correction_attempts.values())}")
-            print(f"   📁 Output: {campaign_dir}")
+            print(f"   📁 Output: {social_media_dir}")
+            print(f"   🗄️ Database updated for Topic ID: {self.current_topic_id}")
 
             success_rate = total_completed / total_content if total_content > 0 else 0
-            return success_rate >= 0.8
+            return success_rate >= 0.7
 
         except Exception as e:
             print(f"💥 Social media generation failed: {e}")
@@ -871,17 +939,12 @@ class SocialMediaVisualGenerator:
             return False
 
 def main():
-    """Main function to run social media visual generation"""
+    """Main function to run database integrated social media generation"""
 
-    if len(sys.argv) < 2:
-        print("❌ Usage: python social_media_visual_generator.py <social_media_content.json>")
-        sys.exit(1)
-
-    json_path = sys.argv[1]
-
-    if not os.path.exists(json_path):
-        print(f"❌ JSON file not found: {json_path}")
-        sys.exit(1)
+    print("🚀 DATABASE INTEGRATED SOCIAL MEDIA VISUAL GENERATOR")
+    print("🗄️ Automatically processes completed scene generation topics")
+    print("📱 Multi-platform content generation with Claude AI correction")
+    print("🎬 No manual JSON file needed - reads from project directories")
 
     try:
         # Initialize configuration
@@ -890,14 +953,14 @@ def main():
         # Initialize generator
         generator = SocialMediaVisualGenerator(config)
 
-        # Generate content
-        success = generator.generate_all_social_media_content(json_path)
+        # Run database integrated generation
+        success = generator.run_database_integrated_generation()
 
         if success:
             print("🎊 Social media visual generation completed successfully!")
             sys.exit(0)
         else:
-            print("⚠️ Social media visual generation completed with some failures")
+            print("⚠️ No topics ready for social media generation or generation failed")
             sys.exit(1)
 
     except KeyboardInterrupt:
@@ -905,6 +968,8 @@ def main():
         sys.exit(1)
     except Exception as e:
         print(f"💥 Social media generation failed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
