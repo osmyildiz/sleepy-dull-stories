@@ -205,7 +205,7 @@ class DatabaseTopicManager:
         conn.close()
 
 class ToibinStoryGenerator:
-    """TÓIBÍN QUALITY Story Generator with 3-Stage System & Duration Validation"""
+    """TÓIBÍN QUALITY Story Generator with 3-Stage System & Duration Validation & RESUME CAPABILITY"""
 
     def __init__(self):
         self.client = Anthropic(api_key=CONFIG.api_key)
@@ -218,59 +218,141 @@ class ToibinStoryGenerator:
             "last_5_rates": []
         }
 
-        print("✅ TÓIBÍN Quality Generator with 3-Stage System & Duration Validation initialized")
-
-    def log_step(self, description: str, status: str = "START", metadata: Dict = None):
-        """Log generation steps"""
-        entry = {
-            "description": description,
-            "status": status,
-            "timestamp": datetime.now().isoformat(),
-            "api_calls": self.api_call_count,
-            "total_cost": self.total_cost
+        # RESUME CAPABILITY
+        self.checkpoint_file = None
+        self.current_progress = {
+            "stage": "not_started",
+            "emotional_structure": None,
+            "master_plan": None,
+            "stage1_result": None,
+            "stage2_result": None,
+            "stage3_result": None,
+            "production_data": None,
+            "social_media_content": None,
+            "completed_stages": [],
+            "api_calls": 0,
+            "total_cost": 0.0
         }
-        if metadata:
-            entry.update(metadata)
-        self.generation_log.append(entry)
 
-        icon = "🔄" if status == "START" else "✅" if status == "SUCCESS" else "❌"
+        print("✅ TÓIBÍN Quality Generator with 3-Stage System & Duration Validation & RESUME CAPABILITY initialized")
 
-        print(f"{icon} {description} [API: {self.api_call_count}] [Cost: ${self.total_cost:.4f}]")
-        CONFIG.logger.info(f"{description} - {status} - API: {self.api_call_count} - Cost: ${self.total_cost:.4f}")
+    def setup_checkpoint(self, topic_id: int):
+        """Setup checkpoint file for resume capability"""
+        checkpoint_dir = Path(CONFIG.paths['OUTPUT_DIR']) / str(topic_id) / 'checkpoints'
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self.checkpoint_file = checkpoint_dir / 'generation_progress.json'
+
+        # Load existing progress if available
+        if self.checkpoint_file.exists():
+            try:
+                with open(self.checkpoint_file, 'r', encoding='utf-8') as f:
+                    self.current_progress = json.load(f)
+                    self.api_call_count = self.current_progress.get('api_calls', 0)
+                    self.total_cost = self.current_progress.get('total_cost', 0.0)
+
+                print(f"✅ RESUME: Found checkpoint at stage '{self.current_progress['stage']}'")
+                print(f"   Previous API calls: {self.api_call_count}")
+                print(f"   Previous cost: ${self.total_cost:.4f}")
+                print(f"   Completed stages: {self.current_progress['completed_stages']}")
+
+            except Exception as e:
+                print(f"⚠️ Checkpoint file corrupted, starting fresh: {e}")
+                self.current_progress = {
+                    "stage": "not_started",
+                    "emotional_structure": None,
+                    "master_plan": None,
+                    "stage1_result": None,
+                    "stage2_result": None,
+                    "stage3_result": None,
+                    "production_data": None,
+                    "social_media_content": None,
+                    "completed_stages": [],
+                    "api_calls": 0,
+                    "total_cost": 0.0
+                }
+
+    def save_checkpoint(self):
+        """Save current progress to checkpoint file"""
+        if self.checkpoint_file:
+            try:
+                self.current_progress['api_calls'] = self.api_call_count
+                self.current_progress['total_cost'] = self.total_cost
+
+                with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.current_progress, f, indent=2, ensure_ascii=False)
+
+                print(f"💾 Checkpoint saved: {self.current_progress['stage']}")
+
+            except Exception as e:
+                print(f"⚠️ Checkpoint save failed: {e}")
 
     def generate_complete_story(self, topic: str, description: str, clickbait_title: str = None) -> Dict[str, Any]:
         """
-        COMPLETE TÓIBÍN QUALITY GENERATION PIPELINE WITH 3-STAGE SYSTEM:
-        1. Emotional Scene Structure (35-50 scenes, emotion distribution)
-        2. Master Scene Plan (Claude as director creating detailed scenes)
-        3. Stage 1: First third stories (Tóibín style) - Scenes 1-33%
-        4. Stage 2: Second third stories (Tóibín style) - Scenes 34-66%
-        5. Stage 3: Final third stories (Tóibín style) - Scenes 67-100%
-        6. VALIDATION & EXTENSION (ensure 120+ minutes for each stage)
-        7. FINAL VALIDATION (total duration check)
-        8. Production JSONs (characters, thumbnails, metadata)
-        9. Social Media Content (YouTube Shorts, Instagram Reels, TikTok)
+        COMPLETE TÓIBÍN QUALITY GENERATION PIPELINE WITH 3-STAGE SYSTEM & RESUME CAPABILITY:
+        - Automatically resumes from last completed stage
+        - Saves progress after each major step
+        - Prevents re-generation of completed work
         """
 
-        self.log_step("TÓIBÍN QUALITY 3-Stage Generation Pipeline with Duration Validation Started")
+        self.log_step("TÓIBÍN QUALITY 3-Stage Generation Pipeline with RESUME CAPABILITY Started")
 
         try:
-            # STEP 1: Generate emotional scene structure
-            scene_structure = self._generate_emotional_scene_structure()
+            # RESUME CHECK: Emotional Scene Structure
+            if self.current_progress['stage'] in ['not_started']:
+                scene_structure = self._generate_emotional_scene_structure()
+                self.current_progress['emotional_structure'] = scene_structure
+                self.current_progress['stage'] = 'emotional_structure_complete'
+                self.current_progress['completed_stages'].append('emotional_structure')
+                self.save_checkpoint()
+            else:
+                scene_structure = self.current_progress['emotional_structure']
+                self.log_step("RESUME: Skipping emotional structure (already completed)", "SUCCESS")
 
-            # STEP 2: Create master scene plan with Claude as director (in 3 stages)
-            master_plan = self._create_master_scene_plan_3stages(topic, description, scene_structure)
+            # RESUME CHECK: Master Scene Plan
+            if self.current_progress['stage'] in ['emotional_structure_complete']:
+                master_plan = self._create_master_scene_plan_3stages(topic, description, scene_structure)
+                self.current_progress['master_plan'] = master_plan
+                self.current_progress['stage'] = 'master_plan_complete'
+                self.current_progress['completed_stages'].append('master_plan')
+                self.save_checkpoint()
+            else:
+                master_plan = self.current_progress['master_plan']
+                self.log_step("RESUME: Skipping master plan (already completed)", "SUCCESS")
 
-            # STEP 3: Generate stories - Stage 1 (First third)
-            stage1_stories = self._generate_stage1_stories(topic, description, master_plan)
+            # RESUME CHECK: Stage 1 Stories
+            if self.current_progress['stage'] in ['master_plan_complete']:
+                stage1_stories = self._generate_stage1_stories(topic, description, master_plan)
+                self.current_progress['stage1_result'] = stage1_stories
+                self.current_progress['stage'] = 'stage1_complete'
+                self.current_progress['completed_stages'].append('stage1_stories')
+                self.save_checkpoint()
+            else:
+                stage1_stories = self.current_progress['stage1_result']
+                self.log_step("RESUME: Skipping Stage 1 stories (already completed)", "SUCCESS")
 
-            # STEP 4: Generate stories - Stage 2 (Second third)
-            stage2_stories = self._generate_stage2_stories(topic, description, master_plan, stage1_stories)
+            # RESUME CHECK: Stage 2 Stories
+            if self.current_progress['stage'] in ['stage1_complete']:
+                stage2_stories = self._generate_stage2_stories(topic, description, master_plan, stage1_stories)
+                self.current_progress['stage2_result'] = stage2_stories
+                self.current_progress['stage'] = 'stage2_complete'
+                self.current_progress['completed_stages'].append('stage2_stories')
+                self.save_checkpoint()
+            else:
+                stage2_stories = self.current_progress['stage2_result']
+                self.log_step("RESUME: Skipping Stage 2 stories (already completed)", "SUCCESS")
 
-            # STEP 5: Generate stories - Stage 3 (Final third)
-            stage3_stories = self._generate_stage3_stories(topic, description, master_plan, stage1_stories, stage2_stories)
+            # RESUME CHECK: Stage 3 Stories
+            if self.current_progress['stage'] in ['stage2_complete']:
+                stage3_stories = self._generate_stage3_stories(topic, description, master_plan, stage1_stories, stage2_stories)
+                self.current_progress['stage3_result'] = stage3_stories
+                self.current_progress['stage'] = 'stage3_complete'
+                self.current_progress['completed_stages'].append('stage3_stories')
+                self.save_checkpoint()
+            else:
+                stage3_stories = self.current_progress['stage3_result']
+                self.log_step("RESUME: Skipping Stage 3 stories (already completed)", "SUCCESS")
 
-            # STEP 6: FINAL DURATION VALIDATION
+            # FINAL DURATION VALIDATION (always run to ensure consistency)
             all_stories = {}
             all_stories.update(stage1_stories.get('stories', {}))
             all_stories.update(stage2_stories.get('stories', {}))
@@ -291,21 +373,37 @@ class ToibinStoryGenerator:
             stage2_stories['stories'] = {k: v for k, v in all_stories.items() if len(scene_plan)//3 < int(k) <= (len(scene_plan)*2)//3}
             stage3_stories['stories'] = {k: v for k, v in all_stories.items() if int(k) > (len(scene_plan)*2)//3}
 
-            # STEP 7: Create production JSONs
-            production_data = self._create_production_jsons(topic, description, master_plan,
-                                                          stage1_stories, stage2_stories, stage3_stories, clickbait_title)
+            # RESUME CHECK: Production JSONs
+            if self.current_progress['stage'] in ['stage3_complete']:
+                production_data = self._create_production_jsons(topic, description, master_plan,
+                                                              stage1_stories, stage2_stories, stage3_stories, clickbait_title)
+                self.current_progress['production_data'] = production_data
+                self.current_progress['stage'] = 'production_complete'
+                self.current_progress['completed_stages'].append('production_jsons')
+                self.save_checkpoint()
+            else:
+                production_data = self.current_progress['production_data']
+                self.log_step("RESUME: Skipping production JSONs (already completed)", "SUCCESS")
 
-            # STEP 8: Create viral social media content
-            social_media_content = self._create_social_media_content(topic, description, master_plan, all_stories)
+            # RESUME CHECK: Social Media Content
+            if self.current_progress['stage'] in ['production_complete']:
+                social_media_content = self._create_social_media_content(topic, description, master_plan, all_stories)
+                self.current_progress['social_media_content'] = social_media_content
+                self.current_progress['stage'] = 'social_media_complete'
+                self.current_progress['completed_stages'].append('social_media_content')
+                self.save_checkpoint()
+            else:
+                social_media_content = self.current_progress['social_media_content']
+                self.log_step("RESUME: Skipping social media content (already completed)", "SUCCESS")
 
             # COMBINE ALL RESULTS
             complete_result = self._combine_all_results_3stages(master_plan, stage1_stories, stage2_stories, stage3_stories,
                                                       production_data, topic, description)
 
-            # Social media content'i sonradan ekle
+            # Add social media content
             complete_result["social_media_content"] = social_media_content
 
-            # Stats'ı güncelle
+            # Update stats
             complete_result["generation_stats"]["social_media_pieces"] = (
                 len(social_media_content.get('youtube_shorts', [])) +
                 len(social_media_content.get('instagram_reels', [])) +
@@ -315,14 +413,22 @@ class ToibinStoryGenerator:
             complete_result["generation_stats"]["duration_validation_applied"] = True
             complete_result["generation_stats"]["final_duration_minutes"] = final_duration
             complete_result["generation_stats"]["three_stage_system_used"] = True
+            complete_result["generation_stats"]["resume_capability_used"] = len(self.current_progress['completed_stages']) > 0
 
-            self.log_step("TÓIBÍN QUALITY 3-Stage Generation Complete", "SUCCESS", {
+            # Mark as completely finished
+            self.current_progress['stage'] = 'completely_finished'
+            self.current_progress['completed_stages'].append('final_assembly')
+            self.save_checkpoint()
+
+            self.log_step("TÓIBÍN QUALITY 3-Stage Generation Complete (WITH RESUME)", "SUCCESS", {
                 "total_scenes": len(master_plan.get('scene_plan', [])),
                 "total_stories": len(complete_result.get('stories', {})),
                 "final_duration": f"{final_duration:.1f} minutes",
                 "duration_target_met": final_duration >= 120,
                 "social_media_pieces": complete_result["generation_stats"]["social_media_pieces"],
                 "three_stage_system": True,
+                "resume_used": len(self.current_progress['completed_stages']) > 0,
+                "completed_stages": self.current_progress['completed_stages'],
                 "api_calls_total": self.api_call_count,
                 "total_cost": self.total_cost
             })
@@ -332,6 +438,12 @@ class ToibinStoryGenerator:
         except Exception as e:
             self.log_step("3-Stage Generation Failed", "ERROR")
             CONFIG.logger.error(f"Generation failed: {e}")
+
+            # Save error state to checkpoint
+            self.current_progress['stage'] = f"error_at_{self.current_progress['stage']}"
+            self.current_progress['error'] = str(e)
+            self.save_checkpoint()
+
             raise
 
     def _generate_emotional_scene_structure(self) -> Dict:
@@ -342,7 +454,7 @@ class ToibinStoryGenerator:
         target_duration_max = 150
 
         # Random scene count - INCREASED for longer duration
-        total_scenes = random.randint(30, 40)  # INCREASED from 28-40
+        total_scenes = random.randint(35, 50)  # INCREASED from 28-40
 
         # Emotional distribution ratios
         peaceful_ratio = 0.35      # 35% peaceful scenes
@@ -2933,8 +3045,9 @@ if __name__ == "__main__":
         # Setup output directory
         output_path = Path(CONFIG.paths['OUTPUT_DIR']) / str(topic_id)
 
-        # Initialize generator
+        # Initialize generator with checkpoint support
         generator = ToibinStoryGenerator()
+        generator.setup_checkpoint(topic_id)
 
         # Generate complete story with Tóibín quality + 3-stage system + duration validation + social media
         start_time = time.time()
