@@ -270,6 +270,42 @@ class ToibinStoryGenerator:
 
         print("✅ TÓIBÍN Quality Generator with 3-Stage System & Duration Validation & RESUME CAPABILITY initialized")
 
+    def log_step(self, message: str, status: str = "INFO", details: Dict = None):
+        """Log generation step with details"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+
+        # Determine emoji based on status
+        status_emoji = {
+            "INFO": "ℹ️",
+            "SUCCESS": "✅",
+            "WARNING": "⚠️",
+            "ERROR": "❌"
+        }
+
+        emoji = status_emoji.get(status, "ℹ️")
+
+        # Format log message
+        if details:
+            details_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
+            log_message = f"{emoji} [{timestamp}] {message} | {details_str}"
+        else:
+            log_message = f"{emoji} [{timestamp}] {message}"
+
+        # Print to console
+        print(log_message)
+
+        # Add to generation log
+        self.generation_log.append({
+            "timestamp": timestamp,
+            "message": message,
+            "status": status,
+            "details": details or {}
+        })
+
+        # Log to file
+        CONFIG.logger.info(f"{status}: {message} {details or ''}")
+
+
     def _process_retry_chunks(self) -> Dict[str, str]:
         """Process all failed chunks with retry system"""
 
