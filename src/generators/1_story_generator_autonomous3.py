@@ -342,7 +342,7 @@ class ToibinStoryGenerator:
         target_duration_max = 150
 
         # Random scene count - INCREASED for longer duration
-        total_scenes = random.randint(35, 50)  # INCREASED from 28-40
+        total_scenes = random.randint(30, 40)  # INCREASED from 28-40
 
         # Emotional distribution ratios
         peaceful_ratio = 0.35      # 35% peaceful scenes
