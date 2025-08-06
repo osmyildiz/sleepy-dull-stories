@@ -417,8 +417,8 @@ class ToibinStoryGenerator:
             except Exception as e:
                 print(f"⚠️ Checkpoint save failed: {e}")
 
-    def _generate_story_with_elevenlabs_emotions(self, topic: str, description: str, scene_info: Dict) -> str:
-        """Generate story prompt with embedded ElevenLabs emotion tags"""
+    def _generate_story_with_enhanced_sound_design(self, topic: str, description: str, scene_info: Dict) -> str:
+        """Generate story with CINEMATIC SOUND DESIGN for ElevenLabs production"""
 
         scene_id = scene_info.get('scene_id', 1)
         emotion = scene_info.get('emotion', 'peaceful')
@@ -427,70 +427,292 @@ class ToibinStoryGenerator:
         character = scene_info.get('main_character', '')
         activity = scene_info.get('activity', '')
 
-        # ElevenLabs emotion mapping by scene emotion
-        emotion_guides = {
-            'peaceful': {
-                'opening': ['[softly]', '[gently]', '[peacefully]'],
-                'middle': ['[whispers]', '[calmly]', '[serenely]'],
-                'closing': ['[very softly]', '[fading]', '[sleepily]'],
-                'sounds': ['[soft breath]', '[gentle sigh]', '[quiet pause]']
+        # DETECT TOPIC TYPE AND PERIOD
+        topic_type = self._analyze_topic_type(topic)
+        time_period = self._extract_time_period(topic, setting)
+
+        # COMPREHENSIVE SOUND DESIGN LIBRARY
+        sound_design_library = {
+            'ancient_civilizations': {
+                'ambiance': [
+                    'distant temple bells', 'wind through stone columns', 'ancient echoes in marble halls',
+                    'desert wind whispers', 'sacred fire crackling', 'ceremonial drums distant',
+                    'stone doors grinding', 'sandals on marble floors', 'incense burning softly'
+                ],
+                'royal_court': [
+                    'silk robes rustling', 'golden jewelry chiming', 'throne room echoes',
+                    'servants footsteps', 'royal guards shifting', 'palace fountains distant',
+                    'papyrus unrolling', 'seal breaking wax', 'goblets setting down'
+                ],
+                'battle': [
+                    'distant armies approaching', 'armor clanking softly', 'war horns far away',
+                    'shields glinting sound', 'horses snorting', 'leather creaking',
+                    'sword being drawn slowly', 'battle drums approaching', 'eagles crying above'
+                ]
             },
-            'curiosity': {
-                'opening': ['[curiously]', '[intrigued]', '[wondering]'],
-                'middle': ['[surprised]', '[thoughtfully]', '[discovering]'],
-                'closing': ['[satisfied]', '[knowingly]', '[pleased]'],
-                'sounds': ['[soft gasp]', '[thoughtful hmm]', '[quiet ah]']
+            'medieval_period': {
+                'ambiance': [
+                    'cathedral bells tolling', 'monastery chanting distant', 'castle ambiance',
+                    'torches flickering', 'stone castle drafts', 'great hall echoes',
+                    'courtyard fountains', 'ravens cawing', 'wind through battlements'
+                ],
+                'royal_court': [
+                    'velvet curtains moving', 'crown jewels clinking', 'royal decree unfolding',
+                    'court musicians distant', 'nobility whispering', 'throne room doors',
+                    'royal seal pressing', 'chalice on table', 'ermine robes rustling'
+                ],
+                'common_folk': [
+                    'village bells', 'market sounds distant', 'peasant life sounds',
+                    'sheep bleating far', 'church prayers', 'wooden wheels creaking',
+                    'simple meals cooking', 'children playing distant', 'roosters crowing'
+                ]
             },
-            'contemplation': {
-                'opening': ['[reflectively]', '[pensively]', '[deeply]'],
-                'middle': ['[philosophically]', '[wisely]', '[meaningfully]'],
-                'closing': ['[understandingly]', '[peacefully]', '[wisely]'],
-                'sounds': ['[deep breath]', '[contemplative sigh]', '[thoughtful pause]']
+            'tragic_endings': {
+                'execution_scenes': [
+                    'crowd murmuring distant', 'wooden platform creaking', 'final prayers whispered',
+                    'bell tolling slowly', 'last confession', 'breathing becoming shallow',
+                    'final words echoing', 'silence falling', 'doves taking flight'
+                ],
+                'final_moments': [
+                    'clock ticking final', 'candle flame guttering', 'final breath drawn',
+                    'heart beating slowly', 'tears falling softly', 'hand reaching out',
+                    'final goodbye whispered', 'door closing forever', 'eternal silence beginning'
+                ],
+                'palace_intrigue': [
+                    'poison cup setting', 'secret door opening', 'whispered conspiracies',
+                    'silk curtains hiding', 'daggers being drawn', 'final betrayal gasped',
+                    'loyal guards approaching', 'secret passages', 'royal blood spilling'
+                ]
             },
-            'resolution': {
-                'opening': ['[accepting]', '[calmly]', '[resolutely]'],
-                'middle': ['[peacefully]', '[finally]', '[completely]'],
-                'closing': ['[eternally]', '[transcendentally]', '[infinitely]'],
-                'sounds': ['[peaceful breath]', '[content sigh]', '[ultimate calm]']
+            'natural_disasters': {
+                'volcanic': [
+                    'earth trembling', 'distant rumbling growing', 'ash beginning to fall',
+                    'animals fleeing sounds', 'ground cracking', 'hot wind rising',
+                    'lava flows distant', 'people praying desperately', 'final evacuation calls'
+                ],
+                'earthquake': [
+                    'walls beginning to crack', 'items falling', 'ground shaking gently',
+                    'building structures groaning', 'people running', 'dust falling',
+                    'aftershocks rumbling', 'rescue calls distant', 'debris settling'
+                ],
+                'flood': [
+                    'water rising slowly', 'boats launching', 'waves against walls',
+                    'rain intensifying', 'people evacuating', 'animals swimming',
+                    'structures collapsing', 'water rushing in', 'final prayers for mercy'
+                ]
+            },
+            'war_and_battles': {
+                'pre_battle': [
+                    'armor being donned', 'weapons being sharpened', 'prayers before battle',
+                    'horses being saddled', 'final letters written', 'battle plans discussed',
+                    'war drums beginning', 'armies assembling', 'battle horns calling'
+                ],
+                'siege_warfare': [
+                    'catapults loading', 'walls being scaled', 'boiling oil pouring',
+                    'battering rams hitting', 'arrows flying', 'siege engines creaking',
+                    'defenders calling out', 'attackers advancing', 'city gates straining'
+                ],
+                'aftermath': [
+                    'battlefield silence', 'wounded crying softly', 'crows gathering',
+                    'survivors searching', 'funeral pyres burning', 'victory horns distant',
+                    'medics working', 'families mourning', 'peace negotiations beginning'
+                ]
+            },
+            'mystical_fantasy': {
+                'magical_realms': [
+                    'crystal chimes ethereal', 'magical energy humming', 'portals opening',
+                    'spells being cast', 'mystical creatures calling', 'ancient magic stirring',
+                    'elemental forces swirling', 'enchanted forests whispering', 'star energy pulsing'
+                ],
+                'dragon_encounters': [
+                    'dragon wings beating', 'fire breathing distant', 'scales scraping stone',
+                    'treasure clinking', 'cave echoes deep', 'roar echoing mountains',
+                    'claws on rock', 'ancient wisdom speaking', 'magic sword ringing'
+                ],
+                'final_magic': [
+                    'spell completion building', 'mystical energy crescendo', 'reality bending',
+                    'time stopping moment', 'final incantation', 'magic fading slowly',
+                    'portal closing forever', 'enchantment ending', 'normal world returning'
+                ]
+            },
+            'emotional_sounds': {
+                'peaceful': [
+                    'soft breath', 'gentle sigh', 'content hum', 'peaceful pause',
+                    'quiet satisfaction', 'gentle exhale', 'serene moment', 'calm acceptance'
+                ],
+                'contemplation': [
+                    'thoughtful breath', 'deep sigh', 'contemplative pause', 'paper rustling',
+                    'quill on parchment', 'page turning', 'ink drying', 'wisdom dawning'
+                ],
+                'curiosity': [
+                    'soft gasp', 'surprised intake', 'thoughtful hmm', 'footsteps approaching',
+                    'door opening slowly', 'discovery gasp', 'realization dawning', 'mystery unfolding'
+                ],
+                'resolution': [
+                    'deep peaceful breath', 'satisfied sigh', 'final exhale', 'gentle silence',
+                    'acceptance settling', 'peace descending', 'eternal calm', 'final understanding'
+                ],
+                'tragic': [
+                    'tears falling', 'voice breaking', 'heart breaking', 'final sob',
+                    'grief overwhelming', 'loss accepting', 'mourning beginning', 'sorrow deepening'
+                ]
             }
         }
 
-        guide = emotion_guides.get(emotion, emotion_guides['peaceful'])
+        # Get appropriate sound categories
+        topic_sounds = sound_design_library.get(topic_type, sound_design_library['ancient_civilizations'])
+        emotional_sounds = sound_design_library['emotional_sounds'][emotion]
 
-        elevenlabs_story_prompt = f"""Write a {duration:.1f}-minute Tóibín-style story for Scene {scene_id} with EMBEDDED ELEVENLABS EMOTION TAGS.
+        # Build comprehensive sound selection
+        available_sounds = []
+        for category, sounds in topic_sounds.items():
+            available_sounds.extend(sounds[:4])  # Take first 4 from each category
+        available_sounds.extend(emotional_sounds)
 
-    SCENE INFO:
-    - Topic: {topic}
-    - Setting: {setting}
+        # CINEMATIC STRUCTURE
+        story_structure = self._get_cinematic_structure(topic, character, duration)
+
+        enhanced_prompt = f"""Write a {duration:.1f}-minute CINEMATIC sleep story for "{topic}" Scene {scene_id} with HOLLYWOOD-LEVEL SOUND DESIGN.
+
+    STORY SETUP:
+    - Topic: {topic} ({topic_type} - {time_period} period)
     - Character: {character}
+    - Setting: {setting}
     - Activity: {activity}
     - Emotion: {emotion}
-    - Duration: {duration:.1f} minutes (substantial content needed)
+    - Duration: {duration:.1f} minutes (SUBSTANTIAL content needed)
 
-    🎭 ELEVENLABS EMOTION TAG REQUIREMENTS:
-    Use these emotion tags DIRECTLY in the story text like this example:
+    🎬 PROFESSIONAL SOUND DESIGN SYSTEM:
 
-    "[softly] The golden light filtered through silk curtains, [gentle sigh] casting dancing shadows across the marble floor. [whispers] Cleopatra sat in contemplative silence, her dark eyes [thoughtfully] reflecting the wisdom of thirty-nine years. [peaceful breath] The air carried the gentle scent of jasmine, [very softly] mingling with the warm fragrance of myrrh."
+    **AVAILABLE SOUND EFFECTS** (Use strategically throughout):
+    {self._format_sound_library(available_sounds)}
 
-    🎨 EMOTION TAGS FOR THIS SCENE ({emotion}):
-    - Opening: {', '.join(guide['opening'])}
-    - Middle: {', '.join(guide['middle'])}
-    - Closing: {', '.join(guide['closing'])}
-    - Sound effects: {', '.join(guide['sounds'])}
+    **CINEMATIC STRUCTURE TO FOLLOW:**
+    {story_structure}
 
-    📋 USAGE RULES:
-    1. **Embed tags DIRECTLY in sentences** - not separate lines
-    2. **Use 8-12 emotion tags** throughout the story
-    3. **Progress from opening → middle → closing** emotions
-    4. **Add sound effects** at natural moments
-    5. **Keep Tóibín's literary quality** while adding audio enhancement
-    6. **Include natural breathing moments** with [breath] or [sigh]
-    7. **Use [whispers] for intimate moments**
-    8. **Add [pause] for dramatic effect**
+    **ADVANCED SOUND INTEGRATION RULES:**
 
-    Write the complete {duration:.1f}-minute story with embedded ElevenLabs emotion tags now:"""
+    1. **Opening Atmosphere** (First 25%):
+       - Establish setting with 2-3 ambient sounds
+       - Example: "[distant temple bells] [wind through stone columns] The morning sun touched..."
 
-        return elevenlabs_story_prompt
+    2. **Character Development** (25-70%):
+       - Layer character actions with emotional sounds
+       - Example: "[silk robes rustling] [gentle sigh] She moved through..."
+
+    3. **Peak Moment** (70-85%):
+       - Use dramatic pause and breath control
+       - Example: "[dramatic pause] [held breath] In that moment..."
+
+    4. **Peaceful Resolution** (85-100%):
+       - Fade with gentle, sleep-inducing sounds
+       - Example: "[final exhale] [eternal silence] And so, peace..."
+
+    **SOUND DESIGN PRINCIPLES:**
+    - Maximum 3 effects per sentence
+    - Layer ambient + emotional + action sounds
+    - Use silence as powerfully as sound
+    - All effects promote deep relaxation
+    - Create immersive soundscape that transports listener
+
+    **EXAMPLE INTEGRATION:**
+    "[{available_sounds[0]}] [gentle breath] The golden light of {topic}'s final dawn touched the ancient stones, [footsteps on marble] as {character} moved through the sacred halls. [contemplative pause] [{available_sounds[1]}] In her hands, she held the weight of destiny itself. [voice trembling with emotion] [{available_sounds[2]}] This would be the night that changed everything, [final peaceful breath] yet peace had never felt so close."
+
+    **SLEEP OPTIMIZATION:**
+    - All sound effects enhance relaxation
+    - Natural breathing rhythm throughout
+    - Gentle fade to silence at the end
+    - No jarring or sudden sounds
+    - Focus on atmosphere over action
+
+    Write the complete {duration:.1f}-minute story with professional cinematic sound design now:"""
+
+        return enhanced_prompt
+
+    def _analyze_topic_type(self, topic: str) -> str:
+        """Analyze topic to determine appropriate sound category"""
+        topic_lower = topic.lower()
+
+        # Topic analysis patterns
+        if any(word in topic_lower for word in
+               ['alexander', 'caesar', 'cleopatra', 'babylon', 'rome', 'egypt', 'constantinople', 'jerusalem']):
+            return 'ancient_civilizations'
+        elif any(word in topic_lower for word in
+                 ['anne boleyn', 'henry viii', 'joan of arc', 'louis xvi', 'marie antoinette', 'mary queen']):
+            return 'medieval_period'
+        elif any(word in topic_lower for word in ['pompeii', 'chernobyl', 'hiroshima', 'titanic', 'atlantis']):
+            return 'natural_disasters'
+        elif any(word in topic_lower for word in ['d-day', 'pearl harbor', 'crusades', 'spartacus', 'waterloo']):
+            return 'war_and_battles'
+        elif any(word in topic_lower for word in ['final', 'last', 'death', 'end', 'execution']):
+            return 'tragic_endings'
+        elif any(word in topic_lower for word in ['coruscant', 'krypton', 'mordor', 'valyria', 'atlantis']):
+            return 'mystical_fantasy'
+        else:
+            return 'ancient_civilizations'  # Default
+
+    def _extract_time_period(self, topic: str, setting: str) -> str:
+        """Extract historical period for context"""
+        combined_text = f"{topic} {setting}".lower()
+
+        if any(word in combined_text for word in ['ancient', 'bc', 'egypt', 'rome', 'babylon', 'greece']):
+            return 'ancient'
+        elif any(word in combined_text for word in ['medieval', 'crusades', '1200', '1300', '1400']):
+            return 'medieval'
+        elif any(word in combined_text for word in ['renaissance', '1500', '1600', 'florence', 'medici']):
+            return 'renaissance'
+        elif any(word in combined_text for word in ['1700', '1800', 'revolution', 'napoleon', 'industrial']):
+            return 'industrial'
+        elif any(word in combined_text for word in ['1900', '2000', 'modern', 'contemporary', 'world war']):
+            return 'modern'
+        else:
+            return 'ancient'
+
+    def _format_sound_library(self, sounds: List[str]) -> str:
+        """Format sound library for prompt"""
+        formatted = []
+        for i, sound in enumerate(sounds[:20], 1):  # Limit to 20 sounds
+            formatted.append(f"   {i:2d}. [{sound}]")
+        return "\n".join(formatted)
+
+    def _get_cinematic_structure(self, topic: str, character: str, duration: float) -> str:
+        """Get topic-specific cinematic structure"""
+
+        if 'final' in topic.lower() or 'last' in topic.lower():
+            return f"""
+    **TRAGIC FAREWELL STRUCTURE:**
+    - Opening: Establish {character}'s final day/night atmosphere
+    - Development: Internal reflection and acceptance
+    - Peak: Final decision or realization moment  
+    - Resolution: Peaceful transition to eternity
+    - Duration: {duration:.1f} minutes of contemplative depth"""
+
+        elif any(word in topic.lower() for word in ['battle', 'war', 'd-day', 'waterloo']):
+            return f"""
+    **PRE-BATTLE CONTEMPLATION:**
+    - Opening: Quiet before the storm atmosphere
+    - Development: {character}'s preparations and thoughts
+    - Peak: Final moments before action
+    - Resolution: Acceptance of fate ahead
+    - Duration: {duration:.1f} minutes of tense calm"""
+
+        elif 'night' in topic.lower():
+            return f"""
+    **FINAL NIGHT STRUCTURE:**
+    - Opening: Evening settling over the scene
+    - Development: {character}'s nighttime reflections
+    - Peak: Midnight realization or decision
+    - Resolution: Dawn approaching with new understanding
+    - Duration: {duration:.1f} minutes of nocturnal peace"""
+
+        else:
+            return f"""
+    **HISTORICAL MOMENT STRUCTURE:**
+    - Opening: Setting the historical scene and time
+    - Development: {character}'s experience in this moment
+    - Peak: The crucial historical turning point
+    - Resolution: Legacy and lasting impact
+    - Duration: {duration:.1f} minutes of historical immersion"""
 
     def generate_complete_story(self, topic: str, description: str, clickbait_title: str = None) -> Dict[str, Any]:
         """
@@ -883,7 +1105,8 @@ class ToibinStoryGenerator:
               "environmental_details": "[EXTENSIVE sensory details of the setting that work with audio delivery]", 
               "emotional_core": "[Core feeling of scene]",
               "sleep_optimization": "[How this promotes peaceful contemplation]",
-              "elevenlabs_guidance": "[Suggested emotion tags and voice modulation for this scene: e.g., [softly], [whispers], [gentle breath]]"
+              "sound_design_guidance": "[Cinematic sound effects for this scene based on setting and emotion]",
+            "elevenlabs_production_notes": "[Specific ambient, emotional, and action sounds to layer during narration]"
             }}
           ]
         }}
@@ -993,7 +1216,8 @@ class ToibinStoryGenerator:
               "emotional_core": "[Core feeling of scene]",
               "connection_to_stage1": "[How this connects to earlier scenes]",
               "sleep_optimization": "[How this promotes peaceful contemplation]",
-              "elevenlabs_guidance": "[Suggested emotion tags for Stage 2 development: e.g., [thoughtfully], [discovering], [meaningfully]]"
+              "sound_design_guidance": "[Stage 2 cinematic progression with deeper emotional and environmental sounds]",
+            "elevenlabs_production_notes": "[Character development sounds + setting atmosphere + emotional progression]"
             }}
           ]
         }}
@@ -1107,7 +1331,8 @@ class ToibinStoryGenerator:
               "connection_to_previous_stages": "[How this connects to earlier scenes]",
               "resolution_element": "[How this contributes to quiet resolution]",
               "sleep_optimization": "[How this promotes peaceful contemplation]",
-              "elevenlabs_guidance": "[Suggested emotion tags for Stage 3 resolution: e.g., [peacefully], [finally], [softly fading], [eternally]]"
+              "sound_design_guidance": "[Stage 3 resolution sounds: peaceful closure + final moments + eternal calm]",
+                "elevenlabs_production_notes": "[Final sound design: gentle fading + peaceful resolution + sleep-inducing closure]"
             }}
           ]
         }}
@@ -1276,11 +1501,12 @@ class ToibinStoryGenerator:
     - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
     - Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
 
-    🎭 ELEVENLABS EMOTION TAG REQUIREMENTS:
-    - Embed emotion tags DIRECTLY in sentences: "[softly] The character moved, [gentle breath] noticing details."
-    - Use 8-12 emotion tags per story
-    - Include sound effects: [breath], [sigh], [pause], [whisper]
-    - Progress emotions throughout each story
+    🎬 CINEMATIC SOUND DESIGN REQUIREMENTS:
+    - Use our enhanced sound design system with ambient, emotional, and action sounds
+    - Each story gets custom sound effects based on topic: {topic}
+    - Layer maximum 3 sound effects per sentence for cinematic experience
+    - Include: ambient sounds, character actions, emotional moments, environmental effects
+    - All sounds must promote relaxation and sleep immersion
 
     TOPIC: {topic}  
     DESCRIPTION: {description}
@@ -1289,8 +1515,9 @@ class ToibinStoryGenerator:
     {scenes_text}
 
     EXAMPLE WITH ELEVENLABS TAGS:
-    "[softly] The morning light touched the ancient stones, [gentle breath] revealing centuries of weathered history. [curiously] She noticed how the shadows seemed to dance, [thoughtful pause] as if the building itself were alive. [whispers] Perhaps it was, she thought, [soft sigh] as her fingers traced the worn carvings."
-
+    CINEMATIC SOUND DESIGN EXAMPLE:
+    "[distant temple bells] [gentle breath] The morning light touched the ancient stones, [sandals on marble] revealing centuries of weathered history. [soft gasp] [wind through columns] She noticed how the shadows seemed to dance, [contemplative pause] as if the building itself were alive. [whispers] [ancient echoes] Perhaps it was, she thought, [final exhale] as her fingers traced the worn carvings."
+    
     🎭 TÓIBÍN WRITING REQUIREMENTS:
     Create stories worthy of COLM TÓIBÍN's literary reputation while serving as perfect sleep content WITH ELEVENLABS EMOTION TAGS.
 
@@ -1472,11 +1699,11 @@ class ToibinStoryGenerator:
     - Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
     - Maintain character continuity from Stage 1
 
-    🎭 ELEVENLABS EMOTION TAG REQUIREMENTS:
-    - Embed emotion tags DIRECTLY in sentences
-    - Use 8-12 emotion tags per story
-    - Include sound effects and voice modulations
-    - Progress emotions throughout each story
+   🎬 ENHANCED SOUND DESIGN REQUIREMENTS:
+    - Use cinematic sound design system with topic-specific effects
+    - Maintain character continuity from Stage 1 with consistent sound atmosphere
+    - Layer ambient + emotional + action sounds (max 3 per sentence)
+    - All effects enhance the sleep experience and story immersion
 
     TOPIC: {topic}
     DESCRIPTION: {description}
@@ -1491,8 +1718,8 @@ class ToibinStoryGenerator:
     - Extended contemplative moments with [pause] markers
     - Environmental descriptions with appropriate voice modulation
 
-    ELEVENLABS EXAMPLE:
-    "[thoughtfully] As the day progressed, she found herself drawn to the same window, [soft breath] the same view that had comforted her mother decades before. [whispers] The continuity was both reassuring and heartbreaking, [contemplative pause] a thread connecting generations of women who had stood in this exact spot."
+    CINEMATIC SOUND DESIGN EXAMPLE:
+    "[cathedral bells distant] [thoughtfully] As the day progressed, she found herself drawn to the same window, [footsteps on stone] [soft breath] the same view that had comforted her mother decades before. [silk curtains moving] [whispers] The continuity was both reassuring and heartbreaking, [wind through battlements] [contemplative pause] a thread connecting generations of women who had stood in this exact spot."
 
     OUTPUT FORMAT:
     {{
@@ -1684,8 +1911,8 @@ class ToibinStoryGenerator:
     - Bring character arcs to their understated, peaceful resolution with [sleepily], [peacefully], [fading] tags
     - Environmental descriptions that enhance the peaceful mood
 
-    ELEVENLABS FINAL RESOLUTION EXAMPLE:
-    "[peacefully] And so, as the evening shadows lengthened across the ancient courtyard, [soft breath] she finally understood what her grandmother had meant all those years ago. [whispers] Some truths can only be learned through living, [very softly] through the accumulation of small moments that eventually reveal their larger pattern. [sleepily] In that understanding, she found a peace she had never expected, [fading] a quiet acceptance that would carry her gently into dreams."
+    CINEMATIC FINAL RESOLUTION EXAMPLE:
+    "[distant temple bells] [peacefully] And so, as the evening shadows lengthened across the ancient courtyard, [gentle wind through trees] [soft breath] she finally understood what her grandmother had meant all those years ago. [doves taking flight] [whispers] Some truths can only be learned through living, [candle flame guttering] [very softly] through the accumulation of small moments that eventually reveal their larger pattern. [final exhale] [sleepily] In that understanding, she found a peace she had never expected, [eternal silence beginning] [fading] a quiet acceptance that would carry her gently into dreams."
 
     OUTPUT FORMAT:
     {{
@@ -3026,7 +3253,10 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                     "speed": production_audio.get("speed_multiplier", 0.85),
                     "pitch": -2,
                     "volume": 80,
-                    "emphasis": "sleep-optimized"
+                    "emphasis": "sleep-optimized",
+                    "sound_effects_integrated": True,
+                    "elevenlabs_web_ready": True,
+                    "copy_paste_optimized": "Text includes embedded sound effects for direct ElevenLabs web usage"
                 }
             })
 
@@ -3378,13 +3608,66 @@ def print_production_summary(result: Dict, story_topic: str, output_path: str, g
 
     print("🎭" * 60)
 
+
 if __name__ == "__main__":
     try:
-        print("🎭 TÓIBÍN QUALITY STORY GENERATOR WITH 3-STAGE SYSTEM & DURATION VALIDATION")
-        print("⚡ 3-Stage System + Master Plan + Emotional Structure + Literary Excellence + Duration Validation + Social Media")
-        print("📄 ALL 16 JSON FILES WITH 3-STAGE SYSTEM & DURATION VALIDATION")
+        print("🎭 TÓIBÍN QUALITY STORY GENERATOR WITH CINEMATIC SOUND DESIGN")
+        print("🎬 Hollywood-Level Audio Production for ElevenLabs")
+        print("📱 Web-Ready Copy-Paste Sound Integration")
+        print("=" * 80)
+
+        # TEST MODE - Quick sound design test
+        test_mode = input("🧪 Run quick test first? (y/n): ").lower() == 'y'
+
+        if test_mode:
+            print("\n🧪 TESTING ENHANCED SOUND DESIGN SYSTEM")
+            generator = ToibinStoryGenerator()
+
+            # Test scene
+            test_scene = {
+                'scene_id': 1,
+                'title': 'The Final Dawn',
+                'emotion': 'contemplation',
+                'duration_minutes': 4.0,
+                'setting': 'Royal palace chambers in Alexandria',
+                'main_character': 'Cleopatra',
+                'activity': 'Preparing for her final decision'
+            }
+
+            # Generate test prompt
+            story_prompt = generator._generate_story_with_enhanced_sound_design(
+                "Cleopatra's Final Night",
+                "The last hours of Egypt's final pharaoh",
+                test_scene
+            )
+
+            print("\n🎬 SOUND DESIGN PROMPT PREVIEW:")
+            print("=" * 50)
+            print(story_prompt[:800] + "...")
+            print("=" * 50)
+
+            # Test topic analysis
+            topic_type = generator._analyze_topic_type("Cleopatra's Final Night")
+            time_period = generator._extract_time_period("Cleopatra's Final Night", test_scene['setting'])
+
+            print(f"\n✅ Topic Analysis:")
+            print(f"   Type: {topic_type}")
+            print(f"   Period: {time_period}")
+
+            print(f"\n🎯 ElevenLabs Integration Ready!")
+            print(f"📱 Stories will include embedded sound effects")
+            print(f"🎬 Copy-paste ready for web interface")
+
+            continue_full = input("\n🚀 Continue to full production? (y/n): ").lower() == 'y'
+            if not continue_full:
+                print("✅ Test completed!")
+                exit()
+
+        # FULL PRODUCTION MODE
+        print("\n🚀 FULL PRODUCTION MODE")
+        print("⚡ 3-Stage System + Enhanced Sound Design + Duration Validation")
+        print("📄 ALL 16 JSON FILES WITH CINEMATIC AUDIO")
         print("💫 120+ MINUTE DURATION GUARANTEE")
-        print("🚀 ENHANCED CHARACTER CONTINUITY & TIMEOUT PREVENTION")
         print("=" * 80)
 
         # Get topic from database
@@ -3399,14 +3682,14 @@ if __name__ == "__main__":
         generator = ToibinStoryGenerator()
         generator.setup_checkpoint(topic_id)
 
-        # Generate complete story with Tóibín quality + 3-stage system + duration validation + social media
+        # Generate complete story with enhanced sound design
         start_time = time.time()
         result = generator.generate_complete_story(topic, description, clickbait_title)
         generation_time = time.time() - start_time
 
-        # Save all outputs (ALL 16 FILES WITH 3-STAGE SYSTEM)
+        # Save all outputs
         save_production_outputs(str(output_path), result, topic, topic_id,
-                               generator.api_call_count, generator.total_cost)
+                                generator.api_call_count, generator.total_cost)
 
         # Print summary
         print_production_summary(result, topic, str(output_path), generation_time)
@@ -3419,20 +3702,27 @@ if __name__ == "__main__":
             generator.api_call_count, generator.total_cost, str(output_path)
         )
 
-        print("\n🎭 TÓIBÍN QUALITY + 3-STAGE SYSTEM + DURATION VALIDATION GENERATION COMPLETE!")
-        print(f"✅ Literary excellence + viral social media + 120+ minute guarantee + 3-stage system delivered: {output_path}")
+        print("\n🎭 ENHANCED SOUND DESIGN GENERATION COMPLETE!")
+        print(f"✅ Cinematic audio production ready: {output_path}")
+        print(f"🎬 Stories include embedded sound effects for ElevenLabs")
+        print(f"📱 Copy-paste ready for web interface")
         print(f"💰 Total cost: ${generator.total_cost:.4f}")
         print(f"⏰ Final duration: {total_duration:.1f} minutes")
-        print(f"🎯 Duration target met: {'YES' if total_duration >= 120 else 'NO'}")
-        print(f"📱 Social media pieces: {result['generation_stats'].get('social_media_pieces', 0)}")
-        print(f"🚀 3-Stage System: Enhanced character continuity and timeout prevention")
-        print(f"🎯 Ready for 1M subscriber strategy!")
-        print(f"📄 ALL 16 JSON FILES SAVED AND READY WITH 3-STAGE SYSTEM!")
-        print(f"💫 DURATION VALIDATION SYSTEM ACTIVE!")
-        print(f"🎭 3-STAGE LITERARY EXCELLENCE ACHIEVED!")
+        print(f"🎯 Ready for ElevenLabs voice production!")
+
+        print(f"\n📖 ELEVENLABS WORKFLOW:")
+        print(f"1. Open: {output_path}/complete_story.txt")
+        print(f"2. Copy each scene (with embedded [sound effects])")
+        print(f"3. Paste into ElevenLabs web interface")
+        print(f"4. Generate speech and download")
+        print(f"5. Sound effects are embedded in narration!")
+
+    except KeyboardInterrupt:
+        print("\n⏹️ Generation stopped by user")
 
     except Exception as e:
         print(f"\n💥 GENERATION ERROR: {e}")
-        CONFIG.logger.error(f"Generation failed: {e}")
+        CONFIG.logger.error(f"Enhanced sound design generation failed: {e}")
         import traceback
+
         traceback.print_exc()

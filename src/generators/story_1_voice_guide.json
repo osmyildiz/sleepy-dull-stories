@@ -1,0 +1,262 @@
+{
+  "story_id": "scene_1",
+  "title": "Story 1 - Detaylı Seslendirme Yönergesi",
+  "total_duration_target": "6.2 minutes",
+  "overall_style": {
+    "voice_character": "Sophisticated female narrator, cultured British or neutral accent",
+    "base_pace": "Deliberately slow and contemplative",
+    "emotional_journey": "Peaceful observation → Gentle intimacy → Profound serenity",
+    "sleep_optimization": "Hypnotic rhythm, decreasing energy toward end"
+  },
+
+  "detailed_voice_directions": [
+    {
+      "sentence": 1,
+      "text": "Golden light filters through silk curtains, casting dancing shadows across the marble floor of Cleopatra's private chambers.",
+      "voice_settings": {
+        "pace": 0.7,
+        "pitch": 0,
+        "volume": 80,
+        "tone": "cinematic_opening"
+      },
+      "word_emphasis": {
+        "Golden light": "warm_introduction",
+        "silk curtains": "luxurious_texture",
+        "dancing shadows": "gentle_movement",
+        "Cleopatra's": "reverent_recognition"
+      },
+      "pause_after": 1.5
+    },
+
+    {
+      "sentence": 2,
+      "text": "The last pharaoh of Egypt sits in contemplative silence, her dark eyes reflecting the wisdom of thirty-nine years and the weight of a dynasty that stretches back three centuries.",
+      "voice_settings": {
+        "pace": 0.65,
+        "pitch": -1,
+        "volume": 78,
+        "tone": "profound_gravitas"
+      },
+      "word_emphasis": {
+        "last pharaoh": "historical_weight",
+        "contemplative silence": "deep_peace",
+        "wisdom": "earned_knowledge",
+        "three centuries": "vast_legacy"
+      },
+      "pause_after": 2.5
+    },
+
+    {
+      "sentence": 3,
+      "text": "[PAUSE] The air carries the gentle scent of jasmine from the palace gardens, mingling with the warm fragrance of myrrh burning in small bronze braziers positioned throughout the room.",
+      "voice_settings": {
+        "pace": 0.6,
+        "pitch": -2,
+        "volume": 75,
+        "tone": "sensory_immersion"
+      },
+      "pause_before": 2.0,
+      "word_emphasis": {
+        "gentle scent": "soft_fragrance",
+        "jasmine": "sweet_bloom",
+        "warm fragrance": "cozy_comfort",
+        "myrrh": "sacred_incense"
+      },
+      "pause_after": 2.0
+    },
+
+    {
+      "sentence": 4,
+      "text": "Your gaze moves across the treasures that surround her—golden chalices from Nubia, silk tapestries from distant China, and scrolls bearing the seals of kingdoms that once paid tribute to Egypt's might.",
+      "voice_settings": {
+        "pace": 0.62,
+        "pitch": 0,
+        "volume": 76,
+        "tone": "catalog_of_wonders"
+      },
+      "word_emphasis": {
+        "treasures": "precious_collection",
+        "golden chalices": "gleaming_luxury",
+        "distant China": "exotic_mystery",
+        "Egypt's might": "imperial_power"
+      },
+      "pause_internal": {
+        "after_Nubia": 0.8,
+        "after_China": 0.8
+      },
+      "pause_after": 2.0
+    },
+
+    {
+      "sentence": 5,
+      "text": "[PAUSE] Each object tells a story of diplomacy, conquest, or trade, remnants of a world where Cleopatra's word carried the power of the gods themselves.",
+      "voice_settings": {
+        "pace": 0.58,
+        "pitch": -1,
+        "volume": 74,
+        "tone": "reflective_nostalgia"
+      },
+      "pause_before": 2.0,
+      "word_emphasis": {
+        "tells a story": "narrative_magic",
+        "diplomacy, conquest, or trade": "varied_achievements",
+        "power of the gods": "divine_authority"
+      },
+      "pause_after": 2.5
+    },
+
+    {
+      "sentence": 6,
+      "text": "The queen's fingers trace the smooth surface of an alabaster box, its lid carved with hieroglyphs that speak of eternal life and divine protection.",
+      "voice_settings": {
+        "pace": 0.55,
+        "pitch": -2,
+        "volume": 72,
+        "tone": "tactile_reverence"
+      },
+      "word_emphasis": {
+        "trace": "gentle_touch",
+        "smooth surface": "tactile_pleasure",
+        "hieroglyphs": "ancient_wisdom",
+        "eternal life": "timeless_hope"
+      },
+      "pause_after": 2.0
+    },
+
+    {
+      "sentence": 7,
+      "text": "[PAUSE] Through the window, the Mediterranean stretches endlessly toward the horizon, its surface painted gold by the setting sun.",
+      "voice_settings": {
+        "pace": 0.6,
+        "pitch": 0,
+        "volume": 75,
+        "tone": "expansive_vista"
+      },
+      "pause_before": 2.0,
+      "word_emphasis": {
+        "Mediterranean": "vast_sea",
+        "endlessly": "infinite_reach",
+        "painted gold": "artistic_beauty",
+        "setting sun": "day's_end"
+      },
+      "pause_after": 1.8
+    },
+
+    {
+      "sentence": 8,
+      "text": "Ships dot the harbor like sleeping birds, their sails furled for the night, while the great lighthouse of Alexandria stands sentinel over the city that bears her ancestor's name.",
+      "voice_settings": {
+        "pace": 0.58,
+        "pitch": -1,
+        "volume": 73,
+        "tone": "poetic_imagery"
+      },
+      "word_emphasis": {
+        "sleeping birds": "peaceful_metaphor",
+        "sails furled": "day's_rest",
+        "great lighthouse": "monumental_guardian",
+        "ancestor's name": "family_legacy"
+      },
+      "pause_after": 2.5
+    },
+
+    {
+      "sentence": 9,
+      "text": "In this moment of profound stillness, time seems suspended between the glory of the past and the uncertainty of what lies ahead.",
+      "voice_settings": {
+        "pace": 0.52,
+        "pitch": -3,
+        "volume": 70,
+        "tone": "philosophical_depth"
+      },
+      "word_emphasis": {
+        "profound stillness": "deep_peace",
+        "suspended": "floating_time",
+        "glory of the past": "golden_memories",
+        "uncertainty": "gentle_unknown"
+      },
+      "pause_after": 3.0
+    },
+
+    {
+      "sentence": 10,
+      "text": "[PAUSE] The silk curtains stir gently in the evening breeze, and somewhere in the distance, a temple bell marks the passage of another hour in the life of the woman who would be remembered as the last true pharaoh of Egypt.",
+      "voice_settings": {
+        "pace": 0.5,
+        "pitch": -2,
+        "volume": 68,
+        "tone": "melancholic_beauty"
+      },
+      "pause_before": 2.5,
+      "word_emphasis": {
+        "stir gently": "soft_movement",
+        "evening breeze": "natural_rhythm",
+        "temple bell": "sacred_time",
+        "last true pharaoh": "historical_finality"
+      },
+      "pause_after": 3.0
+    },
+
+    {
+      "sentence": 11,
+      "text": "Cleopatra's breathing is steady and peaceful, her royal composure intact even as the shadows lengthen and the day surrenders to night.",
+      "voice_settings": {
+        "pace": 0.48,
+        "pitch": -4,
+        "volume": 66,
+        "tone": "serene_acceptance"
+      },
+      "word_emphasis": {
+        "steady and peaceful": "calm_rhythm",
+        "royal composure": "maintained_dignity",
+        "shadows lengthen": "time_passing",
+        "surrenders to night": "gentle_yielding"
+      },
+      "pause_after": 2.5
+    },
+
+    {
+      "sentence": 12,
+      "text": "[PAUSE] The chamber holds its breath, as if aware that it witnesses a moment that will echo through the corridors of history for millennia to come.",
+      "voice_settings": {
+        "pace": 0.45,
+        "pitch": -5,
+        "volume": 64,
+        "tone": "transcendent_finale"
+      },
+      "pause_before": 3.0,
+      "word_emphasis": {
+        "holds its breath": "suspended_anticipation",
+        "witnesses": "sacred_observation",
+        "echo through": "eternal_resonance",
+        "millennia to come": "timeless_legacy"
+      },
+      "final_pause": 8.0,
+      "note": "End with profound, extended silence for maximum sleep effect"
+    }
+  ],
+
+  "technical_specifications": {
+    "google_tts": {
+      "voice": "en-GB-Neural2-C",
+      "speaking_rate": "Variable per segment",
+      "pitch": "Variable per segment",
+      "volume_gain_db": "Variable per segment",
+      "effects_profile_id": "handset-class-device"
+    },
+    "elevenlabs": {
+      "voice_id": "Suggest: Rachel or Domi for sophisticated warmth",
+      "stability": 0.85,
+      "similarity_boost": 0.75,
+      "style": 0.3,
+      "use_speaker_boost": true
+    }
+  },
+
+  "post_production_notes": {
+    "background_ambience": "Very subtle Mediterranean night sounds at 5% volume",
+    "eq_adjustments": "Slight low-frequency warmth, gentle high-frequency softness",
+    "compression": "Light compression to maintain intimate feel",
+    "final_fade": "10-second fade to silence after final pause"
+  }
+}
