@@ -185,14 +185,15 @@ class DatabaseTopicManager:
 
     def mark_topic_completed(self, topic_id: int, scene_count: int, total_duration: float,
                              api_calls: int, total_cost: float, output_path: str):
-        """Mark topic as completed in database"""
+        """Mark topic as completed in database - FIXED COLUMN NAME"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
+        # FIX: Use correct column name 'production_completed_at' instead of 'completed_at'
         cursor.execute('''
             UPDATE topics 
             SET status = ?,
-                completed_at = CURRENT_TIMESTAMP,
+                production_completed_at = CURRENT_TIMESTAMP,
                 scene_count = ?,
                 total_duration_minutes = ?,
                 api_calls_used = ?,
