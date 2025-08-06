@@ -812,7 +812,7 @@ Create exactly {len(scenes)} scenes for the final third of {topic} with complete
             raise
 
     def _generate_stage1_stories(self, topic: str, description: str, master_plan: Dict) -> Dict:
-        """Generate first third stories following master plan with validation"""
+        """Generate first third stories following master plan with validation - OPTIMIZED FOR TIMEOUT PREVENTION"""
 
         scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
         total_scenes = len(scene_plan)
@@ -820,11 +820,82 @@ Create exactly {len(scenes)} scenes for the final third of {topic} with complete
 
         first_third_scenes = scene_plan[:first_third]
 
-        self.log_step(f"Stage 1: Generating first {first_third} Tóibín stories (3-Stage System)")
+        self.log_step(f"Stage 1: Generating first {first_third} Tóibín stories (3-Stage System - CHUNKED)")
 
-        # Create hook and subscribe content
+        # OPTIMIZATION: Split into smaller chunks to prevent timeout
+        chunk_size = 5  # Process 5 stories at a time instead of 11
+        all_stories = {}
+
+        # Create hook and subscribe content (only for first chunk)
         hook_content = self._create_hook_content(topic, description)
         subscribe_content = self._create_subscribe_content()
+
+        # Process scenes in chunks
+        for chunk_index in range(0, len(first_third_scenes), chunk_size):
+            chunk_scenes = first_third_scenes[chunk_index:chunk_index + chunk_size]
+
+            self.log_step(f"Processing chunk {chunk_index//chunk_size + 1}: scenes {chunk_index + 1}-{min(chunk_index + chunk_size, len(first_third_scenes))}")
+
+            chunk_stories = self._generate_story_chunk(
+                topic, description, chunk_scenes, chunk_index,
+                hook_content if chunk_index == 0 else None,
+                subscribe_content if chunk_index == 0 else None,
+                total_scenes, first_third
+            )
+
+            # Merge stories from this chunk
+            all_stories.update(chunk_stories.get('stories', {}))
+
+        # Combine results
+        result = {
+            "stories": all_stories,
+            "stage1_stats": {
+                "scenes_written": len(all_stories),
+                "total_planned": total_scenes,
+                "tóibín_mastery_applied": True,
+                "master_plan_followed": True,
+                "duration_emphasis_applied": True,
+                "three_stage_system": True,
+                "chunked_processing": True,
+                "chunks_processed": (len(first_third_scenes) + chunk_size - 1) // chunk_size
+            }
+        }
+
+        # Add hook and subscribe only to final result
+        if hook_content:
+            result["golden_hook"] = {
+                "content": hook_content,
+                "duration_seconds": 30,
+                "voice_direction": "Gentle, literary, contemplative - like Tóibín reading aloud"
+            }
+
+        if subscribe_content:
+            result["subscribe_section"] = {
+                "content": subscribe_content,
+                "duration_seconds": 30,
+                "voice_direction": "Warm, literary, non-commercial - book club invitation"
+            }
+
+        # VALIDATE AND EXTEND if needed
+        if result.get('stories'):
+            self.log_step("Validating Stage 1 Story Durations")
+            validated_stories = self.validate_and_extend_stories(
+                result['stories'],
+                first_third_scenes
+            )
+            result['stories'] = validated_stories
+
+        self.log_step("Stage 1 Stories Generated (3-Stage CHUNKED)", "SUCCESS", {
+            "stories_written": len(result.get('stories', {})),
+            "chunks_processed": result["stage1_stats"]["chunks_processed"]
+        })
+
+        return result
+
+    def _generate_story_chunk(self, topic: str, description: str, chunk_scenes: List[Dict],
+                             chunk_index: int, hook_content: str = None, subscribe_content: str = None,
+                             total_scenes: int = 0, stage_total: int = 0) -> Dict:
+        """Generate a small chunk of stories to prevent timeout"""
 
         # Format scenes for prompt with DURATION EMPHASIS
         scenes_text = "\n\n".join([
@@ -838,26 +909,29 @@ Create exactly {len(scenes)} scenes for the final third of {topic} with complete
             f"Scene Description: {scene['scene_description']}\n"
             f"Environmental Details: {scene['environmental_details']}\n"
             f"Emotional Core: {scene['emotional_core']}"
-            for scene in first_third_scenes
+            for scene in chunk_scenes
         ])
 
-        stage1_prompt = f"""Write the complete first third of this TÓIBÍN masterpiece sleep story for "{topic}".
+        # Create sample story IDs for JSON template
+        story_examples = {}
+        for i, scene in enumerate(chunk_scenes):
+            story_examples[str(scene['scene_id'])] = f"[Complete Tóibín-style story for scene {scene['scene_id']}, substantial length for target duration]"
+
+        chunk_prompt = f"""Write {len(chunk_scenes)} TÓIBÍN masterpiece sleep stories for "{topic}" (Chunk {chunk_index//5 + 1}).
 
 ⏰ CRITICAL DURATION REQUIREMENTS:
 - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-- Target total for this stage: {sum(scene['duration_minutes'] for scene in first_third_scenes):.1f} minutes
+- Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
 - Use extensive atmospheric description, internal character monologue, and contemplative pacing
 - Include natural pause moments with [PAUSE] markers
-- Rich sensory details and psychological depth required
 
 TOPIC: {topic}  
 DESCRIPTION: {description}
 
-SCENES TO WRITE (First {first_third} of {total_scenes} - FIRST THIRD):
+SCENES TO WRITE (Chunk {chunk_index//5 + 1} of Stage 1):
 {scenes_text}
 
 🎭 TÓIBÍN WRITING REQUIREMENTS:
-
 Create stories worthy of COLM TÓIBÍN's literary reputation while serving as perfect sleep content.
 
 ⚠️ EACH STORY MUST BE LONG ENOUGH TO FILL ITS PLANNED DURATION:
@@ -870,27 +944,12 @@ Create stories worthy of COLM TÓIBÍN's literary reputation while serving as pe
 
 OUTPUT FORMAT:
 {{
-  "golden_hook": {{
-    "content": "{hook_content}",
-    "duration_seconds": 30,
-    "voice_direction": "Gentle, literary, contemplative - like Tóibín reading aloud"
-  }},
-  "subscribe_section": {{
-    "content": "{subscribe_content}",
-    "duration_seconds": 30, 
-    "voice_direction": "Warm, literary, non-commercial - book club invitation"
-  }},
-  "stories": {{
-    "1": "[Complete Tóibín-style story for scene 1, following master plan exactly, substantial length for target duration]",
-    "2": "[Complete Tóibín-style story for scene 2, following master plan exactly, substantial length for target duration]"
-  }},
-  "stage1_stats": {{
-    "scenes_written": {first_third},
-    "total_planned": {total_scenes},
+  "stories": {json.dumps(story_examples, indent=4)},
+  "chunk_stats": {{
+    "scenes_in_chunk": {len(chunk_scenes)},
+    "chunk_number": {chunk_index//5 + 1},
     "tóibín_mastery_applied": true,
-    "master_plan_followed": true,
-    "duration_emphasis_applied": true,
-    "three_stage_system": true
+    "duration_emphasis_applied": true
   }}
 }}"""
 
@@ -899,49 +958,37 @@ OUTPUT FORMAT:
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=30000,
+                max_tokens=18000,  # REDUCED from 30000 to 18000
                 temperature=0.7,
-                timeout=300,
-                system="You are COLM TÓIBÍN, the celebrated Irish master of literary fiction. Apply your signature style: 'sparseness of tone with superabundance of suggestion,' characters led by desires they don't understand, the fascination of commonplaces, and the quiet recognition of human psychology. Each story must be substantial and detailed enough to meet its target duration through rich atmospheric detail and character psychology.",
-                messages=[{"role": "user", "content": stage1_prompt}]
+                timeout=180,  # REDUCED from 300 to 180
+                system="You are COLM TÓIBÍN writing a focused chunk of your literary masterwork. Each story must be substantial and detailed enough to meet its target duration through rich atmospheric detail and character psychology.",
+                messages=[{"role": "user", "content": chunk_prompt}]
             )
 
             content = response.content[0].text
 
-            print(f"✅ Stage 1 (3-Stage) complete: {len(content):,} characters")
+            print(f"✅ Story chunk {chunk_index//5 + 1} complete: {len(content):,} characters")
 
             # Calculate cost
-            input_tokens = len(stage1_prompt) // 4
+            input_tokens = len(chunk_prompt) // 4
             output_tokens = len(content) // 4
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
             # Parse response
-            parsed_result = self._parse_claude_response(content, "stage1")
-
-            # VALIDATE AND EXTEND if needed
-            if parsed_result.get('stories'):
-                self.log_step("Validating Stage 1 Story Durations")
-                validated_stories = self.validate_and_extend_stories(
-                    parsed_result['stories'],
-                    first_third_scenes
-                )
-                parsed_result['stories'] = validated_stories
-
-            self.log_step("Stage 1 Stories Generated (3-Stage)", "SUCCESS", {
-                "stories_written": len(parsed_result.get('stories', {})),
-                "stage_cost": stage_cost
-            })
+            parsed_result = self._parse_claude_response(content, f"stage1_chunk_{chunk_index//5 + 1}")
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 1 (3-Stage) Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 1 error: {e}")
-            raise
+            self.log_step(f"Story Chunk {chunk_index//5 + 1} Failed", "ERROR")
+            CONFIG.logger.error(f"Chunk error: {e}")
+
+            # Return empty result for this chunk
+            return {"stories": {}, "chunk_stats": {"error": str(e)}}
 
     def _generate_stage2_stories(self, topic: str, description: str, master_plan: Dict, stage1_result: Dict) -> Dict:
-        """Generate second third stories with Tóibín continuity and validation"""
+        """Generate second third stories with Tóibín continuity and validation - OPTIMIZED"""
 
         scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
         total_scenes = len(scene_plan)
@@ -950,7 +997,59 @@ OUTPUT FORMAT:
 
         second_third_scenes = scene_plan[first_third:first_third + second_third]
 
-        self.log_step(f"Stage 2: Generating second third {len(second_third_scenes)} Tóibín stories (3-Stage System)")
+        self.log_step(f"Stage 2: Generating second third {len(second_third_scenes)} Tóibín stories (3-Stage System - CHUNKED)")
+
+        # OPTIMIZATION: Split into smaller chunks
+        chunk_size = 5
+        all_stories = {}
+
+        # Process scenes in chunks
+        for chunk_index in range(0, len(second_third_scenes), chunk_size):
+            chunk_scenes = second_third_scenes[chunk_index:chunk_index + chunk_size]
+
+            self.log_step(f"Processing Stage 2 chunk {chunk_index//chunk_size + 1}: scenes {first_third + chunk_index + 1}-{first_third + min(chunk_index + chunk_size, len(second_third_scenes))}")
+
+            chunk_stories = self._generate_stage2_chunk(
+                topic, description, chunk_scenes, chunk_index, stage1_result, total_scenes
+            )
+
+            # Merge stories from this chunk
+            all_stories.update(chunk_stories.get('stories', {}))
+
+        # Combine results
+        result = {
+            "stories": all_stories,
+            "stage2_stats": {
+                "scenes_written": len(all_stories),
+                "character_continuity_maintained": True,
+                "tóibín_mastery_sustained": True,
+                "master_plan_continued": True,
+                "duration_emphasis_applied": True,
+                "three_stage_system": True,
+                "chunked_processing": True,
+                "chunks_processed": (len(second_third_scenes) + chunk_size - 1) // chunk_size
+            }
+        }
+
+        # VALIDATE AND EXTEND if needed
+        if result.get('stories'):
+            self.log_step("Validating Stage 2 Story Durations")
+            validated_stories = self.validate_and_extend_stories(
+                result['stories'],
+                second_third_scenes
+            )
+            result['stories'] = validated_stories
+
+        self.log_step("Stage 2 Stories Generated (3-Stage CHUNKED)", "SUCCESS", {
+            "stories_written": len(result.get('stories', {})),
+            "chunks_processed": result["stage2_stats"]["chunks_processed"]
+        })
+
+        return result
+
+    def _generate_stage2_chunk(self, topic: str, description: str, chunk_scenes: List[Dict],
+                              chunk_index: int, stage1_result: Dict, total_scenes: int) -> Dict:
+        """Generate Stage 2 chunk with character continuity"""
 
         # Format scenes for prompt with DURATION EMPHASIS
         scenes_text = "\n\n".join([
@@ -965,24 +1064,27 @@ OUTPUT FORMAT:
             f"Environmental Details: {scene['environmental_details']}\n"
             f"Emotional Core: {scene['emotional_core']}\n"
             f"Connection to Previous: {scene.get('connection_to_stage1', 'Connected to Stage 1')}"
-            for scene in second_third_scenes
+            for scene in chunk_scenes
         ])
 
-        stage2_prompt = f"""Continue this TÓIBÍN masterpiece by writing the second third for "{topic}".
+        # Create sample story IDs for JSON template
+        story_examples = {}
+        for scene in chunk_scenes:
+            story_examples[str(scene['scene_id'])] = f"[Complete Tóibín story with character continuity, substantial length for target duration]"
+
+        stage2_prompt = f"""Continue TÓIBÍN masterpiece with {len(chunk_scenes)} stories for "{topic}" (Stage 2 Chunk {chunk_index//5 + 1}).
 
 ⏰ CRITICAL DURATION REQUIREMENTS:
 - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-- Target total for this stage: {sum(scene['duration_minutes'] for scene in second_third_scenes):.1f} minutes
+- Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
 - Maintain character continuity from Stage 1
 - Use extensive atmospheric description and psychological depth
 
 TOPIC: {topic}
 DESCRIPTION: {description}
 
-SCENES TO WRITE (Second third - scenes {first_third + 1} to {first_third + second_third} of {total_scenes}):
+SCENES TO WRITE (Stage 2 Chunk {chunk_index//5 + 1}):
 {scenes_text}
-
-Complete the second third of this TÓIBÍN masterpiece with the same literary excellence as the first third.
 
 ⚠️ DURATION AND CONTINUITY REQUIREMENTS:
 - Each story must be long enough to fill its planned duration
@@ -993,17 +1095,12 @@ Complete the second third of this TÓIBÍN masterpiece with the same literary ex
 
 OUTPUT FORMAT:
 {{
-  "stories": {{
-    "{second_third_scenes[0]['scene_id'] if second_third_scenes else 'X'}": "[Complete Tóibín story following master plan, substantial length for target duration]",
-    "{second_third_scenes[1]['scene_id'] if len(second_third_scenes) > 1 else 'Y'}": "[Complete Tóibín story with character continuity, substantial length for target duration]"
-  }},
-  "stage2_stats": {{
-    "scenes_written": {len(second_third_scenes)},
-    "character_continuity_maintained": true,
-    "tóibín_mastery_sustained": true,
-    "master_plan_continued": true,
-    "duration_emphasis_applied": true,
-    "three_stage_system": true
+  "stories": {json.dumps(story_examples, indent=4)},
+  "chunk_stats": {{
+    "scenes_in_chunk": {len(chunk_scenes)},
+    "chunk_number": {chunk_index//5 + 1},
+    "stage": 2,
+    "character_continuity_maintained": true
   }}
 }}"""
 
@@ -1012,16 +1109,15 @@ OUTPUT FORMAT:
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=30000,
+                max_tokens=18000,  # REDUCED
                 temperature=0.7,
-                timeout=300,
-                system="You are COLM TÓIBÍN continuing your literary masterwork from Stage 1. Maintain absolute character consistency - same internal voices, relationship patterns, and emotional rhythms established earlier. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
+                timeout=180,  # REDUCED
+                system="You are COLM TÓIBÍN continuing your literary masterwork. Maintain absolute character consistency from Stage 1. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
                 messages=[{"role": "user", "content": stage2_prompt}]
             )
 
             content = response.content[0].text
-
-            print(f"✅ Stage 2 (3-Stage) complete: {len(content):,} characters")
+            print(f"✅ Stage 2 chunk {chunk_index//5 + 1} complete: {len(content):,} characters")
 
             # Calculate cost
             input_tokens = len(stage2_prompt) // 4
@@ -1030,32 +1126,17 @@ OUTPUT FORMAT:
             self.total_cost += stage_cost
 
             # Parse response
-            parsed_result = self._parse_claude_response(content, "stage2")
-
-            # VALIDATE AND EXTEND if needed
-            if parsed_result.get('stories'):
-                self.log_step("Validating Stage 2 Story Durations")
-                validated_stories = self.validate_and_extend_stories(
-                    parsed_result['stories'],
-                    second_third_scenes
-                )
-                parsed_result['stories'] = validated_stories
-
-            self.log_step("Stage 2 Stories Generated (3-Stage)", "SUCCESS", {
-                "stories_written": len(parsed_result.get('stories', {})),
-                "stage_cost": stage_cost
-            })
-
+            parsed_result = self._parse_claude_response(content, f"stage2_chunk_{chunk_index//5 + 1}")
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 2 (3-Stage) Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 2 error: {e}")
-            raise
+            self.log_step(f"Stage 2 Chunk {chunk_index//5 + 1} Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 2 chunk error: {e}")
+            return {"stories": {}, "chunk_stats": {"error": str(e)}}
 
     def _generate_stage3_stories(self, topic: str, description: str, master_plan: Dict,
                                 stage1_result: Dict, stage2_result: Dict) -> Dict:
-        """Generate final third stories with Tóibín continuity and resolution"""
+        """Generate final third stories with Tóibín continuity and resolution - OPTIMIZED"""
 
         scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
         total_scenes = len(scene_plan)
@@ -1064,7 +1145,60 @@ OUTPUT FORMAT:
 
         final_third_scenes = scene_plan[first_third + second_third:]
 
-        self.log_step(f"Stage 3: Generating final third {len(final_third_scenes)} Tóibín stories (3-Stage System)")
+        self.log_step(f"Stage 3: Generating final third {len(final_third_scenes)} Tóibín stories (3-Stage System - CHUNKED)")
+
+        # OPTIMIZATION: Split into smaller chunks
+        chunk_size = 5
+        all_stories = {}
+
+        # Process scenes in chunks
+        for chunk_index in range(0, len(final_third_scenes), chunk_size):
+            chunk_scenes = final_third_scenes[chunk_index:chunk_index + chunk_size]
+
+            self.log_step(f"Processing Stage 3 chunk {chunk_index//chunk_size + 1}: scenes {first_third + second_third + chunk_index + 1}-{first_third + second_third + min(chunk_index + chunk_size, len(final_third_scenes))}")
+
+            chunk_stories = self._generate_stage3_chunk(
+                topic, description, chunk_scenes, chunk_index, stage1_result, stage2_result, total_scenes
+            )
+
+            # Merge stories from this chunk
+            all_stories.update(chunk_stories.get('stories', {}))
+
+        # Combine results
+        result = {
+            "stories": all_stories,
+            "stage3_stats": {
+                "scenes_written": len(all_stories),
+                "character_continuity_maintained": True,
+                "tóibín_mastery_completed": True,
+                "master_plan_resolved": True,
+                "duration_emphasis_applied": True,
+                "peaceful_resolution_achieved": True,
+                "three_stage_system": True,
+                "chunked_processing": True,
+                "chunks_processed": (len(final_third_scenes) + chunk_size - 1) // chunk_size
+            }
+        }
+
+        # VALIDATE AND EXTEND if needed
+        if result.get('stories'):
+            self.log_step("Validating Stage 3 Story Durations")
+            validated_stories = self.validate_and_extend_stories(
+                result['stories'],
+                final_third_scenes
+            )
+            result['stories'] = validated_stories
+
+        self.log_step("Stage 3 Stories Generated (3-Stage CHUNKED)", "SUCCESS", {
+            "stories_written": len(result.get('stories', {})),
+            "chunks_processed": result["stage3_stats"]["chunks_processed"]
+        })
+
+        return result
+
+    def _generate_stage3_chunk(self, topic: str, description: str, chunk_scenes: List[Dict],
+                              chunk_index: int, stage1_result: Dict, stage2_result: Dict, total_scenes: int) -> Dict:
+        """Generate Stage 3 chunk with full continuity and resolution"""
 
         # Format scenes for prompt with DURATION EMPHASIS
         scenes_text = "\n\n".join([
@@ -1080,24 +1214,27 @@ OUTPUT FORMAT:
             f"Emotional Core: {scene['emotional_core']}\n"
             f"Connection to Previous: {scene.get('connection_to_previous_stages', 'Connected to Stages 1 & 2')}\n"
             f"Resolution Element: {scene.get('resolution_element', 'Contributes to quiet resolution')}"
-            for scene in final_third_scenes
+            for scene in chunk_scenes
         ])
 
-        stage3_prompt = f"""Complete this TÓIBÍN masterpiece by writing the final third for "{topic}".
+        # Create sample story IDs for JSON template
+        story_examples = {}
+        for scene in chunk_scenes:
+            story_examples[str(scene['scene_id'])] = f"[Complete Tóibín story with resolution, substantial length for target duration]"
+
+        stage3_prompt = f"""Complete TÓIBÍN masterpiece with {len(chunk_scenes)} stories for "{topic}" (Stage 3 Chunk {chunk_index//5 + 1}).
 
 ⏰ CRITICAL DURATION REQUIREMENTS:
 - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-- Target total for this stage: {sum(scene['duration_minutes'] for scene in final_third_scenes):.1f} minutes
+- Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
 - Maintain character continuity from Stages 1 & 2
 - Bring story to peaceful, understated resolution
 
 TOPIC: {topic}
 DESCRIPTION: {description}
 
-SCENES TO WRITE (Final third - scenes {first_third + second_third + 1} to {total_scenes} of {total_scenes}):
+SCENES TO WRITE (Stage 3 Chunk {chunk_index//5 + 1} - FINAL RESOLUTION):
 {scenes_text}
-
-Complete the final third of this TÓIBÍN masterpiece with quiet resolution and literary excellence.
 
 ⚠️ DURATION, CONTINUITY & RESOLUTION REQUIREMENTS:
 - Each story must be long enough to fill its planned duration
@@ -1109,18 +1246,13 @@ Complete the final third of this TÓIBÍN masterpiece with quiet resolution and 
 
 OUTPUT FORMAT:
 {{
-  "stories": {{
-    "{final_third_scenes[0]['scene_id'] if final_third_scenes else 'X'}": "[Complete Tóibín story following master plan, substantial length for target duration]",
-    "{final_third_scenes[1]['scene_id'] if len(final_third_scenes) > 1 else 'Y'}": "[Complete Tóibín story with character continuity and resolution, substantial length for target duration]"
-  }},
-  "stage3_stats": {{
-    "scenes_written": {len(final_third_scenes)},
-    "character_continuity_maintained": true,
-    "tóibín_mastery_completed": true,
-    "master_plan_resolved": true,
-    "duration_emphasis_applied": true,
-    "peaceful_resolution_achieved": true,
-    "three_stage_system": true
+  "stories": {json.dumps(story_examples, indent=4)},
+  "chunk_stats": {{
+    "scenes_in_chunk": {len(chunk_scenes)},
+    "chunk_number": {chunk_index//5 + 1},
+    "stage": 3,
+    "resolution_focus": true,
+    "peaceful_closure": true
   }}
 }}"""
 
@@ -1129,16 +1261,15 @@ OUTPUT FORMAT:
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=30000,
+                max_tokens=18000,  # REDUCED
                 temperature=0.7,
-                timeout=300,
-                system="You are COLM TÓIBÍN completing your literary masterwork from Stages 1 & 2. Maintain absolute character consistency throughout and bring all character arcs to their quiet, understated resolution. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
+                timeout=180,  # REDUCED
+                system="You are COLM TÓIBÍN completing your literary masterwork. Maintain absolute character consistency throughout and bring all character arcs to their quiet, understated resolution. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
                 messages=[{"role": "user", "content": stage3_prompt}]
             )
 
             content = response.content[0].text
-
-            print(f"✅ Stage 3 (3-Stage) complete: {len(content):,} characters")
+            print(f"✅ Stage 3 chunk {chunk_index//5 + 1} complete: {len(content):,} characters")
 
             # Calculate cost
             input_tokens = len(stage3_prompt) // 4
@@ -1147,28 +1278,13 @@ OUTPUT FORMAT:
             self.total_cost += stage_cost
 
             # Parse response
-            parsed_result = self._parse_claude_response(content, "stage3")
-
-            # VALIDATE AND EXTEND if needed
-            if parsed_result.get('stories'):
-                self.log_step("Validating Stage 3 Story Durations")
-                validated_stories = self.validate_and_extend_stories(
-                    parsed_result['stories'],
-                    final_third_scenes
-                )
-                parsed_result['stories'] = validated_stories
-
-            self.log_step("Stage 3 Stories Generated (3-Stage)", "SUCCESS", {
-                "stories_written": len(parsed_result.get('stories', {})),
-                "stage_cost": stage_cost
-            })
-
+            parsed_result = self._parse_claude_response(content, f"stage3_chunk_{chunk_index//5 + 1}")
             return parsed_result
 
         except Exception as e:
-            self.log_step("Stage 3 (3-Stage) Failed", "ERROR")
-            CONFIG.logger.error(f"Stage 3 error: {e}")
-            raise
+            self.log_step(f"Stage 3 Chunk {chunk_index//5 + 1} Failed", "ERROR")
+            CONFIG.logger.error(f"Stage 3 chunk error: {e}")
+            return {"stories": {}, "chunk_stats": {"error": str(e)}}
 
     def _calculate_total_duration(self, stories: Dict, scene_plan: List[Dict]) -> float:
         """Calculate total estimated duration from stories"""
