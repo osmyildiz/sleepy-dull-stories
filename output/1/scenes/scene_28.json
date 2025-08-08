@@ -1,0 +1,17 @@
+{
+  "scene_number": 28,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman mother's hand rising and falling with sleeping child's breathing in villa chamber, understanding love as fundamental force of nature, starlight creating patterns on painted villa walls, weathered hands never more gentle, maternal love transcending time and volcanic fate, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/973a628c-9708-45dd-897c-0f574506f31a.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMDk4NGQ0YjM0NWI0MTY2OSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.2_d8zE94Rn3MyqYjHGG1FuZqGkvqCan_aGeWiaDMzGI",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_28.png",
+  "generated_at": "2025-08-08T23:13:47.120674",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/c3695ae5-287c-4d44-9ab2-85ceb4f68e55.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZjQyNGZhMmJlYWU3NzEyNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.ERW3npLdmJLi_hDZxXSruSHcU5qqvNGVD3JLO9PCE-U"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2038791,
+  "ratio": "1920:1080"
+}

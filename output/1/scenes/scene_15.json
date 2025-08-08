@@ -1,0 +1,17 @@
+{
+  "scene_number": 15,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Elderly Roman scholar in papyrus-filled study observing bronze oil lamp whose flame subtly leans toward Mount Vesuvius then shrinks back, scrolls rustling almost imperceptibly, analytical gaze behind lined face, wooden writing desk with wax tablets, study filled with quiet tension and ancient wisdom, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/15f1b2e5-1e75-4b53-906a-4b4813cc0bdc.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZTkyYjM0NTU4ZWU2N2M1ZiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.570n04mOa7I2aPlzYDxAVQK4Dud_SsGBLLbncisa1CE",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_15.png",
+  "generated_at": "2025-08-08T23:02:13.655185",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/6a667e61-7262-4275-9090-8ce3a9afe821.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjJjMzk3YTU2MzQ0OTdlNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4_GSejvNjdf4l8xn9BgxeYQ19q47sWcPTKrT5t95vBU"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2156094,
+  "ratio": "1920:1080"
+}

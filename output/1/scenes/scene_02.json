@@ -1,0 +1,17 @@
+{
+  "scene_number": 2,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman woman performing household devotions in atrium, bronze figurines on shrine, oil lamp light, marble floor reflecting flames, incense smoke rising, painted frescoes, spiritual reverence, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/37d14415-84c4-4c8f-ac56-8d7824100c81.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMWIzODViYWQ1NDhmZTM2NyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.zavukjsrdI8EpR4jkAyvAVhIbc-U8d78quDG3QLgAcw",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_02.png",
+  "generated_at": "2025-08-08T22:38:53.457023",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/0db08205-deeb-40bc-869b-9276d5bcee6d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmMyNGJhYmI3MjAzZjgxNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.74ek_3hwWLig1IMhhjZaK-rsw1pJkTiMNYGZcTnZ21k"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2401916,
+  "ratio": "1920:1080"
+}

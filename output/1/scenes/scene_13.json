@@ -1,0 +1,17 @@
+{
+  "scene_number": 13,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman baker at pre-dawn in stone bakery, examining gray volcanic ash settled on marble windowsill, flour-dusted finger tracing unfamiliar particles that shimmer strangely in oil lamp light, puzzled expression on weathered face, stone ovens glowing red behind him, first mysterious sign from sleeping Vesuvius, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/e8b59e9a-f126-416a-a526-f25cf6fe0f94.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMjIzYTJlZDczZTdjMzcyNCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4IZBlzIg_qQ4rmOe35Pq815pA1Vjx8t9mILDCsDvmXg",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_13.png",
+  "generated_at": "2025-08-08T23:00:26.531745",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/2f276b1a-6466-4e37-8716-1323b06a5f58.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjI0YjA4ZTBhYTU4MzUwYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.Zc7pnOlTo8GClNgcahh-l-tdAgN3k-sjd14wKBGksfo"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2347783,
+  "ratio": "1920:1080"
+}

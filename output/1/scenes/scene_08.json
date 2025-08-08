@@ -1,0 +1,12 @@
+{
+  "scene_number": 8,
+  "prompt": "79 CE Pompeii, Ancient Rome (79 AD), Roman storyteller in courtyard telling tales to neighbors; first stars appearing overhead; children's eyes reflecting lamplight like tiny stars, adults smiling; expressive hands painting pictures in the air, oil lamps flickering in rhythm with words, community gathered in quiet wonder, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/80b4ce5f-dc98-41a1-9aa0-58bd6eb8fee4.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDg4ZTU4YWRkYjMwZGRkNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.RPsMUoz9tgBZ6uKyP0_Wvnhs3BxhEKBfV_ccjpf-eok",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_08.png",
+  "generated_at": "2025-08-08T22:50:49.389033",
+  "character_references": [],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2371861,
+  "ratio": "1920:1080"
+}

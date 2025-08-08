@@ -1,0 +1,12 @@
+{
+  "scene_number": 12,
+  "prompt": "79 CE Pompeii, Ancient Rome (79 AD), Aerial view of ancient Pompeii under starlit sky, narrow Roman streets with worn stone paving, oil lamps flickering in villa windows, Mount Vesuvius a dark guardian silhouette, glimpses of daily life: baker banking stone ovens, weaver folding linen, physician setting down bronze instruments, widow placing white jasmine at household shrine, young lovers parting at wooden doorway, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/e484dd57-3560-40dc-a220-84ade74d5ef5.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMjE5NjYzZjg3ZjJkOGMzMCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.B8zHiAPd7QFV_3dE6pOruGcdPl8D0hMfcRZYcQ-uc1o",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_12.png",
+  "generated_at": "2025-08-08T22:59:42.001502",
+  "character_references": [],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2701626,
+  "ratio": "1920:1080"
+}

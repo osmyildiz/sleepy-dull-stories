@@ -1,0 +1,17 @@
+{
+  "scene_number": 32,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman baker placing palms against cooling stone oven walls, feeling stored heat like heartbeat of thirty years of dedicated work, flour-marked hands sensing memory held in volcanic stone, weathered face reflecting lifetime of service, bakery holding sacred memory of community nourishment, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/faceb03a-c9a8-48de-93e2-b20eea59f856.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNzNkNDQ1OTI3YzE1YTU1MiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.EwLdZlxPwp7kARHvTp0Q0eanAxE3rjhbIpMdHXsGONU",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_32.png",
+  "generated_at": "2025-08-08T23:17:21.498242",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/2f276b1a-6466-4e37-8716-1323b06a5f58.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjI0YjA4ZTBhYTU4MzUwYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.Zc7pnOlTo8GClNgcahh-l-tdAgN3k-sjd14wKBGksfo"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2298440,
+  "ratio": "1920:1080"
+}

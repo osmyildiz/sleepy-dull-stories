@@ -1,0 +1,17 @@
+{
+  "scene_number": 23,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman weaver at wooden loom in first dawn light streaming through villa window, wool threads holding captured starlight, traditional patterns emerging as conscious legacy creation, shuttle passing with purpose beyond individual intention, weaving chamber transformed into temple of preservation, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/862d48e9-8248-4de2-a995-167aab6ccba5.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMzIyMjJiMDllMDIxNmZlZiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.IkiS4GKwSIAS3Rm63iT9JIUAeINOXriwNhi4T0eJbvI",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_23.png",
+  "generated_at": "2025-08-08T23:09:25.344114",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/0db08205-deeb-40bc-869b-9276d5bcee6d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmMyNGJhYmI3MjAzZjgxNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.74ek_3hwWLig1IMhhjZaK-rsw1pJkTiMNYGZcTnZ21k"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2230626,
+  "ratio": "1920:1080"
+}

@@ -1,0 +1,17 @@
+{
+  "scene_number": 17,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman baker following intelligent street dog pacing anxiously near marble fountain in villa courtyard, amber eyes fixed on Mount Vesuvius, worn cobblestones unusually warm underfoot, night sky where clouds seem to swallow stars, shuttered villa windows like closed eyes, urgent yet quiet Pompeii street, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/6a3fc9c1-f3a9-4a06-9aea-fb3313ea5f3b.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiN2M2NGU1NDIzNDBiZTNmYSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.JUEZzASSjX-_xYsg-TOwAJkIO4BM5xTZQNZGrU0rRMY",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_17.png",
+  "generated_at": "2025-08-08T23:03:44.629599",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/2f276b1a-6466-4e37-8716-1323b06a5f58.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjI0YjA4ZTBhYTU4MzUwYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.Zc7pnOlTo8GClNgcahh-l-tdAgN3k-sjd14wKBGksfo"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2448143,
+  "ratio": "1920:1080"
+}

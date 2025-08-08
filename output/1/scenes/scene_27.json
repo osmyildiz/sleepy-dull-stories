@@ -1,0 +1,17 @@
+{
+  "scene_number": 27,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman scholar inscribing simple words on wax tablet with bronze stylus: 'The night is beautiful. The mountain sleeps. We are content.' surrounded by papyrus scrolls in lamp-lit study, aged hands steady in bronze light, lifetime of learning crystallized in peaceful truth, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/5bbf61b8-11bc-4869-b374-b1291b6c6c20.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiODdkZGUwZWVmNDdhOGY0YiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.a_tUQjsQus6u-QYVvnbZQl0_vs2aCmQXM0Pe4bw-_eo",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_27.png",
+  "generated_at": "2025-08-08T23:12:57.459251",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/6a667e61-7262-4275-9090-8ce3a9afe821.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjJjMzk3YTU2MzQ0OTdlNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4_GSejvNjdf4l8xn9BgxeYQ19q47sWcPTKrT5t95vBU"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2375646,
+  "ratio": "1920:1080"
+}

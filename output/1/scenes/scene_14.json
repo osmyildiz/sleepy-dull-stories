@@ -1,0 +1,17 @@
+{
+  "scene_number": 14,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman weaver approaching ancient wooden loom in moonlit chamber, fine wool threads trembling without any breeze, silvery fibers vibrating like harp strings, woman's face showing supernatural recognition, shadows from vertical loom creating sacred geometry on villa walls, earth speaking through familiar craft, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/0f429d46-03e4-43a2-a2a0-ae075cf75b30.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYTYwYjliMDRiYzAyMjYzYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.11zD9kV9oANH0EAlX-BoirI-YIpu3SRlIXhW0H1xXUI",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_14.png",
+  "generated_at": "2025-08-08T23:01:27.103425",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/0db08205-deeb-40bc-869b-9276d5bcee6d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmMyNGJhYmI3MjAzZjgxNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.74ek_3hwWLig1IMhhjZaK-rsw1pJkTiMNYGZcTnZ21k"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2264104,
+  "ratio": "1920:1080"
+}

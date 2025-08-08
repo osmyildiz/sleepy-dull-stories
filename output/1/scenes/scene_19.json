@@ -1,0 +1,17 @@
+{
+  "scene_number": 19,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Elderly Roman scholar walking completely deserted Via Stabiana between Pompeii settlements, scholarly mind cataloging absence where merchant carts should travel, unlit roadside shrines abandoned, systematic evacuation that animals understand but humans question, worn Roman milestone markers standing sentinel, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/601a1da2-2969-428f-bb21-41ee6e7ef215.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiY2FlOTgzNjA2ZmMxZWUwYSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.B9EQCprH_cXJsTLSzi23XktxOYqk-4OKmAb1NuQYR5o",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_19.png",
+  "generated_at": "2025-08-08T23:05:30.548996",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/6a667e61-7262-4275-9090-8ce3a9afe821.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjJjMzk3YTU2MzQ0OTdlNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4_GSejvNjdf4l8xn9BgxeYQ19q47sWcPTKrT5t95vBU"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2753274,
+  "ratio": "1920:1080"
+}

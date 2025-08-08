@@ -1,0 +1,17 @@
+{
+  "scene_number": 16,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman mother in simple stola soothing crying infant in wooden cradle, child's eyes repeatedly turning toward villa window framing Mount Vesuvius, metallic taste in night air, distant dogs barking across Pompeii, subtle floor vibration under bare feet, oil lamp casting warm worried light on maternal face, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/f70492d0-238f-465c-96c7-b17b30f235a8.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjNkYjY3NzViYWViNzc0MSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.kMoqtGCFZj-hhtqzqjP5wIh8Vg23dUJIr4Ky-EYciqw",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_16.png",
+  "generated_at": "2025-08-08T23:02:59.219250",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/c3695ae5-287c-4d44-9ab2-85ceb4f68e55.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZjQyNGZhMmJlYWU3NzEyNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.ERW3npLdmJLi_hDZxXSruSHcU5qqvNGVD3JLO9PCE-U"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 1949032,
+  "ratio": "1920:1080"
+}

@@ -1,0 +1,17 @@
+{
+  "scene_number": 1,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman baker kneading dough in stone workshop, weathered hands on marble surface, warm afternoon light through windows, flour particles in golden sunbeams, stone ovens crackling, peaceful craftsman focus, ancient bread-making tools, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/08b0e685-9a68-4c48-87cc-e14e42a9506b.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNThiNjJhZDhhZmIwMzhjZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.nycw0t8PMxgJYrLKQ3ycM9HVZkdqlLdD6SBLfwru79Q",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_01.png",
+  "generated_at": "2025-08-08T22:38:07.362482",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/2f276b1a-6466-4e37-8716-1323b06a5f58.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjI0YjA4ZTBhYTU4MzUwYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.Zc7pnOlTo8GClNgcahh-l-tdAgN3k-sjd14wKBGksfo"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2346139,
+  "ratio": "1920:1080"
+}

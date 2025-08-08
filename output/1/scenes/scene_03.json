@@ -1,0 +1,17 @@
+{
+  "scene_number": 3,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Elderly Roman man watering herbs in small garden at dusk, clay vessel in gentle hands, tomato vines and basil, stone walls warm, nightingale song from fig tree, peaceful connection to nature, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/9e383870-0a46-4605-9ca1-9c287cc7b2ba.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNGZlMGJlZDliNjFkM2Y4ZSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.aeFb0TBiP3w9VsB5dV0jCv62zRUTnK1kqqDOXlEEhmg",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_03.png",
+  "generated_at": "2025-08-08T22:39:38.379067",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/6a667e61-7262-4275-9090-8ce3a9afe821.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjJjMzk3YTU2MzQ0OTdlNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4_GSejvNjdf4l8xn9BgxeYQ19q47sWcPTKrT5t95vBU"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2861978,
+  "ratio": "1920:1080"
+}

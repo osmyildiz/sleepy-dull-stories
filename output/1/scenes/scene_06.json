@@ -1,0 +1,17 @@
+{
+  "scene_number": 6,
+  "prompt": "featuring @primary with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Young Greek woman mending tunic in servants' quarters, other household staff in background, simple clean room with oil lamp, skilled needlework, atmosphere of dignity and community, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/a9edc067-6c4d-41a4-a1d9-6e9e60674eb5.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDc2ZWM4MjJhNWE0OTk3OSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.2I458gQFGgZ-sQWwOp2VFjj05lN80PiuhxrgSwfSnpo",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_06.png",
+  "generated_at": "2025-08-08T22:41:55.209409",
+  "character_references": [
+    {
+      "tag": "primary",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/2f276b1a-6466-4e37-8716-1323b06a5f58.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjI0YjA4ZTBhYTU4MzUwYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.Zc7pnOlTo8GClNgcahh-l-tdAgN3k-sjd14wKBGksfo"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2009178,
+  "ratio": "1920:1080"
+}

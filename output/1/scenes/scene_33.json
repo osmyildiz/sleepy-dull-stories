@@ -1,0 +1,17 @@
+{
+  "scene_number": 33,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman weaver stepping back from wooden loom seeing not unfinished tapestry but complete divine work, dawn light through villa window revealing pattern wholeness, honey-colored shuttle resting in completion, understanding weaver and woven as same sacred design, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/20c49ef6-b503-498e-aaa0-4ddfec596534.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYzBjNmRjODVhNjI1ZDA0MyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.STuqANjlmoQEAT1cT3dlljEu6GU7cSw74KcSp-1PqRk",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_33.png",
+  "generated_at": "2025-08-08T23:18:08.305326",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/0db08205-deeb-40bc-869b-9276d5bcee6d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmMyNGJhYmI3MjAzZjgxNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.74ek_3hwWLig1IMhhjZaK-rsw1pJkTiMNYGZcTnZ21k"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2571291,
+  "ratio": "1920:1080"
+}

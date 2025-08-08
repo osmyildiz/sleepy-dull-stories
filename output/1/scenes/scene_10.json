@@ -1,0 +1,12 @@
+{
+  "scene_number": 10,
+  "prompt": "79 CE Pompeii, Ancient Rome (79 AD), Young Roman couple in traditional togas walking hand-in-hand through narrow stone streets of Pompeii, oil lamps glowing in window niches, flowering jasmine cascading over garden walls, Mount Vesuvius peaceful in distance, cobblestone path worn smooth by generations, faces bright with hope and innocent affection, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/d0eb6cec-77d4-4365-b476-d72acdaa730a.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMzE4MTgzMTNmNDU5YjVkYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.fZfVGWlSLu8m4w59zJpU3qUOKYC1vLcdxHH-MHMmA7A",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_10.png",
+  "generated_at": "2025-08-08T23:30:09.394666",
+  "character_references": [],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2502762,
+  "ratio": "1920:1080"
+}

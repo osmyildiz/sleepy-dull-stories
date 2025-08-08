@@ -1,0 +1,17 @@
+{
+  "scene_number": 4,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman mother watching sleeping child in modest home, oil lamp warm glow, caring hands smoothing woolen blanket, protective maternal love, simple furnishings, peaceful domestic scene, historical educational content, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/8a0a89c0-74d2-40d0-b7b1-821134795954.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDdkMWQyN2ViOTNmYzFkMCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.OhnlGud-2GlDEB2T_PppEnUPMHwm8xKGDS3FtKku5FI",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_04.png",
+  "generated_at": "2025-08-08T22:40:24.298581",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/c3695ae5-287c-4d44-9ab2-85ceb4f68e55.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZjQyNGZhMmJlYWU3NzEyNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.ERW3npLdmJLi_hDZxXSruSHcU5qqvNGVD3JLO9PCE-U"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2129002,
+  "ratio": "1920:1080"
+}

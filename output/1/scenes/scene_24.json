@@ -1,0 +1,17 @@
+{
+  "scene_number": 24,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman scholar writing final observations on wax tablet with bronze stylus, reed pen flowing across papyrus, scholarly wisdom recording human response to geological mystery, study filled with scrolls transforming into archive of meaning, ancient texts attending witness to new truth, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/9b326c60-ae6b-44f7-a31d-afa82dae9ab7.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZThmYjVlMmY4MDI2NTVmMiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.aGDzCFmHnnWkxQvAUCX5Cl_p5ueTlCaG7ZCn1vlTu6k",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_24.png",
+  "generated_at": "2025-08-08T23:10:11.013998",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/6a667e61-7262-4275-9090-8ce3a9afe821.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjJjMzk3YTU2MzQ0OTdlNSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.4_GSejvNjdf4l8xn9BgxeYQ19q47sWcPTKrT5t95vBU"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2321720,
+  "ratio": "1920:1080"
+}

@@ -1,0 +1,17 @@
+{
+  "scene_number": 18,
+  "prompt": "featuring @char1 with consistent character appearance, 79 CE Pompeii, Ancient Rome (79 AD), Roman woman drawing water from deep courtyard well with bronze rope and clay vessel, bucket striking stone with hollow echo, tasting liquid that carries sulfur and mineral heat, moonlight reflecting strangely in ceramic pitcher, villa fountain stuttering, trusted water source mysteriously altered, cinematic composition, dramatic lighting, historical accuracy, professional cinematography, realistic, detailed, 8K quality",
+  "image_url": "https://dnznrvs05pmza.cloudfront.net/a6db2061-0b2f-462d-a926-a19260418e61.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNTZjYThiMmFmN2E3ZjFiZSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.EcQ8HrtFHyTtMzujUGVG-CUG5KKYOWUh1Ujnv5wGPrE",
+  "local_path": "/Users/nilgun/PycharmProjects/sleepy-dull-stories/output/1/scenes/scene_18.png",
+  "generated_at": "2025-08-08T23:04:45.962495",
+  "character_references": [
+    {
+      "tag": "char1",
+      "uri": "https://dnznrvs05pmza.cloudfront.net/0db08205-deeb-40bc-869b-9276d5bcee6d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmMyNGJhYmI3MjAzZjgxNyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc1NDc4NDAwMH0.74ek_3hwWLig1IMhhjZaK-rsw1pJkTiMNYGZcTnZ21k"
+    }
+  ],
+  "runway_powered": true,
+  "runway_model": "gen4_image",
+  "file_size": 2092325,
+  "ratio": "1920:1080"
+}
