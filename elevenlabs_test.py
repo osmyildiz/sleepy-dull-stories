@@ -1,263 +1,245 @@
 """
-ElevenLabs Cleopatra Demo - Fixed Version
-Voice ID checker + fallback to default voices
+ElevenLabs Text-to-Speech Generator
+Simple script for Sleepy Dull Stories voice generation
 """
 
 import requests
-import json
 import os
+from dotenv import load_dotenv
+from pathlib import Path
+import json
 from datetime import datetime
 
-# ElevenLabs Configuration
-ELEVENLABS_API_KEY = "sk_d48c501bddb3e09f0ba95f7143202925e3c7482003ccb2a6"
+# Load environment variables
+load_dotenv()
 
-# Popular voice IDs (these change, so we'll check them)
-VOICE_OPTIONS = [
-    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Sarah"},
-    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel"},
-    {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi"},
-    {"id": "CYw3kZ02Hs0563khs1Fj", "name": "Dave"},
-    {"id": "D38z5RcWu1voky8WS1ja", "name": "Fin"},
-    {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George"},
-    {"id": "N2lVS1w4EtoT3dr4eOWO", "name": "Callum"},
-    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam"}
-]
+class ElevenLabsTTS:
+    def __init__(self):
+        self.api_key = os.getenv('ELEVENLABS_API_KEY')
+        if not self.api_key:
+            raise ValueError("❌ ELEVENLABS_API_KEY not found in .env file!")
 
-
-def get_available_voices():
-    """Get all available voices from ElevenLabs"""
-
-    url = "https://api.elevenlabs.io/v1/voices"
-    headers = {
-        "Accept": "application/json",
-        "xi-api-key": ELEVENLABS_API_KEY
-    }
-
-    try:
-        print("🔍 Checking available voices...")
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-
-        voices_data = response.json()
-        voices = voices_data.get('voices', [])
-
-        print(f"✅ Found {len(voices)} available voices:")
-        for voice in voices[:10]:  # Show first 10
-            print(f"   🎙️ {voice['name']}: {voice['voice_id']}")
-
-        return voices
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error getting voices: {e}")
-        return []
-
-
-def find_best_voice(voices):
-    """Find the best voice for Cleopatra (female, elegant)"""
-
-    # Look for female voices first
-    female_voices = []
-    for voice in voices:
-        labels = voice.get('labels', {})
-        gender = labels.get('gender', '').lower()
-        if gender == 'female':
-            female_voices.append(voice)
-
-    if female_voices:
-        # Prefer voices with "elegant" or similar qualities
-        for voice in female_voices:
-            name = voice['name'].lower()
-            if any(keyword in name for keyword in ['sarah', 'rachel', 'bella', 'elli']):
-                print(f"🎭 Selected voice: {voice['name']} ({voice['voice_id']})")
-                return voice['voice_id']
-
-        # Fallback to first female voice
-        selected = female_voices[0]
-        print(f"🎭 Selected voice: {selected['name']} ({selected['voice_id']})")
-        return selected['voice_id']
-
-    # Ultimate fallback to first available voice
-    if voices:
-        selected = voices[0]
-        print(f"🎭 Selected voice (fallback): {selected['name']} ({selected['voice_id']})")
-        return selected['voice_id']
-
-    return None
-
-
-def create_elevenlabs_demo(voice_id):
-    """Create 2-minute Cleopatra demo with FULL sound effects and emotion tags"""
-
-    # Demo script with MAXIMUM ElevenLabs features restored!
-    demo_script = """
-[soft dawn ambiance] [gentle breath] The golden rays of Alexandria's final dawn filtered through silk curtains, [soft fabric rustling] casting their last dance across the marble floors of the royal palace.
-
-[footsteps on marble, slow and deliberate] [deeply contemplative] Cleopatra, the last pharaoh of Egypt, moved through her chambers with the grace that had once commanded the hearts of Caesar and Antony. [melancholic sigh] 
-
-[whispers] "Thirty-nine years upon this earth," [voice trembling with emotion] she murmured to herself, [gentle wind through windows] her fingers tracing the ancient hieroglyphs carved into her sacred alabaster box.
-
-[distant temple bells] [growing stronger, more resolved] But this was no ordinary morning. [dramatic pause] The Roman legions waited beyond her walls, [sound of distant armies] their bronze shields glinting like hungry eyes in the morning sun.
-
-[soft, almost breaking] "My beloved Egypt," [voice cracking with love and loss] she whispered, [tears falling softly] placing her palm against the cool marble of her window. [soft Mediterranean waves] The sea stretched endlessly before her, [bittersweet] carrying memories of ships that once brought tribute from across the known world.
-
-[sound of a door opening quietly] [startled, then recognizing] Her most trusted servant entered, [footsteps approaching] carrying the small wicker basket that would seal her fate. [mysterious, knowing] Inside, coiled like destiny itself, lay the asp—death's gentle messenger.
-
-[calm acceptance] [deep, peaceful breath] "Tell me," [softly curious] she asked, [slight smile in voice] "does it truly sleep as peacefully as they say?" 
-
-[tender, almost motherly] The servant nodded, [barely audible] tears streaming down weathered cheeks that had served three generations of pharaohs.
-
-[sound of silk robes rustling] [final, regal determination] Cleopatra moved to her golden throne one last time, [metallic resonance] the chair that had witnessed the rise and fall of dynasties. [profound acceptance] 
-
-[gentle, with infinite sadness but no fear] "I go to meet my ancestors," [voice growing ethereal] she declared, [soft echo effect] her words seeming to carry the weight of centuries. [divine, transcendent] "And perhaps... perhaps to find Antony waiting beyond the veil of Isis."
-
-[very soft wind chimes] [breathing slowing] [peaceful finale] [gentle silence expanding] The last queen of Egypt closed her eyes, [final exhale] and with her, an empire that had ruled for three thousand years [fade to eternal silence] passed into legend.
-"""
-
-    print("🎭 Creating ElevenLabs Cleopatra Demo")
-    print("📜 Script length:", len(demo_script.split()), "words")
-    print("⏱️ Estimated duration: ~2 minutes")
-    print("=" * 60)
-
-    # ElevenLabs API call
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-
-    headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": ELEVENLABS_API_KEY
-    }
-
-    # ElevenLabs settings for MAXIMUM feature testing
-    data = {
-        "text": demo_script,
-        "model_id": "eleven_turbo_v2_5",  # Latest model with ALL sound effects
-        "voice_settings": {
-            "stability": 0.71,
-            "similarity_boost": 0.8,
-            "style": 0.65,  # High style for dramatic effect
-            "use_speaker_boost": True
+        self.base_url = "https://api.elevenlabs.io/v1"
+        self.headers = {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": self.api_key
         }
-    }
 
-    try:
-        print("🚀 Calling ElevenLabs API...")
-        response = requests.post(url, json=data, headers=headers, timeout=120)
-        response.raise_for_status()
+        # Sleepy Dull Stories custom voice
+        self.sleepy_voice_id = "8rISLz2BhGPiyBbP6ulQ"  # ssselifsss
 
-        # Save the demo
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"cleopatra_demo_{timestamp}.mp3"
+        print("✅ ElevenLabs TTS initialized")
+        print(f"🔑 API Key: {self.api_key[:8]}...")
+        print(f"🎙️ Sleepy Voice ID: {self.sleepy_voice_id}")
 
-        with open(filename, 'wb') as f:
-            f.write(response.content)
+    def get_available_voices(self):
+        """Get list of available voices"""
+        try:
+            response = requests.get(f"{self.base_url}/voices", headers=self.headers)
 
-        file_size = len(response.content) / 1024 / 1024  # MB
+            if response.status_code == 200:
+                voices = response.json()
+                print("🎙️ Available voices:")
+                for voice in voices['voices']:
+                    name = voice['name']
+                    voice_id = voice['voice_id']
+                    category = voice.get('category', 'Unknown')
+                    print(f"   {name} ({category}) - ID: {voice_id}")
+                return voices['voices']
+            else:
+                print(f"❌ Failed to get voices: {response.status_code}")
+                print(response.text)
+                return []
 
-        print(f"✅ Demo created successfully!")
-        print(f"📁 File: {filename}")
-        print(f"📦 Size: {file_size:.1f} MB")
+        except Exception as e:
+            print(f"❌ Error getting voices: {e}")
+            return []
 
-        # Calculate cost
-        char_count = len(demo_script)
-        estimated_cost = char_count * 0.00002
-        print(f"💰 Estimated cost: ${estimated_cost:.4f}")
+    def generate_speech(self, text: str, voice_id: str, output_filename: str = None):
+        """Generate speech from text"""
 
-        return filename
+        if not output_filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = f"sleepy_story_{timestamp}.mp3"
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ ElevenLabs API Error: {e}")
-        if "401" in str(e):
-            print("🔑 API key might be invalid or expired")
-        elif "404" in str(e):
-            print("🎭 Voice ID not found - this is the issue!")
-        elif "429" in str(e):
-            print("⏰ Rate limit exceeded - wait a bit")
-        return None
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        return None
+        # Ensure output directory exists
+        output_path = Path("output")
+        output_path.mkdir(exist_ok=True)
+        full_output_path = output_path / output_filename
 
+        # API payload - Start with v2 multilingual
+        payload = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",  # More stable for basic tags
+            "voice_settings": {
+                "stability": 0.5,        # Medium for some expressiveness
+                "similarity_boost": 0.8,  # High for voice consistency
+                "style": 0.6,            # Higher for emotional delivery
+                "use_speaker_boost": True
+            }
+        }
 
-def analyze_demo_features():
-    """Analyze the restored demo's FULL ElevenLabs features"""
+        print(f"🎬 Generating speech...")
+        print(f"   📝 Text length: {len(text)} characters")
+        print(f"   🎙️ Voice ID: {voice_id}")
+        print(f"   📁 Output: {full_output_path}")
 
-    features_used = {
-        "emotion_tags": [
-            "[soft dawn ambiance]", "[gentle breath]", "[deeply contemplative]",
-            "[melancholic sigh]", "[whispers]", "[voice trembling with emotion]",
-            "[growing stronger, more resolved]", "[dramatic pause]", "[soft, almost breaking]",
-            "[voice cracking with love and loss]", "[bittersweet]", "[startled, then recognizing]",
-            "[calm acceptance]", "[tender, almost motherly]", "[final, regal determination]",
-            "[gentle, with infinite sadness but no fear]", "[divine, transcendent]"
-        ],
-        "sound_effects": [
-            "[soft fabric rustling]", "[footsteps on marble, slow and deliberate]",
-            "[gentle wind through windows]", "[distant temple bells]", "[sound of distant armies]",
-            "[tears falling softly]", "[soft Mediterranean waves]", "[sound of a door opening quietly]",
-            "[footsteps approaching]", "[sound of silk robes rustling]", "[metallic resonance]",
-            "[soft echo effect]", "[very soft wind chimes]", "[gentle silence expanding]"
-        ],
-        "voice_modulation": [
-            "[voice trembling with emotion]", "[voice cracking with love and loss]",
-            "[barely audible]", "[soft echo effect]", "[voice growing ethereal]",
-            "[breathing slowing]", "[final exhale]", "[fade to eternal silence]"
-        ]
-    }
+        try:
+            url = f"{self.base_url}/text-to-speech/{voice_id}"
+            response = requests.post(url, json=payload, headers=self.headers)
 
-    print(f"\n📊 RESTORED ElevenLabs Features Analysis:")
-    print(f"🎭 Emotion tags: {len(features_used['emotion_tags'])} variations")
-    print(f"🎵 Sound effects: {len(features_used['sound_effects'])} different sounds")
-    print(f"🎙️ Voice modulations: {len(features_used['voice_modulation'])} techniques")
-    print(f"📝 Total ElevenLabs tags: {sum(len(v) for v in features_used.values())} features")
-    print("🚀 This is MAXIMUM ElevenLabs feature testing!")
+            if response.status_code == 200:
+                # Save audio file
+                with open(full_output_path, 'wb') as f:
+                    f.write(response.content)
 
-    return features_used
+                file_size = os.path.getsize(full_output_path)
+                print(f"✅ Audio generated successfully with v2!")
+                print(f"   📁 Saved: {full_output_path}")
+                print(f"   📊 File size: {file_size:,} bytes")
+                print(f"   🎭 Basic audio tags tested - check if they work!")
 
+                # Save metadata
+                metadata = {
+                    "text": text,
+                    "voice_id": voice_id,
+                    "model_used": "eleven_multilingual_v2",
+                    "basic_tags_tested": True,
+                    "tags_in_text": ["[pause]", "[curiously]", "[whispers]", "[sighs]"],
+                    "output_file": str(full_output_path),
+                    "generated_at": datetime.now().isoformat(),
+                    "text_length": len(text),
+                    "file_size": file_size,
+                    "voice_settings": payload["voice_settings"]
+                }
+
+                json_path = full_output_path.with_suffix('.json')
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+                return str(full_output_path)
+
+            else:
+                print(f"❌ Generation failed: {response.status_code}")
+                print(response.text)
+                return None
+
+        except Exception as e:
+            print(f"❌ Error generating speech: {e}")
+            return None
+
+    def quick_generate(self, text: str, output_filename: str = None):
+        """Quick generation with ssselifsss voice"""
+        return self.generate_speech(text, self.sleepy_voice_id, output_filename)
+
+    def interactive_generation(self):
+        """Interactive mode for text input"""
+        print("\n🎙️ ElevenLabs Interactive Text-to-Speech")
+        print("🌙 Using ssselifsss voice for Sleepy Dull Stories")
+        print("=" * 50)
+
+        # Option to use custom voice or select different one
+        use_custom = input("\nUse ssselifsss voice? (Y/n): ").strip().lower()
+
+        if use_custom in ['', 'y', 'yes']:
+            voice_id = self.sleepy_voice_id
+            voice_name = "ssselifsss (Your Custom Voice)"
+            print(f"✅ Using: {voice_name}")
+        else:
+            # Get available voices for selection
+            voices = self.get_available_voices()
+            if not voices:
+                print("❌ No voices available!")
+                return
+
+            print(f"\n🎯 Select a voice (0-{len(voices)-1}):")
+            for i, voice in enumerate(voices):
+                print(f"   {i}: {voice['name']} ({voice.get('category', 'Unknown')})")
+
+            try:
+                voice_index = int(input("\nVoice selection: "))
+                selected_voice = voices[voice_index]
+                voice_id = selected_voice['voice_id']
+                voice_name = selected_voice['name']
+                print(f"✅ Selected: {voice_name}")
+            except (ValueError, IndexError):
+                print("❌ Invalid selection!")
+                return
+
+        # Get text input
+        print(f"\n📝 Enter your text for Sleepy Dull Stories:")
+        print("(Press Enter twice to finish)")
+
+        lines = []
+        while True:
+            try:
+                line = input()
+                if line == "" and lines:  # Empty line and we have content
+                    break
+                lines.append(line)
+            except KeyboardInterrupt:
+                print("\n❌ Cancelled by user")
+                return
+
+        text = "\n".join(lines)
+
+        if not text.strip():
+            print("❌ No text provided!")
+            return
+
+        # Ask for custom filename
+        default_name = f"sleepy_story_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp3"
+        custom_name = input(f"\n📁 Output filename (default: {default_name}): ").strip()
+
+        if not custom_name:
+            custom_name = default_name
+
+        if not custom_name.endswith('.mp3'):
+            custom_name += '.mp3'
+
+        # Generate speech
+        print(f"\n🎬 Generating with voice: {voice_name}")
+        result = self.generate_speech(text, voice_id, custom_name)
+
+        if result:
+            print(f"\n🎉 Success! Audio saved to: {result}")
+        else:
+            print(f"\n❌ Generation failed!")
 
 def main():
-    """Main demo creation function"""
+    """Main function"""
+    print("🌙 Sleepy Dull Stories - ElevenLabs TTS Generator")
+    print("🎙️ Using ssselifsss custom voice")
+    print("=" * 50)
 
-    print("👑 ELEVENLABS CLEOPATRA DEMO GENERATOR - FIXED VERSION")
-    print("🔧 With automatic voice detection and fallbacks")
-    print("=" * 60)
+    # Sample text with basic audio tags for v2 compatibility
+    sample_text = """Without planning or arrangement, they found themselves drawn to the forum as if pulled by invisible threads—Marcus from his bakery street, Livia from the well, Quintus from the empty road, and Claudia from her restless wandering. [pause] [curiously] The moonlit marble columns created a natural amphitheater for their unintended gathering, each carrying private discoveries that suddenly demanded sharing. [whispers] In this moment, under ancient stars, four strangers became something more— [sighs] a constellation of human connection in the vast Roman night."""
 
-    # Step 1: Get available voices
-    voices = get_available_voices()
+    try:
+        tts = ElevenLabsTTS()
 
-    if not voices:
-        print("❌ Could not get voice list. Check your API key!")
-        return
+        print(f"\n📝 Sample text to generate:")
+        print(f"'{sample_text[:100]}...'")
+        print(f"\n📊 Text length: {len(sample_text)} characters")
 
-    # Step 2: Find best voice
-    voice_id = find_best_voice(voices)
+        # Generate with default filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"sleepy_sample_{timestamp}.mp3"
 
-    if not voice_id:
-        print("❌ No suitable voice found!")
-        return
+        print(f"\n🎬 Generating with ssselifsss voice...")
+        print(f"📁 Output filename: {filename}")
 
-    # Step 3: Analyze the full feature set
-    features = analyze_demo_features()
+        result = tts.quick_generate(sample_text, filename)
 
-    # Step 4: Create the FULL POWER demo
-    demo_file = create_elevenlabs_demo(voice_id)
+        if result:
+            print(f"\n🎉 Success! Audio saved to: {result}")
+            print(f"🎧 Ready to listen to your Sleepy Dull Stories sample!")
+        else:
+            print(f"\n❌ Generation failed!")
 
-    if demo_file:
-        print(f"\n🎉 SUCCESS! Demo saved as: {demo_file}")
-        print("🎧 Listen to experience ElevenLabs FULL capabilities:")
-        print("   • 🎭 17 emotion tags: [whispers], [voice trembling], [ethereal]")
-        print("   • 🎵 14 sound effects: [footsteps], [wind chimes], [temple bells]")
-        print("   • 🎙️ 8 voice modulations: [voice cracking], [breathing slowing]")
-        print("   • 🌅 Atmospheric sounds: [dawn ambiance], [silk rustling]")
-        print("   • 📚 Historical storytelling with dramatic progression")
-        print("   • 🏛️ Alexandria setting with authentic details")
-
-        if features:
-            print("   • 🔥 ALL 39 ElevenLabs features restored!")
-
-        print("\n💥 Maximum ElevenLabs stress test - listen to the magic!")
-    else:
-        print("\n❌ Demo creation failed. Check the error messages above.")
-
+    except Exception as e:
+        print(f"💥 Error: {e}")
 
 if __name__ == "__main__":
     main()

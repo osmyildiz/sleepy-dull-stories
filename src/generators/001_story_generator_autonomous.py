@@ -51,18 +51,16 @@ class ServerConfig:
             "model": "claude-sonnet-4-20250514",
             "max_tokens": 64000,
             "temperature": 0.7,
-            "target_words_per_minute": 140,
+            "target_words_per_minute": 150,
             "validation_tolerance": 0.15,  # ±15% tolerance
             "toibin_style_required": True,
             "minimum_duration_minutes": 120,  # Minimum duration requirement
-            "three_stage_system": True,  # NEW: 3-stage system enabled
-            "duration_manipulation": {
-                "enabled": True,
-                "inflation_factor": 1.8,  # Ask for 1.8x the target duration
-                "success_threshold": 0.85,  # If we get 85%+ of real target, success
-                "max_inflation": 2.5,  # Never ask for more than 2.5x
-                "adaptive": True  # Learn from Claude's behavior
-            }
+            "three_stage_system": True,
+            "minimum_words_per_scene": 580,  # YENİ: Minimum garanti
+            "target_words_per_scene": 700,  # YENİ: Hedef kelime sayısı
+            "maximum_words_per_scene": 900
+
+
         }
 
         # Get API key
@@ -610,6 +608,13 @@ class ToibinStoryGenerator:
 
         enhanced_prompt = f"""Write a {duration:.1f}-minute CINEMATIC sleep story for "{topic}" Scene {scene_id} with HOLLYWOOD-LEVEL SOUND DESIGN.
 
+    ⚠️ CRITICAL WORD LIMIT - DO NOT EXCEED:
+- Target duration: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
+- Maximum words allowed: {int(sum(scene['duration_minutes'] for scene in chunk_scenes) * 150)} words
+- Each scene must be no more than 800 words, ideally around 700
+- Do not exceed this limit under any circumstances
+- Writing more = wasted content and budget loss
+
     STORY SETUP:
     - Topic: {topic} ({topic_type} - {time_period} period)
     - Character: {character}
@@ -622,6 +627,12 @@ class ToibinStoryGenerator:
 
     **AVAILABLE SOUND EFFECTS** (Use strategically throughout):
     {self._format_sound_library(available_sounds)}
+
+    **SOUND EFFECT LIMITATION (PRODUCTION EFFICIENCY):**
+    - Maximum 15 sound effects total per scene (ElevenLabs optimization)
+    - Quality over quantity - choose most impactful effects
+    - Each effect must enhance sleep experience
+    - Prioritize: Ambient (5) + Emotional (5) + Atmospheric (5) = 15 max
 
     **CINEMATIC STRUCTURE TO FOLLOW:**
     {story_structure}
@@ -941,7 +952,7 @@ class ToibinStoryGenerator:
                 "scene_number": i + 1,
                 "emotion": "peaceful",
                 "phase": "establishment",
-                "duration_range": (4.5, 7.0),  # INCREASED from (4.0, 6.5)
+                "duration_range": (4.0, 5.5),  # INCREASED from (4.0, 6.5)
                 "toibin_focus": "daily_life_observation"
             })
 
@@ -951,7 +962,7 @@ class ToibinStoryGenerator:
                 "scene_number": peaceful_count + i + 1,
                 "emotion": "curiosity",
                 "phase": "discovery",
-                "duration_range": (4.0, 6.0),  # INCREASED from (3.5, 5.0)
+                "duration_range": (3.5, 5.0),  # INCREASED from (3.5, 5.0)
                 "toibin_focus": "character_recognition"
             })
 
@@ -961,7 +972,7 @@ class ToibinStoryGenerator:
                 "scene_number": peaceful_count + curiosity_count + i + 1,
                 "emotion": "contemplation",
                 "phase": "recognition",
-                "duration_range": (3.5, 5.5),  # INCREASED from (3.0, 4.5)
+                "duration_range": (3.5, 5.0),  # INCREASED from (3.0, 4.5)
                 "toibin_focus": "internal_complexity"
             })
 
@@ -971,7 +982,7 @@ class ToibinStoryGenerator:
                 "scene_number": peaceful_count + curiosity_count + contemplation_count + i + 1,
                 "emotion": "resolution",
                 "phase": "acceptance",
-                "duration_range": (5.0, 8.0),  # INCREASED from (4.5, 7.0)
+                "duration_range": (4.0, 5.0),  # INCREASED from (4.5, 7.0)
                 "toibin_focus": "quiet_acceptance"
             })
 
@@ -1329,6 +1340,7 @@ class ToibinStoryGenerator:
 
         stage3_prompt = f"""You are CLAUDE, master film director creating the FINAL THIRD scene plan for "{topic}" in COLM TÓIBÍN's literary style WITH ELEVENLABS EMOTION TAG GUIDANCE.
 
+        
         TOPIC: {topic}
         DESCRIPTION: {description}
 
@@ -1533,9 +1545,18 @@ class ToibinStoryGenerator:
 
         chunk_prompt = f"""Write {len(chunk_scenes)} TÓIBÍN masterpiece sleep stories with EMBEDDED ELEVENLABS EMOTION TAGS for "{topic}" (Chunk {chunk_index // 4 + 1}).
 
-    ⏰ CRITICAL DURATION REQUIREMENTS:
-    - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-    - Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
+    ⏰ REMOVED CONFLICTING INSTRUCTIONS:
+- NO "keep stories short" - stories must be SUBSTANTIAL
+- NO maximum word limits - write to meet duration requirements
+- FOCUS: Each scene MUST reach its word target
+- QUALITY: Rich, detailed, contemplative Tóibín prose
+
+WORD COUNT STRATEGY:
+- Use extensive environmental descriptions (150-200 words per scene)
+- Include character internal psychology depth (100-150 words per scene)
+- Add contemplative philosophical moments (100-150 words per scene)
+- Rich sensory details with sound effects (150-200 words per scene)
+- Extended dialogue and character interactions (remaining words)
 
     🎬 CINEMATIC SOUND DESIGN REQUIREMENTS:
     - Use our enhanced sound design system with ambient, emotional, and action sounds
@@ -1584,7 +1605,7 @@ class ToibinStoryGenerator:
                 max_tokens=18000,
                 temperature=0.7,
                 timeout=180,
-                system="You are COLM TÓIBÍN writing a focused chunk of your literary masterwork with embedded ElevenLabs emotion tags. Each story must be substantial and detailed enough to meet its target duration through rich atmospheric detail and character psychology.",
+                system="You are COLM TÓIBÍN writing EXACTLY the target word count specified. CRITICAL: Do not exceed the word limit. Maximum 800 words per scene. Write exactly the number of words requested - no more, no less. Quality over length. Each story must meet precise duration through efficient, impactful prose with embedded ElevenLabs emotion tags.",
                 messages=[{"role": "user", "content": chunk_prompt}]
             )
 
@@ -1730,10 +1751,11 @@ class ToibinStoryGenerator:
 
         stage2_prompt = f"""Continue TÓIBÍN masterpiece with {len(chunk_scenes)} stories WITH EMBEDDED ELEVENLABS EMOTION TAGS for "{topic}" (Stage 2 Chunk {chunk_index // 4 + 1}).
 
-    ⏰ CRITICAL DURATION REQUIREMENTS:
-    - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-    - Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
-    - Maintain character continuity from Stage 1
+    CRITICAL: KEEP STORIES SHORT  # ✅ Ekle
+- Target duration: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes  
+- Maximum words per scene: 700 words  # ✅ Değiştir
+- Each story should be 600-800 words exactly  # ✅ Ekle
+- Focus on ESSENCE, not length  # ✅ Ekle
 
    🎬 ENHANCED SOUND DESIGN REQUIREMENTS:
     - Use cinematic sound design system with topic-specific effects
@@ -1777,7 +1799,7 @@ class ToibinStoryGenerator:
                 max_tokens=18000,
                 temperature=0.7,
                 timeout=180,
-                system="You are COLM TÓIBÍN continuing your literary masterwork with embedded ElevenLabs emotion tags. Maintain absolute character consistency from Stage 1. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
+                system="You are COLM TÓIBÍN continuing your literary masterwork with embedded ElevenLabs emotion tags. Maximum 800 words per scene. Maintain absolute character consistency from Stage 1. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
                 messages=[{"role": "user", "content": stage2_prompt}]
             )
 
@@ -1921,11 +1943,11 @@ class ToibinStoryGenerator:
 
         stage3_prompt = f"""Complete TÓIBÍN masterpiece with {len(chunk_scenes)} stories WITH EMBEDDED ELEVENLABS EMOTION TAGS for "{topic}" (Stage 3 Chunk {chunk_index // 4 + 1}).
 
-    ⏰ CRITICAL DURATION REQUIREMENTS:
-    - Each story must be SUBSTANTIAL and DETAILED to meet its target duration
-    - Target total for this chunk: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
-    - Maintain character continuity from Stages 1 & 2
-    - Bring story to peaceful, understated resolution
+    ⏰CRITICAL: KEEP STORIES SHORT  # ✅ Ekle
+- Target duration: {sum(scene['duration_minutes'] for scene in chunk_scenes):.1f} minutes
+- Maximum words per scene: 700 words  # ✅ Değiştir  
+- Each story should be 600-800 words exactly  # ✅ Ekle
+- Focus on ESSENCE, not length  # ✅ Ekle
 
     🎭 ELEVENLABS EMOTION TAG REQUIREMENTS:
     - Embed emotion tags DIRECTLY in sentences
@@ -1971,7 +1993,7 @@ class ToibinStoryGenerator:
                 max_tokens=18000,
                 temperature=0.7,
                 timeout=180,
-                system="You are COLM TÓIBÍN completing your literary masterwork with embedded ElevenLabs emotion tags. Maintain absolute character consistency throughout and bring all character arcs to their quiet, understated resolution. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
+                system="You are COLM TÓIBÍN completing your literary masterwork with embedded ElevenLabs emotion tags. Maximum 800 words per scene. Maintain absolute character consistency throughout and bring all character arcs to their quiet, understated resolution. Each story must be substantial enough to meet its target duration through rich detail and contemplative pacing.",
                 messages=[{"role": "user", "content": stage3_prompt}]
             )
 
@@ -2053,7 +2075,7 @@ class ToibinStoryGenerator:
             print(f"📊 Scene {scene_id}: {word_count} words = {estimated_duration:.1f}min (target: {target_duration:.1f}min)")
 
             # Check if extension needed (15% tolerance)
-            tolerance = CONFIG.claude_config.get("validation_tolerance", 0.15)
+            tolerance = CONFIG.claude_config.get("validation_tolerance", 0.25)
             min_acceptable_duration = target_duration * (1 - tolerance)
 
             if estimated_duration < min_acceptable_duration:
@@ -2409,206 +2431,739 @@ Generate visual prompts for ALL {total_scenes} scenes based on the actual story 
             raise
 
     def _create_social_media_content(self, topic: str, description: str, master_plan: Dict,
-                                   all_stories: Dict) -> Dict:
-        """Create platform-specific social media content for viral reach using Claude API"""
+                                     all_stories: Dict) -> Dict:
+        """Create production-ready social media content with proper 60s timeline"""
 
-        self.log_step("Creating Social Media Content for Viral Growth (3-Stage System)")
+        self.log_step("Creating Production-Ready Social Media Content")
 
         scene_plan = master_plan.get('master_plan', {}).get('scene_plan', [])
+        disaster_context = self._analyze_disaster_context(topic)
 
-        # Select best scenes for social media (high emotion, visual potential)
-        selected_scenes = self._select_best_scenes_for_social(scene_plan)
+        # Get first scene for content
+        first_scene = scene_plan[0] if scene_plan else {}
+        first_story = all_stories.get(str(first_scene.get('scene_id', 1)), '') if first_scene else ''
+        main_character = first_scene.get('main_character', 'Unknown')
+        setting = first_scene.get('setting', 'Unknown setting')
 
-        social_media_prompt = f"""Create viral social media content for "{topic}" designed to drive traffic to Sleepy Dull Stories YouTube channel (goal: 1M subscribers).
+        # PRODUCTION-FOCUSED PROMPT
+        production_prompt = f"""Create a complete 60-second social media video template for "{topic}" with EXACT production specifications.
 
-CRITICAL: Each piece must include MIDJOURNEY VISUAL PROMPTS for image generation!
+    TOPIC: {topic}
+    DESCRIPTION: {description}
+    DISASTER TYPE: {disaster_context['disaster_type']}
+    PEACEFUL MOMENT: {disaster_context['peaceful_moment']}
+    MAIN CHARACTER: {main_character}
+    SETTING: {setting}
+    STORY SAMPLE: {first_story[:300]}...
 
-TOPIC: {topic}
-DESCRIPTION: {description}
-3-STAGE SYSTEM USED: Yes (enhanced character continuity)
+    🎬 REQUIRED 60-SECOND TIMELINE:
+    - 0-10s: Intro (logo + title + cinematic establishing shot)
+    - 10-50s: Story content (4 x 10-second visual scenes + narration)
+    - 50-60s: Outro (subscribe + final scene)
 
-SELECTED SCENES FOR ADAPTATION:
-{self._format_scenes_for_social(selected_scenes, all_stories)}
+    📝 STORY REQUIREMENTS:
+    - Exactly 88 words for 40-second narration (140 words/minute)
+    - Include 8-10 ElevenLabs sound effects [like this]
+    - "Last peaceful day/moment before {disaster_context['disaster_type']}" concept
+    - Tóibín literary quality but compressed
+    - End with hint that "this would be the last time..."
 
-Create 15 pieces of content (5 per platform) that will:
+    🎥 VISUAL REQUIREMENTS:
+    - 6 total visual prompts needed (thumbnail + intro + 4 story scenes + outro)
+    - Each visual prompt must be detailed and production-ready
+    - Each scene exactly 10 seconds of visual content
+    - Prompts suitable for Midjourney/AI image generation
 
-🎯 **Drive 1M Subscriber Growth** through strategic social media funneling
-📱 **Platform Native Content** that feels authentic to each platform
-🎭 **Maintain Tóibín Literary Quality** even in 60-second format  
-🔥 **Viral Potential** with hooks, mystery, and educational value
-💤 **Sleep Content Branding** - establish Sleepy Dull Stories as THE sleep story destination
-
-OUTPUT FORMAT:
-{{
-  "social_media_strategy": {{
-    "campaign_name": "Sleepy Dull Stories - {topic} Viral Campaign",
-    "main_story_connection": {{
-      "selected_scenes": [scene IDs],
-      "character_focus": "[Main character]",
-      "viral_hooks": ["hook1", "hook2", "hook3"]
-    }},
-    "growth_target": "1M subscribers",
-    "cross_platform_cta": "Full story → @SleepyDullStories",
-    "three_stage_advantage": "Enhanced character depth and continuity"
-  }},
-
-  "youtube_shorts": [
+    OUTPUT FORMAT:
     {{
-      "short_id": 1,
-      "title": "[Viral title with character/mystery hook]",
-      "duration_seconds": 60,
-      "based_on_scene": [scene_id],
-      "script": {{
-        "hook": "[0-5s] [Immediate engagement hook]",
-        "story_teaser": "[5-45s] [Compressed scene maintaining Tóibín quality]", 
-        "cta": "[45-60s] [Strong call to action to main channel]"
-      }},
-      "midjourney_prompt": "[DETAILED Midjourney prompt for thumbnail/cover image - 9:16 aspect ratio, character positioning, historical setting, dramatic lighting, text space consideration]",
-      "visual_elements": {{
-        "character_positioning": "[Where character should be positioned for text overlay]",
-        "mood_lighting": "[Dramatic/mysterious/peaceful lighting description]",
-        "historical_accuracy": "[Period-specific visual elements]",
-        "text_overlay_space": "[Where text/titles can be placed]"
-      }}
-    }}
-  ],
+      "universal_60s_template": {{
+        "concept": "Last Peaceful [Time] Before {disaster_context['disaster_type']}",
+        "total_duration": 60,
+        "target_audience": "Sleep content + History enthusiasts",
 
-  "instagram_reels": [
-    {{
-      "reel_id": 1,
-      "title": "[Instagram-optimized title]",
-      "duration_seconds": 60,
-      "based_on_scene": [scene_id],
-      "script": {{
-        "hook": "[0-3s] [Instagram-style hook]",
-        "visual_story": "[3-50s] [Visual storytelling adaptation]",
-        "cta": "[50-60s] [Instagram-appropriate CTA]"
-      }},
-      "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 vertical, Instagram-aesthetic, character focused, bright/engaging lighting, space for text overlays and stickers]",
-      "visual_elements": {{
-        "instagram_aesthetic": "[Bright, clean, engaging visual style]",
-        "character_focus": "[How character should be presented]",
-        "background_setting": "[Historical setting adapted for Instagram appeal]",
-        "overlay_compatibility": "[Areas for text overlays and stickers]"
-      }}
-    }}
-  ],
+        "intro_section": {{
+          "duration_seconds": 10,
+          "content": {{
+            "logo_animation": "Sleepy Dull Stories epic reveal",
+            "background_music": "Cinematic {time_period} theme build-up",
+            "text_overlay": "[Main clickbait title]",
+            "visual_style": "Dark, mysterious, premium sleep brand"
+          }},
+          "visual_prompt": "[Detailed cinematic establishing shot prompt for {setting} with {disaster_context['disaster_type']} in background]",
+          "production_notes": "Logo animation over establishing footage"
+        }},
 
-  "tiktok_videos": [
-    {{
-      "tiktok_id": 1,
-      "title": "[TikTok-optimized title]", 
-      "duration_seconds": 60,
-      "based_on_scene": [scene_id],
-      "script": {{
-        "hook": "[0-3s] [TikTok-style educational/mystery hook]",
-        "educational_story": "[3-50s] [Educational angle + story adaptation]",
-        "cta": "[50-60s] [TikTok-appropriate CTA]"
-      }},
-      "midjourney_prompt": "[DETAILED Midjourney prompt - 9:16 mobile format, TikTok-native style, educational/storytelling visual approach, dynamic composition, space for captions]",
-      "visual_elements": {{
-        "tiktok_native_style": "[Dynamic, engaging, mobile-first composition]",
-        "educational_visual": "[How to present educational/historical content visually]",
-        "character_presentation": "[Character styling for TikTok audience]",
-        "caption_space": "[Areas where TikTok captions/text can be placed]"
-      }}
-    }}
-  ]
-}}
+        "story_section": {{
+          "duration_seconds": 40,
+          "story_content": "[Exactly 88 words with embedded [sound effects] telling the peaceful moment before disaster]",
+          "word_count": 88,
+          "elevenlabs_ready": true,
+          "sound_effects_embedded": "[number of effects]",
 
-Transform {topic} into viral social media gold with stunning Midjourney visuals while maintaining literary excellence!"""
+          "visual_sequence": [
+            {{
+              "timing": "10-20s",
+              "visual_prompt": "[Detailed prompt for {main_character} doing main activity in {setting}]",
+              "story_sync": "[What part of story this visual matches]"
+            }},
+            {{
+              "timing": "20-30s", 
+              "visual_prompt": "[Detailed prompt for secondary characters/families in {setting}]",
+              "story_sync": "[What part of story this visual matches]"
+            }},
+            {{
+              "timing": "30-40s",
+              "visual_prompt": "[Detailed prompt for {disaster_context['disaster_type']} looking peaceful/ominous]",
+              "story_sync": "[What part of story this visual matches]"
+            }},
+            {{
+              "timing": "40-50s",
+              "visual_prompt": "[Detailed prompt for final peaceful activity before disaster]",
+              "story_sync": "[What part of story this visual matches]"
+            }}
+          ]
+        }},
+
+        "outro_section": {{
+          "duration_seconds": 10,
+          "content": {{
+            "subscribe_animation": "Gentle, sleep-brand appropriate",
+            "channel_info": "Full 2+ hour {topic} story on main channel",
+            "background_music": "Soft fade to peaceful tone",
+            "text_overlay": "Subscribe for more peaceful historical moments"
+          }},
+          "visual_prompt": "[Detailed prompt for final peaceful scene with subscribe overlay]",
+          "production_notes": "Subscribe animation over final scene"
+        }}
+      }},
+
+      "clickbait_titles": [
+        {{
+          "title": "The Last Peaceful [Time] Before {topic} Changed Everything",
+          "character_limit": "[length]",
+          "positioning": "top_center",
+          "font_style": "bold_cinematic",
+          "color_scheme": "warm_gold_deep_red",
+          "viral_potential": "very_high"
+        }},
+        {{
+          "title": "What {main_character} Didn't Know Was Coming",
+          "character_limit": "[length]",
+          "positioning": "center_left",
+          "font_style": "modern_dramatic", 
+          "color_scheme": "electric_orange_dark",
+          "viral_potential": "high"
+        }},
+        {{
+          "title": "Nobody Knew This Would Be Their Last [Time]",
+          "character_limit": "[length]",
+          "positioning": "bottom_center",
+          "font_style": "elegant_serif",
+          "color_scheme": "sunset_orange_purple",
+          "viral_potential": "high"
+        }},
+        {{
+          "title": "The Final [Time] Before {disaster_context['disaster_type']}",
+          "character_limit": "[length]",
+          "positioning": "top_left", 
+          "font_style": "impact_bold",
+          "color_scheme": "disaster_red_white",
+          "viral_potential": "very_high"
+        }},
+        {{
+          "title": "{topic}: The [Time] Before Disaster",
+          "character_limit": "[length]",
+          "positioning": "center_right",
+          "font_style": "cinematic_caps", 
+          "color_scheme": "golden_hour_charcoal",
+          "viral_potential": "high"
+        }}
+      ],
+
+      "thumbnail_design": {{
+        "concept": "{main_character} in contemplative pose with {disaster_context['disaster_type']} in background",
+        "character_positioning": "right_side_profile",
+        "text_space": "left_third_clear",
+        "main_visual_prompt": "[Detailed Midjourney prompt for {main_character} in {setting} with {disaster_context['disaster_type']} background, perfect for thumbnail]",
+        "color_palette": "[appropriate colors for {topic}]",
+        "lighting": "Golden hour with dramatic shadows",
+        "mood": "Peaceful yet subtly foreboding"
+      }},
+
+      "platform_metadata": {{
+        "youtube_shorts": {{
+          "title": "[Best clickbait title] (60s Sleep Story)",
+          "description": "Experience the final peaceful moments before {topic}. Full 2+ hour story on main channel.\\n\\n#SleepStory #{topic.lower().replace(' ', '')} #History #LastDay",
+          "hashtags": ["#sleepstory", "#{topic.lower().replace(' ', '')}", "#history", "#peaceful", "#shorts"],
+          "category": "Education"
+        }},
+        "instagram_reels": {{
+          "caption": "The last peaceful {disaster_context['peaceful_moment']} before everything changed forever 🌅\\n\\nFull story link in bio 💤",
+          "hashtags": ["#lastpeacefulday", "#{topic.lower().replace(' ', '')}", "#sleepstory", "#history", "#peaceful", "#sleepydullstories", "#reels"],
+          "aesthetic": "Golden hour atmosphere, contemplative and beautiful"
+        }},
+        "tiktok": {{
+          "caption": "POV: You're living your last peaceful day in {topic} but you don't know what's coming 😢",
+          "hashtags": ["#{topic.lower().replace(' ', '')}", "#lastday", "#history", "#fyp", "#sleepstory", "#peaceful", "#educational", "#pov"],
+          "hook_angle": "POV/Historical tragedy"
+        }}
+      }},
+
+      "production_specifications": {{
+        "video_timeline": [
+          {{
+            "segment": "intro",
+            "start_time": "00:00",
+            "end_time": "00:10",
+            "duration": 10,
+            "visual_source": "intro_section visual_prompt",
+            "audio": "Logo animation + cinematic music + title overlay",
+            "text_overlay": "Selected clickbait title with animation"
+          }},
+          {{
+            "segment": "story_part_1",
+            "start_time": "00:10", 
+            "end_time": "00:20",
+            "duration": 10,
+            "visual_source": "story_section visual_sequence[0] prompt",
+            "audio": "Story narration part 1",
+            "text_overlay": "Optional story subtitles"
+          }},
+          {{
+            "segment": "story_part_2",
+            "start_time": "00:20",
+            "end_time": "00:30", 
+            "duration": 10,
+            "visual_source": "story_section visual_sequence[1] prompt",
+            "audio": "Story narration part 2",
+            "text_overlay": "Optional story subtitles"
+          }},
+          {{
+            "segment": "story_part_3",
+            "start_time": "00:30",
+            "end_time": "00:40",
+            "duration": 10,
+            "visual_source": "story_section visual_sequence[2] prompt", 
+            "audio": "Story narration part 3",
+            "text_overlay": "Optional story subtitles"
+          }},
+          {{
+            "segment": "story_part_4",
+            "start_time": "00:40",
+            "end_time": "00:50",
+            "duration": 10,
+            "visual_source": "story_section visual_sequence[3] prompt",
+            "audio": "Story narration part 4", 
+            "text_overlay": "Optional story subtitles"
+          }},
+          {{
+            "segment": "outro",
+            "start_time": "00:50",
+            "end_time": "01:00",
+            "duration": 10,
+            "visual_source": "outro_section visual_prompt",
+            "audio": "Subscribe call-to-action + peaceful fade",
+            "text_overlay": "Subscribe • Full Story on Main Channel"
+          }}
+        ],
+
+        "video_format": {{
+          "resolution": "1080x1920 (9:16 vertical)",
+          "frame_rate": "30fps",
+          "duration": "exactly 60 seconds", 
+          "export_format": "MP4 H.264"
+        }},
+
+        "visual_generation_order": [
+          "1. Generate thumbnail using thumbnail_design main_visual_prompt",
+          "2. Generate intro visual using intro_section visual_prompt",
+          "3. Generate story visuals 1-4 using story_section visual_sequence prompts", 
+          "4. Generate outro visual using outro_section visual_prompt",
+          "Total: 6 visual generations needed"
+        ]
+      }},
+
+      "elevenlabs_production": {{
+        "audio_segments": [
+          {{
+            "segment": "intro_music",
+            "duration": 10,
+            "content": "Cinematic intro music", 
+            "voice_needed": false
+          }},
+          {{
+            "segment": "main_story",
+            "duration": 40,
+            "content": "[88-word story with embedded sound effects]",
+            "voice_settings": "alloy, 0.85x speed, gentle and contemplative",
+            "elevenlabs_ready": true
+          }},
+          {{
+            "segment": "outro",
+            "duration": 10,
+            "content": "Subscribe call-to-action + peaceful fade",
+            "voice_needed": true,
+            "voice_settings": "warm, inviting, non-commercial"
+          }}
+        ]
+      }},
+
+      "production_ready": true
+    }}
+
+    Create this complete production template with all visual prompts and timeline specifications:"""
 
         try:
             self.api_call_count += 1
 
             response = self.client.messages.create(
                 model=CONFIG.claude_config["model"],
-                max_tokens=20000,
-                temperature=0.8,
-                timeout=300,
-                system="You are a viral social media strategist AND Colm Tóibín literary expert AND Midjourney prompt specialist. Create platform-native content that maintains literary quality while optimizing for viral growth. The 3-stage system provides enhanced character depth.",
-                messages=[{"role": "user", "content": social_media_prompt}]
+                max_tokens=8000,  # Enough for complete structure
+                temperature=0.7,
+                timeout=180,
+                system="You are a production expert creating a complete 60-second social media video template. Include ALL visual prompts, exact timeline, and production specifications. This must be ready for immediate video production.",
+                messages=[{"role": "user", "content": production_prompt}]
             )
 
             content = response.content[0].text
-
-            print(f"✅ Social media content (3-Stage) complete: {len(content):,} characters")
+            print(f"✅ Production social media template: {len(content):,} characters")
 
             # Calculate cost
-            input_tokens = len(social_media_prompt) // 4
+            input_tokens = len(production_prompt) // 4
             output_tokens = len(content) // 4
             stage_cost = (input_tokens * 0.000003) + (output_tokens * 0.000015)
             self.total_cost += stage_cost
 
-            # Parse response
-            parsed_result = self._parse_claude_response(content, "social_media")
+            # Enhanced parsing for production format
+            parsed_result = self._parse_production_social_media(content)
 
-            self.log_step("Social Media Content Created (3-Stage)", "SUCCESS", {
-                "youtube_shorts": len(parsed_result.get('youtube_shorts', [])),
-                "instagram_reels": len(parsed_result.get('instagram_reels', [])),
-                "tiktok_videos": len(parsed_result.get('tiktok_videos', [])),
-                "three_stage_enhanced": True,
-                "stage_cost": stage_cost
+            # Ensure all required fields are present
+            if not self._validate_production_format(parsed_result):
+                print("⚠️ Production format incomplete, enhancing...")
+                parsed_result = self._enhance_production_format(parsed_result, topic, description, disaster_context,
+                                                                main_character, setting)
+
+            self.log_step("Production Social Media Template Created", "SUCCESS", {
+                "visual_prompts_included": len(
+                    parsed_result.get('production_specifications', {}).get('video_timeline', [])),
+                "timeline_complete": parsed_result.get('universal_60s_template', {}).get('total_duration') == 60,
+                "elevenlabs_ready": parsed_result.get('elevenlabs_production', {}).get('audio_segments', [{}])[1].get(
+                    'elevenlabs_ready', False),
+                "production_ready": True
             })
 
             return parsed_result
 
         except Exception as e:
-            self.log_step("Social Media Content (3-Stage) Failed", "ERROR")
-            CONFIG.logger.error(f"Social media content error: {e}")
-            raise
+            self.log_step("Production Social Media Creation Failed", "ERROR")
+            CONFIG.logger.error(f"Production social media error: {e}")
 
-    def _select_best_scenes_for_social(self, scene_plan: List[Dict]) -> List[Dict]:
-        """Select scenes with highest viral potential"""
+            # Fallback with production format
+            return self._create_production_fallback(topic, description, disaster_context, main_character, setting)
 
-        # Score scenes based on viral potential
-        scored_scenes = []
-        for scene in scene_plan:
-            score = 0
+    def _parse_production_social_media(self, content: str) -> Dict:
+        """Enhanced parsing specifically for production social media format"""
+        try:
+            # Standard JSON cleaning
+            content = content.strip()
+            if content.startswith('```json'):
+                content = content[7:]
+            elif content.startswith('```'):
+                content = content[3:]
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
 
-            # High emotion scenes
-            if scene.get('emotion') in ['curiosity', 'recognition', 'resolution']:
-                score += 3
+            # Try direct JSON parse
+            return json.loads(content)
 
-            # Character-focused scenes
-            if 'character' in scene.get('scene_description', '').lower():
-                score += 2
+        except json.JSONDecodeError as e:
+            print(f"⚠️ JSON parse failed: {e}")
+            print("🔧 Attempting enhanced production parsing...")
 
-            # Visual potential
-            if any(word in scene.get('setting', '').lower() for word in
-                   ['night', 'fire', 'door', 'window', 'market', 'house']):
-                score += 2
+            # Enhanced extraction for production format
+            return self._extract_production_format(content)
 
-            # Mystery elements
-            if any(word in scene.get('emotional_core', '').lower() for word in
-                   ['secret', 'hidden', 'unknown', 'mystery', 'wonder']):
-                score += 3
+    def _extract_production_format(self, content: str) -> Dict:
+        """Extract production format when JSON parsing fails"""
+        import re
 
-            scored_scenes.append((score, scene))
+        result = {
+            "universal_60s_template": {
+                "concept": "",
+                "total_duration": 60,
+                "intro_section": {"duration_seconds": 10, "visual_prompt": ""},
+                "story_section": {"duration_seconds": 40, "story_content": "", "visual_sequence": []},
+                "outro_section": {"duration_seconds": 10, "visual_prompt": ""}
+            },
+            "clickbait_titles": [],
+            "thumbnail_design": {"main_visual_prompt": ""},
+            "production_specifications": {"video_timeline": []},
+            "elevenlabs_production": {"audio_segments": []}
+        }
 
-        # Sort by score and take top 5
-        scored_scenes.sort(key=lambda x: x[0], reverse=True)
-        return [scene for score, scene in scored_scenes[:5]]
+        try:
+            # Extract story content
+            story_match = re.search(r'"story_content":\s*"([^"]+(?:\\.[^"]*)*)"', content, re.DOTALL)
+            if story_match:
+                result["universal_60s_template"]["story_section"]["story_content"] = story_match.group(1)
 
-    def _format_scenes_for_social(self, selected_scenes: List[Dict], all_stories: Dict) -> str:
-        """Format selected scenes for social media prompt"""
+            # Extract visual prompts
+            visual_matches = re.findall(r'"visual_prompt":\s*"([^"]+(?:\\.[^"]*)*)"', content, re.DOTALL)
+            if visual_matches:
+                result["universal_60s_template"]["intro_section"]["visual_prompt"] = visual_matches[0] if len(
+                    visual_matches) > 0 else ""
+                result["universal_60s_template"]["outro_section"]["visual_prompt"] = visual_matches[-1] if len(
+                    visual_matches) > 1 else ""
 
-        formatted = []
-        for scene in selected_scenes:
-            scene_id = str(scene['scene_id'])
-            story_content = all_stories.get(scene_id, '')
+            # Extract titles
+            title_matches = re.findall(r'"title":\s*"([^"]+)"', content)
+            if title_matches:
+                result["clickbait_titles"] = [{"title": title, "viral_potential": "high"} for title in
+                                              title_matches[:5]]
 
-            formatted.append(f"""
-SCENE {scene_id}: {scene['title']}
-Emotion: {scene['emotion']} | Duration: {scene['duration_minutes']:.1f}min
-Setting: {scene['setting']}
-Character: {scene['main_character']}
-Emotional Core: {scene['emotional_core']}
-Story Content (first 500 chars): {story_content[:500]}...
-Viral Potential: {scene.get('viral_score', 'High')}
-""")
+            return result
 
-        return "\n".join(formatted)
+        except Exception as e:
+            print(f"⚠️ Enhanced parsing failed: {e}")
+            return result
+
+    def _validate_production_format(self, data: Dict) -> bool:
+        """Validate that production format has all required elements"""
+        required_checks = [
+            data.get('universal_60s_template', {}).get('story_section', {}).get('story_content'),
+            data.get('universal_60s_template', {}).get('intro_section', {}).get('visual_prompt'),
+            data.get('clickbait_titles'),
+            data.get('production_specifications', {}).get('video_timeline')
+        ]
+
+        return all(required_checks)
+
+    def _enhance_production_format(self, data: Dict, topic: str, description: str,
+                                   disaster_context: Dict, main_character: str, setting: str) -> Dict:
+        """Enhance production format with missing elements"""
+
+        # Ensure story content
+        if not data.get('universal_60s_template', {}).get('story_section', {}).get('story_content'):
+            data['universal_60s_template']['story_section'][
+                'story_content'] = f"[gentle evening sounds] The peaceful {disaster_context['peaceful_moment']} in {topic} held secrets no one could imagine. [soft footsteps] {main_character} went about the familiar routine, [contemplative pause] unaware that everything would soon change. [distant sounds] In {setting}, life continued its gentle rhythm, [whispers] while {disaster_context['disaster_type']} waited silently. [soft exhale] This would be their last quiet moment, [final breath] before history changed forever."
+            data['universal_60s_template']['story_section']['word_count'] = 88
+            data['universal_60s_template']['story_section']['elevenlabs_ready'] = True
+
+        # Ensure visual prompts
+        if not data.get('universal_60s_template', {}).get('intro_section', {}).get('visual_prompt'):
+            data['universal_60s_template']['intro_section'][
+                'visual_prompt'] = f"Cinematic establishing shot of {setting} at golden hour, {disaster_context['disaster_type']} visible in background, peaceful atmosphere with subtle ominous undertones, beautiful lighting, wide scenic view"
+
+        # Ensure visual sequence
+        if not data.get('universal_60s_template', {}).get('story_section', {}).get('visual_sequence'):
+            data['universal_60s_template']['story_section']['visual_sequence'] = [
+                {
+                    "timing": "10-20s",
+                    "visual_prompt": f"{main_character} in {setting}, peaceful daily activity, golden hour lighting, contemplative mood",
+                    "story_sync": f"{main_character} going about routine"
+                },
+                {
+                    "timing": "20-30s",
+                    "visual_prompt": f"Families and people in {setting}, evening activities, warm domestic scenes, peaceful life",
+                    "story_sync": "Community life and activities"
+                },
+                {
+                    "timing": "30-40s",
+                    "visual_prompt": f"{disaster_context['disaster_type']} in peaceful state, beautiful but ominous, scenic background view",
+                    "story_sync": f"{disaster_context['disaster_type']} waiting silently"
+                },
+                {
+                    "timing": "40-50s",
+                    "visual_prompt": f"Final peaceful moments in {setting}, last activities before change, poignant atmosphere",
+                    "story_sync": "Last quiet moments before history changes"
+                }
+            ]
+
+        # Ensure clickbait titles
+        if not data.get('clickbait_titles'):
+            data['clickbait_titles'] = [
+                {"title": f"The Last Peaceful Day Before {topic} Changed Everything", "viral_potential": "very_high"},
+                {"title": f"What {main_character} Didn't Know Was Coming", "viral_potential": "high"},
+                {"title": "Nobody Knew This Would Be Their Last Day", "viral_potential": "high"},
+                {"title": f"The Final Moments Before {disaster_context['disaster_type']}",
+                 "viral_potential": "very_high"},
+                {"title": f"{topic}: The Day Before Disaster", "viral_potential": "high"}
+            ]
+
+        # Ensure production timeline
+        if not data.get('production_specifications', {}).get('video_timeline'):
+            data['production_specifications'] = {
+                "video_timeline": [
+                    {"segment": "intro", "start_time": "00:00", "end_time": "00:10", "duration": 10,
+                     "visual_source": "intro_section visual_prompt"},
+                    {"segment": "story_part_1", "start_time": "00:10", "end_time": "00:20", "duration": 10,
+                     "visual_source": "story visual_sequence[0]"},
+                    {"segment": "story_part_2", "start_time": "00:20", "end_time": "00:30", "duration": 10,
+                     "visual_source": "story visual_sequence[1]"},
+                    {"segment": "story_part_3", "start_time": "00:30", "end_time": "00:40", "duration": 10,
+                     "visual_source": "story visual_sequence[2]"},
+                    {"segment": "story_part_4", "start_time": "00:40", "end_time": "00:50", "duration": 10,
+                     "visual_source": "story visual_sequence[3]"},
+                    {"segment": "outro", "start_time": "00:50", "end_time": "01:00", "duration": 10,
+                     "visual_source": "outro_section visual_prompt"}
+                ],
+                "video_format": {"resolution": "1080x1920", "duration": "60 seconds"},
+                "visual_generation_order": ["6 total visuals needed: thumbnail + intro + 4 story scenes + outro"]
+            }
+
+        # Ensure platform metadata
+        if not data.get('platform_metadata'):
+            data['platform_metadata'] = {
+                "youtube_shorts": {"title": f"{data['clickbait_titles'][0]['title']} (60s Sleep Story)",
+                                   "hashtags": ["#sleepstory", "#history", "#peaceful"]},
+                "instagram_reels": {"caption": f"The last peaceful day in {topic} 🌅",
+                                    "hashtags": ["#lastday", "#peaceful", "#history"]},
+                "tiktok": {"caption": f"POV: Last day in {topic} 😢", "hashtags": ["#lastday", "#fyp", "#history"]}
+            }
+
+        data['production_ready'] = True
+        data['enhanced_format_applied'] = True
+
+        return data
+
+    def _create_production_fallback(self, topic: str, description: str, disaster_context: Dict,
+                                    main_character: str, setting: str) -> Dict:
+        """Create complete production fallback when API fails"""
+
+        return {
+            "universal_60s_template": {
+                "concept": f"Last Peaceful Day Before {disaster_context['disaster_type']}",
+                "total_duration": 60,
+                "target_audience": "Sleep content + History enthusiasts",
+
+                "intro_section": {
+                    "duration_seconds": 10,
+                    "content": {
+                        "logo_animation": "Sleepy Dull Stories epic reveal",
+                        "background_music": "Cinematic build-up",
+                        "text_overlay": f"The Last Peaceful Day: {topic}",
+                        "visual_style": "Dark, mysterious, premium"
+                    },
+                    "visual_prompt": f"Cinematic establishing shot of {setting} at golden hour, {disaster_context['disaster_type']} visible in peaceful background, wide scenic view, beautiful lighting, atmospheric mood",
+                    "production_notes": "Logo animation over establishing footage"
+                },
+
+                "story_section": {
+                    "duration_seconds": 40,
+                    "story_content": f"[gentle evening sounds] The peaceful {disaster_context['peaceful_moment']} in {topic} held secrets no one could imagine. [soft footsteps] {main_character} went about the familiar routine, [contemplative pause] unaware that everything would soon change. [distant sounds] In {setting}, life continued its gentle rhythm, [whispers] while {disaster_context['disaster_type']} waited silently. [soft exhale] This would be their last quiet moment, [final breath] before history changed forever.",
+                    "word_count": 88,
+                    "elevenlabs_ready": True,
+                    "sound_effects_embedded": 8,
+
+                    "visual_sequence": [
+                        {
+                            "timing": "10-20s",
+                            "visual_prompt": f"{main_character} in {setting} during {disaster_context['peaceful_moment']}, peaceful daily activity, golden hour lighting, contemplative mood, authentic period details",
+                            "story_sync": f"{main_character} going about routine"
+                        },
+                        {
+                            "timing": "20-30s",
+                            "visual_prompt": f"Families and community in {setting}, evening activities, warm domestic scenes, people unaware of coming change, peaceful life continuing",
+                            "story_sync": "Life continuing its gentle rhythm"
+                        },
+                        {
+                            "timing": "30-40s",
+                            "visual_prompt": f"{disaster_context['disaster_type']} in peaceful state, beautiful but subtly ominous, scenic background view, no sign of danger",
+                            "story_sync": f"{disaster_context['disaster_type']} waiting silently"
+                        },
+                        {
+                            "timing": "40-50s",
+                            "visual_prompt": f"Final peaceful moments in {setting}, last activities before change, poignant atmosphere, people preparing for night unaware of dawn",
+                            "story_sync": "Last quiet moments before history changes"
+                        }
+                    ]
+                },
+
+                "outro_section": {
+                    "duration_seconds": 10,
+                    "content": {
+                        "subscribe_animation": "Gentle, sleep-brand appropriate",
+                        "channel_info": f"Full 2+ hour {topic} story on main channel",
+                        "background_music": "Soft fade to peaceful tone",
+                        "text_overlay": "Subscribe for more peaceful historical moments"
+                    },
+                    "visual_prompt": f"Final peaceful scene of {setting} at night, people settling in for sleep, {disaster_context['disaster_type']} quiet in moonlight, subscribe overlay, very calming mood",
+                    "production_notes": "Subscribe animation over final peaceful scene"
+                }
+            },
+
+            "clickbait_titles": [
+                {"title": f"The Last Peaceful Day Before {topic} Changed Everything", "character_limit": 95,
+                 "positioning": "top_center", "viral_potential": "very_high"},
+                {"title": f"What {main_character} Didn't Know Was Coming at Dawn", "character_limit": 85,
+                 "positioning": "center_left", "viral_potential": "high"},
+                {"title": "Nobody Knew This Would Be Their Last Evening", "character_limit": 80,
+                 "positioning": "bottom_center", "viral_potential": "high"},
+                {"title": f"The Final Sunset Before {disaster_context['disaster_type']}", "character_limit": 75,
+                 "positioning": "top_left", "viral_potential": "very_high"},
+                {"title": f"{topic}: The Evening Before Disaster", "character_limit": 70, "positioning": "center_right",
+                 "viral_potential": "high"}
+            ],
+
+            "thumbnail_design": {
+                "concept": f"{main_character} in contemplative pose with {disaster_context['disaster_type']} in background",
+                "character_positioning": "right_side_profile",
+                "text_space": "left_third_clear",
+                "main_visual_prompt": f"{main_character} in profile in {setting}, {disaster_context['disaster_type']} visible in peaceful background, golden sunset lighting, contemplative expression, cinematic composition with space for text on left side",
+                "color_palette": "warm_golds_sunset_orange_subtle_ominous_undertones",
+                "lighting": "Golden hour with dramatic shadows",
+                "mood": "Peaceful yet subtly foreboding"
+            },
+
+            "platform_metadata": {
+                "youtube_shorts": {
+                    "title": f"The Last Peaceful Day Before {topic} Changed Everything (60s Sleep Story)",
+                    "description": f"Experience the final peaceful moments before {topic}. Full 2+ hour story on main channel.\n\n#SleepStory #{topic.lower().replace(' ', '')} #History #LastDay",
+                    "hashtags": ["#sleepstory", f"#{topic.lower().replace(' ', '')}", "#history", "#peaceful",
+                                 "#shorts"],
+                    "category": "Education"
+                },
+                "instagram_reels": {
+                    "caption": f"The last peaceful {disaster_context['peaceful_moment']} before everything changed forever 🌅\n\nFull story link in bio 💤",
+                    "hashtags": ["#lastpeacefulday", f"#{topic.lower().replace(' ', '')}", "#sleepstory", "#history",
+                                 "#peaceful", "#sleepydullstories", "#reels"],
+                    "aesthetic": "Golden hour atmosphere, contemplative and beautiful"
+                },
+                "tiktok": {
+                    "caption": f"POV: You're living your last peaceful day in {topic} but you don't know what's coming 😢",
+                    "hashtags": [f"#{topic.lower().replace(' ', '')}", "#lastday", "#history", "#fyp", "#sleepstory",
+                                 "#peaceful", "#educational", "#pov"],
+                    "hook_angle": "POV/Historical tragedy"
+                }
+            },
+
+            "production_specifications": {
+                "video_timeline": [
+                    {"segment": "intro", "start_time": "00:00", "end_time": "00:10", "duration": 10,
+                     "visual_source": "intro_section visual_prompt", "audio": "Logo + cinematic music + title"},
+                    {"segment": "story_part_1", "start_time": "00:10", "end_time": "00:20", "duration": 10,
+                     "visual_source": "story_section visual_sequence[0] prompt", "audio": "Story narration part 1"},
+                    {"segment": "story_part_2", "start_time": "00:20", "end_time": "00:30", "duration": 10,
+                     "visual_source": "story_section visual_sequence[1] prompt", "audio": "Story narration part 2"},
+                    {"segment": "story_part_3", "start_time": "00:30", "end_time": "00:40", "duration": 10,
+                     "visual_source": "story_section visual_sequence[2] prompt", "audio": "Story narration part 3"},
+                    {"segment": "story_part_4", "start_time": "00:40", "end_time": "00:50", "duration": 10,
+                     "visual_source": "story_section visual_sequence[3] prompt", "audio": "Story narration part 4"},
+                    {"segment": "outro", "start_time": "00:50", "end_time": "01:00", "duration": 10,
+                     "visual_source": "outro_section visual_prompt", "audio": "Subscribe + peaceful fade"}
+                ],
+                "video_format": {"resolution": "1080x1920 (9:16 vertical)", "frame_rate": "30fps",
+                                 "duration": "exactly 60 seconds", "export_format": "MP4 H.264"},
+                "visual_generation_order": ["1. Thumbnail", "2. Intro", "3. Story scenes 1-4", "4. Outro",
+                                            "Total: 6 visuals needed"]
+            },
+
+            "elevenlabs_production": {
+                "audio_segments": [
+                    {"segment": "intro_music", "duration": 10, "content": "Cinematic intro music",
+                     "voice_needed": False},
+                    {"segment": "main_story", "duration": 40, "content": "88-word story with embedded sound effects",
+                     "voice_settings": "alloy, 0.85x speed, gentle", "elevenlabs_ready": True},
+                    {"segment": "outro", "duration": 10, "content": "Subscribe call-to-action",
+                     "voice_settings": "warm, inviting", "voice_needed": True}
+                ]
+            },
+
+            "production_ready": True,
+            "fallback_used": True
+        }
+
+    def _analyze_disaster_context(self, topic: str) -> Dict:
+        """Analyze topic to determine disaster context and peaceful moment"""
+
+        topic_lower = topic.lower()
+
+        disaster_contexts = {
+            'cleopatra': {
+                'disaster_type': 'The Fall of Egypt',
+                'peaceful_moment': 'Her last morning in the palace gardens',
+                'setting': 'Royal gardens of Alexandria',
+                'mood': 'Serene contemplation before destiny'
+            },
+            'pompeii': {
+                'disaster_type': 'Mount Vesuvius Eruption',
+                'peaceful_moment': 'The unusually calm morning before',
+                'setting': 'Peaceful Roman villa courtyard',
+                'mood': 'Perfect tranquility before chaos',
+                'viral_hook': 'Nobody knew this peaceful morning would be their last',
+                'social_media_angle': 'The eerie calm before nature\'s fury'
+            },
+            'titanic': {
+    'disaster_type': 'The Sinking',
+    'peaceful_moment': 'The gentle evening before departure',
+    'setting': 'Southampton dock at sunset',
+    'mood': 'Quiet anticipation of grand voyage',
+    'viral_hook': 'The last peaceful evening before the unsinkable ship met its fate',
+    'social_media_angle': 'Luxury and dreams before the ocean claimed them all'
+},
+'anne boleyn': {
+    'disaster_type': 'Her Execution',
+    'peaceful_moment': 'Her final quiet evening in the Tower',
+    'setting': 'Tower of London chamber at dusk',
+    'mood': 'Dignified acceptance and prayer',
+    'viral_hook': 'A queen\'s final night of grace before dawn brought the axe',
+    'social_media_angle': 'Royal dignity in the face of Henry VIII\'s ultimate betrayal'
+},
+'marie antoinette': {
+    'disaster_type': 'The Revolution',
+    'peaceful_moment': 'Her last morning at Versailles',
+    'setting': 'Private chambers overlooking gardens',
+    'mood': 'Innocent luxury before upheaval',
+    'viral_hook': 'The last morning of French royalty before the people rose up',
+    'social_media_angle': 'Silk and pearls before guillotines and revolution'
+},
+'joan of arc': {
+    'disaster_type': 'Her Capture',
+    'peaceful_moment': 'Her final night of freedom in the fields',
+    'setting': 'French countryside under stars',
+    'mood': 'Divine connection before martyrdom',
+    'viral_hook': 'A peasant girl\'s last free night before becoming history\'s most famous martyr',
+    'social_media_angle': 'Faith under starlight before flames and sainthood'
+},
+'pearl harbor': {
+    'disaster_type': 'The Attack',
+    'peaceful_moment': 'The serene Sunday morning before',
+    'setting': 'Quiet Hawaiian beach at dawn',
+    'mood': 'Perfect peace before war',
+    'viral_hook': 'Paradise\'s final peaceful dawn before war changed everything',
+    'social_media_angle': 'Sunday morning serenity before the day that awakened America'
+},
+'chernobyl': {
+    'disaster_type': 'Nuclear Disaster',
+    'peaceful_moment': 'The quiet spring morning before',
+    'setting': 'Pristine Soviet town in bloom',
+    'mood': 'Industrial optimism before catastrophe',
+    'viral_hook': 'A perfect spring morning before the atom split a nation\'s dreams',
+    'social_media_angle': 'Blooming flowers before invisible death spread on the wind'
+},
+'constantinople': {
+    'disaster_type': 'The Final Siege',
+    'peaceful_moment': 'The last Byzantine morning',
+    'setting': 'Hagia Sophia at sunrise',
+    'mood': 'Imperial dignity before empire\'s end',
+    'viral_hook': 'The final dawn of a thousand-year empire before the walls fell',
+    'social_media_angle': 'Ancient glory\'s last breath before Ottoman conquest'
+}
+        }
+
+        # Find matching context
+        for key, context in disaster_contexts.items():
+            if key in topic_lower:
+                return context
+
+        # Default context for unknown topics
+        return {
+            'disaster_type': 'Historical Change',
+            'peaceful_moment': 'The calm before the storm',
+            'setting': 'A peaceful historical setting',
+            'mood': 'Serene anticipation of destiny'
+        }
 
     def _combine_all_results_3stages(self, master_plan: Dict, stage1_result: Dict, stage2_result: Dict, stage3_result: Dict,
                            production_data: Dict, topic: str, description: str) -> Dict:
@@ -3342,8 +3897,7 @@ Perfect for insomnia, anxiety relief, or anyone who loves historical fiction com
                 }
             ],
             "three_stage_composition": {
-                "stage1_timing": f"60s - {(three_stage_info.get('stage1_scenes', 0) * 4 * 60) + 60}s",
-                "stage2_timing": f"{(three_stage_info.get('stage1_scenes', 0) * 4 * 60) + 60}s - {((three_stage_info.get('stage1_scenes', 0) + three_stage_info.get('stage2_scenes', 0)) * 4 * 60) + 60}s",
+                "stage1_timing": f"60s - {int((three_stage_info.get('stage1_scenes', 0) * 4 * 60) + 60)}s",                "stage2_timing": f"{(three_stage_info.get('stage1_scenes', 0) * 4 * 60) + 60}s - {((three_stage_info.get('stage1_scenes', 0) + three_stage_info.get('stage2_scenes', 0)) * 4 * 60) + 60}s",
                 "stage3_timing": f"{((three_stage_info.get('stage1_scenes', 0) + three_stage_info.get('stage2_scenes', 0)) * 4 * 60) + 60}s - end",
                 "stage_transitions": "5-second crossfades between narrative stages"
             },
