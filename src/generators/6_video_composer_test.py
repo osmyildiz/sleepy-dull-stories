@@ -115,16 +115,16 @@ def quick_hook_subscribe_test():
         scene_duration = get_audio_duration(audio_file)
         print(f"   ⏱️ Süre: {scene_duration:.1f}s")
 
-        # Random scene seçimi (hook/subscribe için)
+        # Random scene seçimi (hook/subscribe için) - SADECE 1 SCENE
         if scene_type == "hook":
-            selected_scenes = random.sample(story_scenes[:10], min(3, len(story_scenes)))
+            selected_scenes = random.sample(story_scenes[:10], 1)  # Sadece 1 scene
         else:  # subscribe
-            selected_scenes = random.sample(story_scenes[:8], min(2, len(story_scenes)))
+            selected_scenes = random.sample(story_scenes[:8], 1)   # Sadece 1 scene
 
         print(f"   🎲 Seçilen sahneler: {[s['scene_number'] for s in selected_scenes]}")
 
-        # Her image için süre
-        image_duration = scene_duration / len(selected_scenes)
+        # Her image için süre - TEK SCENE OLDUĞU İÇİN FULL SÜRE
+        image_duration = scene_duration  # Tek scene, full süre
 
         # FFmpeg input listesi oluştur
         inputs = []
