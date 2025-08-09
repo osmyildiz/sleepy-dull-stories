@@ -114,6 +114,18 @@ class Enhanced4KVideoComposer:
         # Overlay path
         self.overlay_path = Path(self.paths['OVERLAY_DIR'])
 
+        fireplace_file = self.overlay_path / "fireplace.mp4"
+        print(f"🔥 Fireplace path: {fireplace_file}")
+        print(f"🔥 Fireplace exists: {fireplace_file.exists()}")
+
+        if fireplace_file.exists():
+            file_size_mb = os.path.getsize(fireplace_file) / (1024 * 1024)
+            print(f"🔥 Fireplace size: {file_size_mb:.1f} MB")
+        else:
+            print(f"⚠️  WARNING: Fireplace overlay not found!")
+            print(f"💥 STOPPING: Cannot proceed without fireplace overlay!")
+            sys.exit(1)  # Program durur
+
         # Setup logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("VideoComposer")
